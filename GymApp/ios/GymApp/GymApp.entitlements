@@ -2,7 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>aps-environment</key>
-	<string>development</string>
+	<!-- Push Notifications (aps-environment) removed: requires a paid Apple
+	     Developer account. Re-add the "Push Notifications" capability in Xcode
+	     once enrolled to enable iOS push. Android push is unaffected. -->
 </dict>
 </plist>
