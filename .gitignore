@@ -15,6 +15,9 @@ backend/data/
 .env
 backend/.env
 .env.production
+backend/gcp-key.json
+backend/cloud-sql-proxy
+gcp-key.json
 
 # misc
 .DS_Store
