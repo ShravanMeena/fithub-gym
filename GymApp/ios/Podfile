@@ -21,6 +21,12 @@ end
 target 'GymApp' do
   config = use_native_modules!
 
+  # Firebase is integrated as static libraries (no global use_frameworks!), so the
+  # Swift Firebase pods need module maps from their Obj-C deps to be importable.
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
