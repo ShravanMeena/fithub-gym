@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { db } from '../db/index.js';
+import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
 import { estimateFoodFromImage, estimateFoodFromText } from '../services/bedrock.js';
 import { aiRequired } from '../middleware/ai.js';
@@ -8,13 +8,9 @@ import { aiRequired } from '../middleware/ai.js';
 const router = Router();
 router.use(authRequired);
 
-// Estimate nutrition from a photo. Body: { imageBase64, mediaType?, note? }
-// Does NOT log automatically — returns the estimate so the user can confirm.
 router.post('/estimate', aiRequired, async (req, res) => {
   const { imageBase64, mediaType, note } = req.body || {};
-  if (!imageBase64 || typeof imageBase64 !== 'string') {
-    return res.status(400).json({ error: 'imageBase64 is required' });
-  }
+  if (!imageBase64 || typeof imageBase64 !== 'string') return res.status(400).json({ error: 'imageBase64 is required' });
   try {
     const result = await estimateFoodFromImage({ imageBase64, mediaType, note });
     res.json({ estimate: result });
@@ -24,7 +20,6 @@ router.post('/estimate', aiRequired, async (req, res) => {
   }
 });
 
-// Estimate nutrition from a typed description (no photo). Body: { text }
 router.post('/estimate-text', aiRequired, async (req, res) => {
   const text = (req.body?.text || '').toString().trim();
   if (text.length < 2) return res.status(400).json({ error: 'Describe your meal, e.g. "2 eggs and butter roti"' });
@@ -47,55 +42,44 @@ const logSchema = z.object({
   source: z.enum(['photo', 'manual']).default('manual'),
 });
 
-// Persist a meal to the food log.
-router.post('/log', (req, res) => {
-  const parsed = logSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.issues[0].message });
-  }
-  const d = parsed.data;
-  const info = db
-    .prepare(
+router.post('/log', async (req, res, next) => {
+  try {
+    const parsed = logSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+    const d = parsed.data;
+    const row = await one(
       `INSERT INTO food_logs (user_id, name, calories, protein_g, carbs_g, fat_g, items_json, source)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      req.user.id,
-      d.name,
-      d.calories,
-      d.protein_g,
-      d.carbs_g,
-      d.fat_g,
-      d.items ? JSON.stringify(d.items) : null,
-      d.source
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+      [req.user.id, d.name, d.calories, d.protein_g, d.carbs_g, d.fat_g, d.items ? JSON.stringify(d.items) : null, d.source]
     );
-  res.json({ id: info.lastInsertRowid });
+    res.json({ id: row.id });
+  } catch (e) { next(e); }
 });
 
-// Today's log + running totals.
-router.get('/today', (req, res) => {
-  const rows = db
-    .prepare(
-      `SELECT * FROM food_logs
-       WHERE user_id = ? AND date(eaten_at) = date('now','localtime')
-       ORDER BY eaten_at DESC`
-    )
-    .all(req.user.id);
-  const totals = rows.reduce(
-    (t, r) => ({
-      calories: t.calories + r.calories,
-      protein_g: t.protein_g + r.protein_g,
-      carbs_g: t.carbs_g + r.carbs_g,
-      fat_g: t.fat_g + r.fat_g,
-    }),
-    { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
-  );
-  res.json({ logs: rows, totals });
+router.get('/today', async (req, res, next) => {
+  try {
+    const logs = await q(
+      `SELECT * FROM food_logs WHERE user_id = $1 AND eaten_at::date = current_date ORDER BY eaten_at DESC`,
+      [req.user.id]
+    );
+    const totals = logs.reduce(
+      (t, r) => ({
+        calories: t.calories + r.calories,
+        protein_g: t.protein_g + r.protein_g,
+        carbs_g: t.carbs_g + r.carbs_g,
+        fat_g: t.fat_g + r.fat_g,
+      }),
+      { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
+    );
+    res.json({ logs, totals });
+  } catch (e) { next(e); }
 });
 
-router.delete('/log/:id', (req, res) => {
-  db.prepare('DELETE FROM food_logs WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
-  res.json({ ok: true });
+router.delete('/log/:id', async (req, res, next) => {
+  try {
+    await one('DELETE FROM food_logs WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.id, req.user.id]);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
 });
 
 export default router;

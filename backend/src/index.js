@@ -19,7 +19,9 @@ import workoutRoutes from './routes/workouts.js';
 import adminRoutes from './routes/admin.js';
 import superRoutes from './routes/super.js';
 import noticeRoutes from './routes/notices.js';
+import { initDb } from './db/index.js';
 import { aiMode } from './services/bedrock.js';
+import { storageMode } from './services/storage.js';
 
 const app = express();
 // Large limit so base64 photos / short videos fit.
@@ -55,7 +57,20 @@ if (existsSync(STATIC_DIR)) {
   app.get('/', (req, res) => res.sendFile(join(STATIC_DIR, 'index.html')));
 }
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`GymApp backend listening on :${PORT}  (AI mode: ${aiMode()}, static: ${existsSync(STATIC_DIR) ? STATIC_DIR : 'none'})`);
+// Central error handler (routes call next(err) on DB failures).
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Server error' });
 });
+
+const PORT = process.env.PORT || 4000;
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`FitHub backend on :${PORT}  (AI: ${aiMode()}, storage: ${storageMode()}, static: ${existsSync(STATIC_DIR) ? 'on' : 'off'})`);
+    });
+  })
+  .catch((e) => {
+    console.error('DB init failed:', e);
+    process.exit(1);
+  });

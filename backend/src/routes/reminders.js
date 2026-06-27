@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { db } from '../db/index.js';
+import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
 
 const router = Router();
@@ -14,54 +14,50 @@ const schema = z.object({
   enabled: z.boolean().default(true),
 });
 
-router.get('/', (req, res) => {
-  const rows = db
-    .prepare('SELECT * FROM reminders WHERE user_id = ? ORDER BY hour, minute')
-    .all(req.user.id);
-  res.json({ reminders: rows });
+router.get('/', async (req, res, next) => {
+  try {
+    const reminders = await q('SELECT * FROM reminders WHERE user_id = $1 ORDER BY hour, minute', [req.user.id]);
+    res.json({ reminders });
+  } catch (e) { next(e); }
 });
 
-router.post('/', (req, res) => {
-  const parsed = schema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.issues[0].message });
-  }
-  const d = parsed.data;
-  const info = db
-    .prepare(
-      'INSERT INTO reminders (user_id, title, body, hour, minute, enabled) VALUES (?, ?, ?, ?, ?, ?)'
-    )
-    .run(req.user.id, d.title, d.body ?? null, d.hour, d.minute, d.enabled ? 1 : 0);
-  const row = db.prepare('SELECT * FROM reminders WHERE id = ?').get(info.lastInsertRowid);
-  res.json({ reminder: row });
+router.post('/', async (req, res, next) => {
+  try {
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+    const d = parsed.data;
+    const reminder = await one(
+      'INSERT INTO reminders (user_id, title, body, hour, minute, enabled) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+      [req.user.id, d.title, d.body ?? null, d.hour, d.minute, d.enabled ? 1 : 0]
+    );
+    res.json({ reminder });
+  } catch (e) { next(e); }
 });
 
-router.put('/:id', (req, res) => {
-  const parsed = schema.partial().safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.issues[0].message });
-  }
-  const fields = parsed.data;
-  if ('enabled' in fields) fields.enabled = fields.enabled ? 1 : 0;
-  const keys = Object.keys(fields);
-  if (keys.length) {
-    const set = keys.map((k) => `${k} = @${k}`).join(', ');
-    db.prepare(`UPDATE reminders SET ${set} WHERE id = @id AND user_id = @user_id`).run({
-      ...fields,
-      id: req.params.id,
-      user_id: req.user.id,
-    });
-  }
-  const row = db.prepare('SELECT * FROM reminders WHERE id = ? AND user_id = ?').get(
-    req.params.id,
-    req.user.id
-  );
-  res.json({ reminder: row });
+router.put('/:id', async (req, res, next) => {
+  try {
+    const parsed = schema.partial().safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+    const f = { ...parsed.data };
+    if ('enabled' in f) f.enabled = f.enabled ? 1 : 0;
+    const keys = Object.keys(f);
+    if (keys.length) {
+      const set = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
+      await one(
+        `UPDATE reminders SET ${set} WHERE id = $${keys.length + 1} AND user_id = $${keys.length + 2} RETURNING id`,
+        [...keys.map((k) => f[k]), req.params.id, req.user.id]
+      );
+    }
+    const reminder = await one('SELECT * FROM reminders WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    res.json({ reminder });
+  } catch (e) { next(e); }
 });
 
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM reminders WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
-  res.json({ ok: true });
+router.delete('/:id', async (req, res, next) => {
+  try {
+    await one('DELETE FROM reminders WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.id, req.user.id]);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
 });
 
 export default router;

@@ -1,82 +1,65 @@
 import { Router } from 'express';
-import { db } from '../db/index.js';
+import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
 
 const router = Router();
 router.use(authRequired);
 
-function orgId(userId) {
-  return db.prepare('SELECT org_id FROM users WHERE id = ?').get(userId)?.org_id;
-}
+const orgId = async (userId) => (await one('SELECT org_id FROM users WHERE id = $1', [userId]))?.org_id;
 
-// Check in to the gym (one open session at a time).
-router.post('/checkin', (req, res) => {
-  const open = db
-    .prepare('SELECT * FROM attendance WHERE user_id = ? AND checked_out_at IS NULL ORDER BY id DESC LIMIT 1')
-    .get(req.user.id);
-  if (open) return res.json({ attendance: open, already: true });
-  const info = db
-    .prepare('INSERT INTO attendance (user_id, org_id) VALUES (?, ?)')
-    .run(req.user.id, orgId(req.user.id));
-  res.json({ attendance: db.prepare('SELECT * FROM attendance WHERE id = ?').get(info.lastInsertRowid) });
+router.post('/checkin', async (req, res, next) => {
+  try {
+    const open = await one('SELECT * FROM attendance WHERE user_id = $1 AND checked_out_at IS NULL ORDER BY id DESC LIMIT 1', [req.user.id]);
+    if (open) return res.json({ attendance: open, already: true });
+    const attendance = await one('INSERT INTO attendance (user_id, org_id) VALUES ($1,$2) RETURNING *', [req.user.id, await orgId(req.user.id)]);
+    res.json({ attendance });
+  } catch (e) { next(e); }
 });
 
-// Check out (close the open session). Optional { reason } for short sessions.
-router.post('/checkout', (req, res) => {
-  const open = db
-    .prepare('SELECT * FROM attendance WHERE user_id = ? AND checked_out_at IS NULL ORDER BY id DESC LIMIT 1')
-    .get(req.user.id);
-  if (!open) return res.status(400).json({ error: 'You are not checked in.' });
-  const reason = (req.body?.reason || '').toString().slice(0, 200) || null;
-  db.prepare("UPDATE attendance SET checked_out_at = datetime('now'), reason = COALESCE(?, reason) WHERE id = ?")
-    .run(reason, open.id);
-  const row = db
-    .prepare(
-      `SELECT *, ROUND((julianday(checked_out_at)-julianday(checked_in_at))*1440) AS minutes
-       FROM attendance WHERE id = ?`
-    )
-    .get(open.id);
-  // Flag a too-short session (under 40 min) so the app can ask why.
-  res.json({ attendance: row, durationMin: row.minutes, tooShort: row.minutes != null && row.minutes < 40 });
+router.post('/checkout', async (req, res, next) => {
+  try {
+    const open = await one('SELECT * FROM attendance WHERE user_id = $1 AND checked_out_at IS NULL ORDER BY id DESC LIMIT 1', [req.user.id]);
+    if (!open) return res.status(400).json({ error: 'You are not checked in.' });
+    const reason = (req.body?.reason || '').toString().slice(0, 200) || null;
+    const row = await one(
+      `UPDATE attendance SET checked_out_at = now(), reason = COALESCE($1, reason)
+       WHERE id = $2
+       RETURNING *, ROUND(EXTRACT(EPOCH FROM (now() - checked_in_at)) / 60)::int AS minutes`,
+      [reason, open.id]
+    );
+    res.json({ attendance: row, durationMin: row.minutes, tooShort: row.minutes != null && row.minutes < 40 });
+  } catch (e) { next(e); }
 });
 
-// Set/replace the reason on a session (used after a short checkout).
-router.put('/:id/reason', (req, res) => {
-  const reason = (req.body?.reason || '').toString().slice(0, 200);
-  db.prepare('UPDATE attendance SET reason = ? WHERE id = ? AND user_id = ?').run(reason, req.params.id, req.user.id);
-  res.json({ ok: true });
+router.put('/:id/reason', async (req, res, next) => {
+  try {
+    const reason = (req.body?.reason || '').toString().slice(0, 200);
+    await one('UPDATE attendance SET reason = $1 WHERE id = $2 AND user_id = $3 RETURNING id', [reason, req.params.id, req.user.id]);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
 });
 
-// My status + history + today's gym headcount + my streak.
-router.get('/', (req, res) => {
-  const open = db
-    .prepare('SELECT * FROM attendance WHERE user_id = ? AND checked_out_at IS NULL ORDER BY id DESC LIMIT 1')
-    .get(req.user.id);
-  const history = db
-    .prepare(
+router.get('/', async (req, res, next) => {
+  try {
+    const open = await one('SELECT * FROM attendance WHERE user_id = $1 AND checked_out_at IS NULL ORDER BY id DESC LIMIT 1', [req.user.id]);
+    const history = await q(
       `SELECT *, CASE WHEN checked_out_at IS NOT NULL
-         THEN ROUND((julianday(checked_out_at)-julianday(checked_in_at))*1440) END AS minutes
-       FROM attendance WHERE user_id = ? ORDER BY checked_in_at DESC LIMIT 30`
-    )
-    .all(req.user.id);
-  const oid = orgId(req.user.id);
-  const todayCount = db
-    .prepare(
-      `SELECT COUNT(DISTINCT user_id) AS c FROM attendance
-       WHERE org_id = ? AND date(checked_in_at) = date('now','localtime')`
-    )
-    .get(oid)?.c || 0;
-  const myVisits = db
-    .prepare("SELECT COUNT(*) AS c FROM attendance WHERE user_id = ?")
-    .get(req.user.id)?.c || 0;
-  // distinct days this user attended (rough "sessions")
-  const daysThisWeek = db
-    .prepare(
-      `SELECT COUNT(DISTINCT date(checked_in_at)) AS c FROM attendance
-       WHERE user_id = ? AND checked_in_at >= datetime('now','-7 days')`
-    )
-    .get(req.user.id)?.c || 0;
-  res.json({ checkedIn: !!open, open, history, todayCount, myVisits, daysThisWeek });
+         THEN ROUND(EXTRACT(EPOCH FROM (checked_out_at - checked_in_at)) / 60)::int END AS minutes
+       FROM attendance WHERE user_id = $1 ORDER BY checked_in_at DESC LIMIT 30`,
+      [req.user.id]
+    );
+    const oid = await orgId(req.user.id);
+    const todayCount = (await one(
+      `SELECT COUNT(DISTINCT user_id) AS c FROM attendance WHERE org_id = $1 AND checked_in_at::date = current_date`,
+      [oid]
+    ))?.c || 0;
+    const myVisits = (await one('SELECT COUNT(*) AS c FROM attendance WHERE user_id = $1', [req.user.id]))?.c || 0;
+    const daysThisWeek = (await one(
+      `SELECT COUNT(DISTINCT checked_in_at::date) AS c FROM attendance WHERE user_id = $1 AND checked_in_at >= now() - interval '7 days'`,
+      [req.user.id]
+    ))?.c || 0;
+    res.json({ checkedIn: !!open, open, history, todayCount, myVisits, daysThisWeek });
+  } catch (e) { next(e); }
 });
 
 export default router;

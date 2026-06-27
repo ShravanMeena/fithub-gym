@@ -17,7 +17,7 @@ export const LAN_IP = '192.168.1.15';
 // e.g. 'https://api.yourgym.com/api'. When non-empty it overrides everything
 // below — that's what real app-store builds should use.
 // ---------------------------------------------------------------------------
-export const PROD_API_URL = '';
+export const PROD_API_URL = 'https://fithub.shravanmeena.com/api';
 
 // Set to true to use the simulator/emulator loopback instead of the LAN IP.
 const USE_LOCALHOST = false;

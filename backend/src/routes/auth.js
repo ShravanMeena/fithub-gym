@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { db } from '../db/index.js';
+import { q, one, exec } from '../db/index.js';
 import { signToken, authRequired } from '../middleware/auth.js';
-import { hasAiAccess } from '../middleware/ai.js';
 
 const router = Router();
 
@@ -20,73 +19,75 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-function orgFor(id) {
+async function orgFor(id) {
   if (!id) return null;
-  return db
-    .prepare('SELECT id, slug, name, tagline, primary_color, logo_url FROM organizations WHERE id = ?')
-    .get(id);
+  return one('SELECT id, slug, name, tagline, primary_color, logo_url FROM organizations WHERE id = $1', [id]);
 }
 
-function publicUser(u) {
+// u must include ai_active (computed in the fetch query).
+async function publicUser(u) {
   return {
     id: u.id,
     name: u.name,
     email: u.email,
     role: u.role,
-    org: orgFor(u.org_id),
+    org: await orgFor(u.org_id),
     ai_until: u.ai_until || null,
-    ai_active: hasAiAccess(u.id),
+    ai_active: !!u.ai_active,
   };
 }
 
-function resolveOrgId({ org_id, org_slug }) {
+const USER_COLS = "id, name, email, role, org_id, ai_until, (ai_until IS NOT NULL AND ai_until > now()) AS ai_active";
+
+async function resolveOrgId({ org_id, org_slug }) {
   if (org_id) return org_id;
   if (org_slug) {
-    const o = db.prepare('SELECT id FROM organizations WHERE slug = ?').get(org_slug);
+    const o = await one('SELECT id FROM organizations WHERE slug = $1', [org_slug]);
     return o?.id;
   }
   return undefined;
 }
 
-router.post('/signup', (req, res) => {
-  const parsed = signupSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.issues[0].message });
-  }
-  const { name, email, password } = parsed.data;
-  const orgId = resolveOrgId(parsed.data);
-  if (!orgId) return res.status(400).json({ error: 'Select your gym first' });
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase());
-  if (existing) return res.status(409).json({ error: 'Email already registered' });
-
-  const hash = bcrypt.hashSync(password, 10);
-  const info = db
-    .prepare('INSERT INTO users (email, name, password_hash, org_id) VALUES (?, ?, ?, ?)')
-    .run(email.toLowerCase(), name, hash, orgId);
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(info.lastInsertRowid);
-  // create empty profile row
-  db.prepare('INSERT OR IGNORE INTO profiles (user_id) VALUES (?)').run(user.id);
-
-  res.json({ token: signToken(user), user: publicUser(user) });
+router.post('/signup', async (req, res, next) => {
+  try {
+    const parsed = signupSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+    const { name, email, password } = parsed.data;
+    const orgId = await resolveOrgId(parsed.data);
+    if (!orgId) return res.status(400).json({ error: 'Select your gym first' });
+    if (await one('SELECT 1 FROM users WHERE email = $1', [email.toLowerCase()])) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+    const hash = bcrypt.hashSync(password, 10);
+    const ins = await one(
+      `INSERT INTO users (email, name, password_hash, org_id) VALUES ($1,$2,$3,$4) RETURNING ${USER_COLS}`,
+      [email.toLowerCase(), name, hash, orgId]
+    );
+    await exec('INSERT INTO profiles (user_id) VALUES ($1) ON CONFLICT DO NOTHING', [ins.id]);
+    res.json({ token: signToken(ins), user: await publicUser(ins) });
+  } catch (e) { next(e); }
 });
 
-router.post('/login', (req, res) => {
-  const parsed = loginSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: parsed.error.issues[0].message });
-  }
-  const { email, password } = parsed.data;
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase());
-  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-    return res.status(401).json({ error: 'Invalid email or password' });
-  }
-  res.json({ token: signToken(user), user: publicUser(user) });
+router.post('/login', async (req, res, next) => {
+  try {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+    const { email, password } = parsed.data;
+    const user = await one('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
+    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    const pub = await one(`SELECT ${USER_COLS} FROM users WHERE id = $1`, [user.id]);
+    res.json({ token: signToken(user), user: await publicUser(pub) });
+  } catch (e) { next(e); }
 });
 
-router.get('/me', authRequired, (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
-  if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ user: publicUser(user) });
+router.get('/me', authRequired, async (req, res, next) => {
+  try {
+    const u = await one(`SELECT ${USER_COLS} FROM users WHERE id = $1`, [req.user.id]);
+    if (!u) return res.status(404).json({ error: 'User not found' });
+    res.json({ user: await publicUser(u) });
+  } catch (e) { next(e); }
 });
 
 export default router;
