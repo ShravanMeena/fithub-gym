@@ -34,19 +34,31 @@ function loadCredential() {
 }
 
 // Lazily init firebase-admin. Returns the messaging instance or null.
+// Two credential paths:
+//   1) an explicit service-account key (FIREBASE_SERVICE_ACCOUNT / file), or
+//   2) Application Default Credentials — the GCP VM's attached service account
+//      (no key file needed). Used when org policy blocks key creation; just set
+//      FIREBASE_PROJECT_ID to your Firebase project id.
 async function getMessaging() {
   if (messaging || initTried) return messaging;
   initTried = true;
-  const creds = loadCredential();
-  if (!creds) {
-    console.log('[push] no Firebase credentials — push disabled');
-    return null;
-  }
   try {
     const admin = (await import('firebase-admin')).default;
-    if (!admin.apps.length) {
-      admin.initializeApp({ credential: admin.credential.cert(creds) });
+    const creds = loadCredential();
+    let options;
+    if (creds) {
+      options = { credential: admin.credential.cert(creds) };
+    } else {
+      const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT;
+      if (!projectId) {
+        console.log('[push] no key and no FIREBASE_PROJECT_ID — push disabled');
+        return null;
+      }
+      // Uses the VM's service account via the metadata server (ADC).
+      options = { credential: admin.credential.applicationDefault(), projectId };
+      console.log('[push] using Application Default Credentials, project', projectId);
     }
+    if (!admin.apps.length) admin.initializeApp(options);
     messaging = admin.messaging();
     console.log('[push] Firebase Cloud Messaging ready');
   } catch (e) {
