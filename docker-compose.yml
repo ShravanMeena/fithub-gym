@@ -1,0 +1,33 @@
+# Production stack: API container + Caddy (automatic HTTPS).
+# Data (SQLite + uploads) persists in the named volume `gymdata`.
+services:
+  api:
+    build: .
+    restart: always
+    env_file: .env.production
+    expose:
+      - "4000"
+    volumes:
+      - gymdata:/app/backend/data
+
+  caddy:
+    image: caddy:2
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Set DOMAIN in .env.production (e.g. api.yourgym.com). Caddy gets a free
+      # Let's Encrypt cert automatically. For IP-only testing, see DEPLOY.md.
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  gymdata:
+  caddy_data:
+  caddy_config:

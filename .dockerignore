@@ -1,0 +1,13 @@
+# Don't ship the mobile app, deps, local data, or secrets into the image.
+GymApp
+**/node_modules
+backend/data
+**/*.sqlite
+**/*.sqlite-*
+.env
+backend/.env
+**/.git
+*.md
+.generated-reports
+landing/.playwright-mcp
+landing/*.jpeg

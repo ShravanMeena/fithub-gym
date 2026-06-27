@@ -1,0 +1,24 @@
+# deps & build artifacts
+node_modules/
+**/node_modules/
+GymApp/ios/Pods/
+GymApp/ios/build/
+GymApp/android/build/
+GymApp/android/.gradle/
+GymApp/android/app/build/
+DerivedData/
+
+# data & secrets (NEVER commit)
+backend/data/
+*.sqlite
+*.sqlite-*
+.env
+backend/.env
+.env.production
+
+# misc
+.DS_Store
+*.log
+*.jpeg
+fithub-deploy.tar.gz
+landing/.playwright-mcp/

@@ -1,0 +1,28 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: FIT
+      - generic [ref=e7]: HUB
+      - generic [ref=e8]: · Elite Fitness Club
+    - button "Log out" [ref=e9] [cursor=pointer]
+  - generic [ref=e10]:
+    - generic [ref=e13]: Live · updates automatically
+    - button "↻ Refresh" [ref=e14] [cursor=pointer]
+  - generic [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]: "1"
+      - text: Members
+    - generic [ref=e18]:
+      - generic [ref=e19]: "0"
+      - text: Checked in today
+    - generic [ref=e20]:
+      - generic [ref=e21]: "0"
+      - text: In the gym now
+  - generic [ref=e22]:
+    - generic [ref=e23] [cursor=pointer]: Members
+    - generic [ref=e24] [cursor=pointer]: Attendance log
+    - generic [ref=e25] [cursor=pointer]: Settings
+  - generic [ref=e26]:
+    - heading "Members & attendance" [level=3] [ref=e27]
+    - generic:
+      - table

@@ -1,0 +1,41 @@
+- generic [ref=e23]:
+  - banner [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]: FIT
+      - generic [ref=e27]: HUB
+      - generic [ref=e28]: · Elite Fitness Club
+    - button "Log out" [ref=e29] [cursor=pointer]
+  - generic [ref=e30]:
+    - generic [ref=e31]:
+      - generic [ref=e32]: "1"
+      - text: Members
+    - generic [ref=e33]:
+      - generic [ref=e34]: "0"
+      - text: Checked in today
+    - generic [ref=e35]:
+      - generic [ref=e36]: "0"
+      - text: In the gym now
+  - generic [ref=e37]:
+    - generic [ref=e38] [cursor=pointer]: Members
+    - generic [ref=e39] [cursor=pointer]: Attendance log
+    - generic [ref=e40] [cursor=pointer]: Settings
+  - generic [ref=e41]:
+    - heading "Members & attendance" [level=3] [ref=e42]
+    - table [ref=e44]:
+      - rowgroup [ref=e45]:
+        - row "Name Email Phone Visits Avg Last seen Status" [ref=e46]:
+          - columnheader "Name" [ref=e47]
+          - columnheader "Email" [ref=e48]
+          - columnheader "Phone" [ref=e49]
+          - columnheader "Visits" [ref=e50]
+          - columnheader "Avg" [ref=e51]
+          - columnheader "Last seen" [ref=e52]
+          - columnheader "Status" [ref=e53]
+        - row "Raj raj.admin@elite.com +919900112233 0 — — admin" [ref=e54]:
+          - cell "Raj" [ref=e55]
+          - cell "raj.admin@elite.com" [ref=e56]
+          - cell "+919900112233" [ref=e57]
+          - cell "0" [ref=e58]
+          - cell "—" [ref=e59]
+          - cell "—" [ref=e60]
+          - cell "admin" [ref=e61]

@@ -1,0 +1,74 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: FIT
+      - generic [ref=e7]: HUB
+      - generic [ref=e8]: · Pulse Gym
+    - button "Log out" [ref=e9] [cursor=pointer]
+  - generic [ref=e10]:
+    - generic [ref=e13]: Live · updates automatically
+    - button "↻ Refresh" [ref=e14] [cursor=pointer]
+  - generic [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]: "4"
+      - text: Members
+    - generic [ref=e18]:
+      - generic [ref=e19]: "2"
+      - text: Checked in today
+    - generic [ref=e20]:
+      - generic [ref=e21]: "2"
+      - text: In the gym now
+  - generic [ref=e22]:
+    - heading "🟢 In the gym right now" [level=3] [ref=e23]
+    - generic [ref=e24]:
+      - generic [ref=e25]: 🟢 Rohit
+      - generic [ref=e26]: 🟢 Meera
+  - generic [ref=e27]:
+    - generic [ref=e28] [cursor=pointer]: Members
+    - generic [ref=e29] [cursor=pointer]: Attendance log
+    - generic [ref=e30] [cursor=pointer]: Settings
+  - generic [ref=e31]:
+    - heading "Members & attendance" [level=3] [ref=e32]
+    - table [ref=e34]:
+      - rowgroup [ref=e35]:
+        - row "Name Email Phone Visits Status AI Access" [ref=e36]:
+          - columnheader "Name" [ref=e37]
+          - columnheader "Email" [ref=e38]
+          - columnheader "Phone" [ref=e39]
+          - columnheader "Visits" [ref=e40]
+          - columnheader "Status" [ref=e41]
+          - columnheader "AI Access" [ref=e42]
+        - row "AjayFree ajay1782554953057@pulse.com — 0 — Grant AI" [ref=e43]:
+          - cell "AjayFree" [ref=e44]
+          - cell "ajay1782554953057@pulse.com" [ref=e45]
+          - cell "—" [ref=e46]
+          - cell "0" [ref=e47]
+          - cell "—" [ref=e48]
+          - cell "Grant AI" [ref=e49]:
+            - link "Grant AI" [ref=e50] [cursor=pointer]:
+              - /url: "#"
+        - row "Sara sara@pulse.com — 0 admin —" [ref=e51]:
+          - cell "Sara" [ref=e52]
+          - cell "sara@pulse.com" [ref=e53]
+          - cell "—" [ref=e54]
+          - cell "0" [ref=e55]
+          - cell "admin" [ref=e56]
+          - cell "—" [ref=e57]
+        - row "Rohit rohit@pulse.com — 1 in gym Grant AI" [ref=e58]:
+          - cell "Rohit" [ref=e59]
+          - cell "rohit@pulse.com" [ref=e60]
+          - cell "—" [ref=e61]
+          - cell "1" [ref=e62]
+          - cell "in gym" [ref=e63]
+          - cell "Grant AI" [ref=e64]:
+            - link "Grant AI" [ref=e65] [cursor=pointer]:
+              - /url: "#"
+        - row "Meera meera@pulse.com — 1 in gym Grant AI" [ref=e66]:
+          - cell "Meera" [ref=e67]
+          - cell "meera@pulse.com" [ref=e68]
+          - cell "—" [ref=e69]
+          - cell "1" [ref=e70]
+          - cell "in gym" [ref=e71]
+          - cell "Grant AI" [ref=e72]:
+            - link "Grant AI" [ref=e73] [cursor=pointer]:
+              - /url: "#"

@@ -1,0 +1,174 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img [ref=e8]
+        - generic [ref=e15]: FITHUB
+      - generic [ref=e16]:
+        - link "Features" [ref=e17] [cursor=pointer]:
+          - /url: "#features"
+        - link "White-label" [ref=e18] [cursor=pointer]:
+          - /url: "#how"
+        - link "Admin Login" [ref=e19] [cursor=pointer]:
+          - /url: admin.html
+        - link "Get your gym on FitHub" [ref=e20] [cursor=pointer]:
+          - /url: "#cta"
+  - banner [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]: ⚡ THE WHITE-LABEL FITNESS PLATFORM
+      - heading "One platform. Every gym. Your brand." [level=1] [ref=e24]:
+        - text: One platform.
+        - text: Every gym. Your brand.
+      - paragraph [ref=e25]: Give your gym its own branded mobile app in minutes — AI diet plans, snap-a-photo calorie tracking, attendance, and a members-only community feed. Your name, your logo, your colors.
+      - generic [ref=e26]:
+        - link "Launch your gym app →" [ref=e27] [cursor=pointer]:
+          - /url: "#cta"
+        - link "See features" [ref=e28] [cursor=pointer]:
+          - /url: "#features"
+      - generic [ref=e29]: No app development needed · Live on iOS & Android · Powered by AWS Bedrock AI
+    - generic [ref=e30]:
+      - generic [ref=e32]:
+        - generic [ref=e33]: X GYM
+        - heading "Hey Rahul 💪" [level=3] [ref=e34]
+        - generic [ref=e36]:
+          - generic [ref=e37]: "1820"
+          - generic [ref=e38]: / 2990 kcal
+        - generic [ref=e45]:
+          - generic [ref=e46]: 🟢 In the gym
+          - generic [ref=e47]: 12 here today
+      - generic [ref=e49]:
+        - generic [ref=e50]: SCAN FOOD
+        - heading "Protein Bowl" [level=3] [ref=e51]
+        - generic [ref=e52]: 🥗
+        - generic [ref=e53]:
+          - generic [ref=e54]: "485"
+          - generic [ref=e55]: 32g
+          - generic [ref=e56]: 36g
+          - generic [ref=e57]: 24g
+        - generic [ref=e58]:
+          - generic [ref=e59]: kcal
+          - generic [ref=e60]: protein
+          - generic [ref=e61]: carbs
+          - generic [ref=e62]: fat
+        - generic [ref=e63]: ⚠️ moderate sugar
+      - generic [ref=e65]:
+        - generic [ref=e66]: COMMUNITY
+        - heading "Feed" [level=3] [ref=e67]
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - generic [ref=e70]: A
+            - generic [ref=e71]: Arjun
+          - text: New deadlift PR — 180kg! 🔥
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]: P
+            - generic [ref=e75]: Priya
+          - text: 8 weeks transformation 💪
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - generic [ref=e78]: R
+            - generic [ref=e79]: Rahul
+          - text: Leg day done ✅
+  - generic [ref=e81]:
+    - generic [ref=e82]: Everything your members need
+    - heading "A complete fitness app — in your colors" [level=2] [ref=e83]
+    - paragraph [ref=e84]: One login per gym. Members pick your gym, then get the full experience under your brand.
+    - generic [ref=e85]:
+      - generic [ref=e86]:
+        - generic [ref=e87]: 🎨
+        - heading "True white-label" [level=4] [ref=e88]
+        - paragraph [ref=e89]: Your gym's name, logo, and brand color load from the server. One app, infinite gyms.
+      - generic [ref=e90]:
+        - generic [ref=e91]: 🤖
+        - heading "AI diet plans" [level=4] [ref=e92]
+        - paragraph [ref=e93]: Budget, home-cooked meal plans built around each member's schedule, goal & food preference.
+      - generic [ref=e94]:
+        - generic [ref=e95]: 📷
+        - heading "Snap-a-photo calories" [level=4] [ref=e96]
+        - paragraph [ref=e97]: Members photograph a meal and AI returns calories, protein, carbs, fat — plus health warnings.
+      - generic [ref=e98]:
+        - generic [ref=e99]: 📍
+        - heading "Gym attendance" [level=4] [ref=e100]
+        - paragraph [ref=e101]: One-tap check-in. See live headcount and weekly training streaks for every member.
+      - generic [ref=e102]:
+        - generic [ref=e103]: 🌐
+        - heading "Community feed" [level=4] [ref=e104]
+        - paragraph [ref=e105]: A members-only feed for PRs, transformations and motivation — text, photos & video.
+      - generic [ref=e106]:
+        - generic [ref=e107]: 📈
+        - heading "Progress + AI coach" [level=4] [ref=e108]
+        - paragraph [ref=e109]: Weight tracking, progress photos with AI analysis, and a friendly coach that knows their data.
+      - generic [ref=e110]:
+        - generic [ref=e111]: ⏰
+        - heading "Smart reminders" [level=4] [ref=e112]
+        - paragraph [ref=e113]: Meal & workout alarms that fire even when the app is closed — auto-set from the diet plan.
+      - generic [ref=e114]:
+        - generic [ref=e115]: 🔔
+        - heading "One backend for all" [level=4] [ref=e116]
+        - paragraph [ref=e117]: Every gym runs on one deployment. Add a new gym in seconds, no new app build.
+      - generic [ref=e118]:
+        - generic [ref=e119]: 📊
+        - heading "Owner insights" [level=4] [ref=e120]
+        - paragraph [ref=e121]: Attendance trends, active members and engagement — know how your gym is really doing.
+  - generic [ref=e123]:
+    - generic [ref=e124]: Go live in 3 steps
+    - heading "White-label, the easy way" [level=2] [ref=e125]
+    - paragraph [ref=e126]: No developers. No app store headaches. We handle the platform — you bring the gym.
+    - generic [ref=e127]:
+      - generic [ref=e128]:
+        - heading "Create your gym" [level=4] [ref=e129]
+        - paragraph [ref=e130]: We add your gym with your name, logo and brand color. It appears instantly in the app's gym list.
+      - generic [ref=e131]:
+        - heading "Members join you" [level=4] [ref=e132]
+        - paragraph [ref=e133]: Members open the app, pick your gym, and sign up. Everything they see is your brand.
+      - generic [ref=e134]:
+        - heading "You grow" [level=4] [ref=e135]
+        - paragraph [ref=e136]: Members train, log meals, post wins and check in. You get retention, engagement and data.
+  - generic [ref=e139]:
+    - generic [ref=e140]:
+      - generic [ref=e141]: "0"
+      - text: app for every gym
+    - generic [ref=e142]:
+      - generic [ref=e143]: "0"
+      - text: member features
+    - generic [ref=e144]:
+      - generic [ref=e145]: "0"
+      - text: "% your branding"
+    - generic [ref=e146]:
+      - generic [ref=e147]: "0"
+      - text: platforms (iOS & Android)
+  - generic [ref=e150]:
+    - heading "Get your gym on FitHub" [level=2] [ref=e151]
+    - paragraph [ref=e152]: Add your gym below — it appears in the app's gym list instantly, so your members can join your community.
+    - generic [ref=e153]:
+      - generic [ref=e154]:
+        - generic [ref=e155]: Gym name *
+        - textbox "e.g. X Gym" [ref=e156]
+      - generic [ref=e157]:
+        - generic [ref=e158]: Tagline
+        - textbox "e.g. Push your limits." [ref=e159]
+      - generic [ref=e160]:
+        - generic [ref=e161]:
+          - generic [ref=e162]: Your name *
+          - textbox "Owner / manager" [ref=e163]
+        - generic [ref=e164]:
+          - generic [ref=e165]: Phone
+          - textbox "+91 98xxxxxxx" [ref=e166]
+      - generic [ref=e167]:
+        - generic [ref=e168]: Email (this becomes your admin login) *
+        - textbox "you@gym.com" [ref=e169]
+      - generic [ref=e170]:
+        - generic [ref=e171]: Choose a password *
+        - textbox "At least 6 characters" [ref=e172]
+      - generic [ref=e173]:
+        - generic [ref=e174]: Brand colour
+        - generic [ref=e175]:
+          - textbox [ref=e176] [cursor=pointer]: "#ff5a1f"
+          - generic [ref=e177]: Pick your gym's accent colour — the whole app adopts it.
+      - button "Add my gym to FitHub →" [ref=e178] [cursor=pointer]
+  - contentinfo [ref=e179]:
+    - generic [ref=e180]:
+      - generic [ref=e181]:
+        - generic [ref=e182]: FIT
+        - generic [ref=e183]: HUB
+      - text: © 2026 FitHub — the white-label fitness platform. Train. Eat. Track.

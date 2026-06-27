@@ -1,0 +1,12 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - img [ref=e5]
+    - generic [ref=e12]: FITHUBPLATFORM
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - generic [ref=e15]: Platform admin email
+      - textbox "platform@fithub.app" [ref=e16]: sara@pulse.com
+    - generic [ref=e17]:
+      - generic [ref=e18]: Password
+      - textbox "••••••••" [ref=e19]: pulse123
+    - button "Log in" [ref=e20] [cursor=pointer]

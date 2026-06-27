@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FitHub — Platform Admin</title>
+<style>
+  :root{--bg:#0b0c10;--card:#16181f;--border:#23262f;--text:#f5f6f8;--dim:#9aa0ac;--primary:#7c5cff;--accent:#23d18b;--danger:#ff5a5a;--orange:#ff5a1f}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--primary);text-decoration:none}
+  .wrap{max-width:1150px;margin:0 auto;padding:24px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:20px}
+  .logo .mark{width:32px;height:20px}
+  .fit{color:#fff}.hub{color:var(--orange)}
+  .badge-plat{font-size:11px;background:rgba(124,92,255,.18);color:var(--primary);padding:3px 9px;border-radius:999px;font-weight:800;margin-left:8px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;font-weight:700;border-radius:11px;padding:12px 20px;cursor:pointer;border:none;font-size:15px;background:linear-gradient(135deg,#9b7bff,var(--primary));color:#fff}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .btn.sm{padding:7px 13px;font-size:13px}
+  input{width:100%;background:#0e1016;border:1px solid var(--border);border-radius:11px;color:var(--text);padding:12px 14px;font-size:15px;outline:none}
+  input:focus{border-color:var(--primary)}
+  label{display:block;font-size:13px;color:var(--dim);font-weight:700;margin:0 0 6px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:18px}
+  .login-wrap{max-width:400px;margin:8vh auto}.field{margin-bottom:14px}
+  .msg{margin-top:10px;font-size:14px;font-weight:600}.msg.err{color:var(--danger)}
+  header.top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:22px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center}
+  .stat b{display:block;font-size:34px;font-weight:900;color:var(--primary)}.stat span{color:var(--dim);font-size:13px}
+  h3{font-size:18px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;color:var(--dim);font-weight:700;font-size:12px;text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--border)}
+  td{padding:12px;border-bottom:1px solid var(--border)}
+  tr:hover td{background:#181b22}
+  .pill{font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700}
+  .pill.ai{background:rgba(35,209,139,.16);color:var(--accent)}
+  .pill.gym{background:rgba(255,90,31,.16);color:var(--orange)}
+  .tabs{display:flex;gap:8px;margin-bottom:18px}
+  .tab{padding:9px 16px;border-radius:999px;background:var(--card);border:1px solid var(--border);cursor:pointer;font-weight:600;font-size:14px;color:var(--dim)}
+  .tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+  .muted{color:var(--dim)}
+  @media(max-width:640px){.stats{grid-template-columns:1fr}table{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="loginView" class="login-wrap">
+    <div class="logo" style="justify-content:center;margin-bottom:22px">
+      <svg class="mark" viewBox="0 0 512 320"><g fill="#7c5cff" transform="translate(-100,-256)"><rect x="252" y="392" width="56" height="240" rx="18"/><rect x="326" y="437" width="48" height="150" rx="14"/><rect x="374" y="486" width="276" height="52" rx="14"/><rect x="650" y="437" width="48" height="150" rx="14"/><rect x="716" y="392" width="56" height="240" rx="18"/></g></svg>
+      <span><span class="fit">FIT</span><span class="hub">HUB</span><span class="badge-plat">PLATFORM</span></span>
+    </div>
+    <div class="card">
+      <div class="field"><label>Platform admin email</label><input id="l_email" type="email" placeholder="platform@fithub.app" /></div>
+      <div class="field"><label>Password</label><input id="l_pass" type="password" placeholder="••••••••" /></div>
+      <button class="btn" style="width:100%" id="loginBtn" onclick="doLogin()">Log in</button>
+      <div class="msg err" id="loginMsg"></div>
+    </div>
+  </div>
+
+  <div id="dashView" style="display:none">
+    <header class="top">
+      <div class="logo"><span class="fit">FIT</span><span class="hub">HUB</span><span class="badge-plat">PLATFORM</span></div>
+      <button class="btn ghost sm" onclick="logout()">Log out</button>
+    </header>
+    <div class="stats">
+      <div class="stat"><b id="s_gyms">0</b><span>Gyms</span></div>
+      <div class="stat"><b id="s_users">0</b><span>Total users</span></div>
+      <div class="stat"><b id="s_ai">0</b><span>Active AI subscriptions</span></div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-tab="users" onclick="switchTab('users')">Users &amp; AI access</div>
+      <div class="tab" data-tab="gyms" onclick="switchTab('gyms')">Gyms</div>
+    </div>
+
+    <div id="tab_users" class="card">
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <input id="search" placeholder="Search by name, email or gym…" oninput="debouncedUsers()" />
+        <button class="btn ghost sm" onclick="loadUsers()">Search</button>
+      </div>
+      <div style="overflow-x:auto"><table id="usersTable"></table></div>
+    </div>
+
+    <div id="tab_gyms" class="card" style="display:none">
+      <h3>All gyms</h3>
+      <div style="overflow-x:auto"><table id="gymsTable"></table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:4000/api' : '/api';
+  const TOKEN_KEY = 'fithub.platform.token';
+  let token = localStorage.getItem(TOKEN_KEY);
+  const $=(id)=>document.getElementById(id);
+  const api=(p,o={})=>fetch(API_BASE+p,{...o,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...(o.headers||{})}}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Error');return d;});
+  const fmtDate=(s)=>s?s.slice(0,10):'—';
+
+  async function doLogin(){
+    $('loginMsg').textContent=''; $('loginBtn').disabled=true; $('loginBtn').textContent='Logging in…';
+    try{
+      const d=await api('/auth/login',{method:'POST',body:JSON.stringify({email:$('l_email').value.trim(),password:$('l_pass').value})});
+      if(d.user.role!=='superadmin') throw new Error('Not a platform admin account.');
+      token=d.token; localStorage.setItem(TOKEN_KEY,token); showDash();
+    }catch(e){ $('loginMsg').textContent=e.message; }
+    finally{ $('loginBtn').disabled=false; $('loginBtn').textContent='Log in'; }
+  }
+  function logout(){ localStorage.removeItem(TOKEN_KEY); token=null; location.reload(); }
+  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); }
+
+  async function showDash(){
+    $('loginView').style.display='none'; $('dashView').style.display='block';
+    try{
+      const s=await api('/super/stats'); $('s_gyms').textContent=s.gyms; $('s_users').textContent=s.users; $('s_ai').textContent=s.aiActive;
+      loadUsers(); loadGyms();
+    }catch(e){ if(String(e.message).includes('admin')||String(e.message).includes('token')) logout(); }
+  }
+
+  async function loadUsers(){
+    const q=encodeURIComponent($('search').value.trim());
+    const {users}=await api('/super/users?q='+q);
+    $('usersTable').innerHTML =
+      '<tr><th>Name</th><th>Email</th><th>Gym</th><th>AI Access</th><th>Action</th></tr>' +
+      users.map(u=>`<tr>
+        <td><b>${u.name}</b> ${u.role==='admin'?'<span class="pill gym">owner</span>':''}</td>
+        <td class="muted">${u.email}</td>
+        <td class="muted">${u.gym||'—'}</td>
+        <td>${u.ai_active?`<span class="pill ai">AI ✓ till ${fmtDate(u.ai_until)}</span>`:'<span class="muted">locked</span>'}</td>
+        <td>
+          <select id="d_${u.id}" style="width:auto;display:inline-block;padding:6px 8px">
+            <option value="1">1 day</option><option value="7">7 days</option><option value="15">15 days</option>
+            <option value="30" selected>1 month</option><option value="90">3 months</option><option value="180">6 months</option><option value="365">12 months</option>
+          </select>
+          <button class="btn sm" onclick="grant(${u.id})">Grant</button>
+          ${u.ai_active?`<button class="btn ghost sm" onclick="grant(${u.id},0)">Revoke</button>`:''}
+        </td>
+      </tr>`).join('');
+  }
+  async function loadGyms(){
+    const {gyms}=await api('/super/gyms');
+    $('gymsTable').innerHTML =
+      '<tr><th>Gym</th><th>Owner</th><th>Email</th><th>Phone</th><th>Members</th><th>AI subs</th><th>Since</th></tr>' +
+      gyms.map(g=>`<tr>
+        <td><b style="color:${g.primary_color||'#fff'}">${g.name}</b></td>
+        <td class="muted">${g.owner_name||'—'}</td><td class="muted">${g.contact_email||'—'}</td><td class="muted">${g.phone||'—'}</td>
+        <td>${g.members}</td><td>${g.ai_members||0}</td><td class="muted">${fmtDate(g.created_at)}</td>
+      </tr>`).join('');
+  }
+  async function grant(id, fixed){
+    const days = fixed!==undefined ? fixed : parseInt($('d_'+id).value,10);
+    try{ const r=await api('/super/users/'+id+'/ai-access',{method:'POST',body:JSON.stringify({days})}); loadUsers();
+      alert(days? 'AI granted until '+r.ai_until+' UTC' : 'AI revoked'); }catch(e){ alert(e.message); }
+  }
+  let t; function debouncedUsers(){ clearTimeout(t); t=setTimeout(loadUsers,350); }
+
+  if(token) showDash();
+</script>
+</body>
+</html>

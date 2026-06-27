@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FitHub — One platform. Every gym. Your brand.</title>
+<meta name="description" content="FitHub is a white-label fitness platform. Give your gym its own branded app with AI diet plans, food scanning, attendance, and a community feed." />
+<style>
+  :root{
+    --bg:#0b0c10; --bg2:#111319; --card:#16181f; --border:#23262f;
+    --text:#f5f6f8; --dim:#9aa0ac; --primary:#ff5a1f; --primary2:#ff7a3c;
+    --accent:#23d18b; --cyan:#22d3ee;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    overflow-x:hidden; line-height:1.6;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+  /* animated background orbs */
+  .orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.45;z-index:0;animation:float 16s ease-in-out infinite}
+  .orb1{width:480px;height:480px;background:#ff5a1f;top:-120px;left:-120px}
+  .orb2{width:420px;height:420px;background:#7c5cff;bottom:-140px;right:-100px;animation-delay:-5s}
+  .orb3{width:360px;height:360px;background:#22d3ee;top:40%;left:55%;opacity:.25;animation-delay:-9s}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-30px) scale(1.08)}66%{transform:translate(-30px,40px) scale(.95)}}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(11,12,16,.7);border-bottom:1px solid var(--border)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:.5px}
+  .logo .mark{width:34px;height:22px}
+  .logo .fit{color:#fff}.logo .hub{color:var(--primary)}
+  .nav-links{display:flex;gap:28px;align-items:center}
+  .nav-links a{color:var(--dim);font-size:15px;font-weight:600;transition:color .2s}
+  .nav-links a:hover{color:#fff}
+  .nav-links a.btn-primary{color:#fff}  /* keep CTA text white over orange */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;border-radius:12px;padding:12px 22px;cursor:pointer;border:none;font-size:15px;transition:transform .15s, box-shadow .2s}
+  .btn-primary{background:linear-gradient(135deg,var(--primary2),var(--primary));color:#fff;box-shadow:0 8px 30px rgba(255,90,31,.35)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(255,90,31,.5)}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:#fff}
+  .btn-ghost:hover{border-color:var(--primary)}
+
+  /* hero */
+  header{position:relative;z-index:1;padding:90px 0 70px;text-align:center}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,90,31,.12);border:1px solid rgba(255,90,31,.3);color:var(--primary2);padding:7px 16px;border-radius:999px;font-size:13px;font-weight:700;margin-bottom:26px;letter-spacing:.4px}
+  h1{font-size:clamp(38px,6vw,72px);line-height:1.05;font-weight:900;letter-spacing:-1.5px;margin-bottom:22px}
+  h1 .grad{background:linear-gradient(120deg,#ff7a3c,#ff5a1f 40%,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:clamp(16px,2.2vw,21px);color:var(--dim);max-width:680px;margin:0 auto 36px}
+  .cta-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .hero-note{margin-top:18px;color:var(--dim);font-size:13px}
+
+  /* phone mockups */
+  .phones{position:relative;z-index:1;display:flex;justify-content:center;gap:24px;margin:70px auto 0;perspective:1400px}
+  .phone{width:230px;height:470px;border-radius:34px;background:linear-gradient(160deg,#1a1d25,#0d0e12);border:1px solid #2a2d37;box-shadow:0 40px 80px rgba(0,0,0,.6);padding:14px;transform:rotateY(-14deg) rotateX(4deg);transition:transform .4s}
+  .phone:nth-child(2){transform:translateY(-26px) rotateY(0);z-index:3}
+  .phone:nth-child(3){transform:rotateY(14deg) rotateX(4deg)}
+  .phone:hover{transform:translateY(-12px) rotateY(0)}
+  .screen{width:100%;height:100%;border-radius:24px;background:var(--bg2);overflow:hidden;display:flex;flex-direction:column;padding:18px 14px}
+  .screen .eyebrow{font-size:11px;font-weight:800;letter-spacing:1px}
+  .screen h3{font-size:18px;margin:2px 0 14px}
+  .ring{align-self:center;width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:conic-gradient(var(--primary) 68%, #23262f 0);margin:8px 0 16px}
+  .ring .inner{width:96px;height:96px;border-radius:50%;background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring b{font-size:24px;color:var(--primary)}
+  .bar{height:8px;border-radius:4px;background:#23262f;margin:7px 0;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:4px}
+  .pill{font-size:10px;background:#23262f;border-radius:999px;padding:5px 10px;display:inline-block;margin:3px 4px 0 0;color:var(--dim)}
+  .post{background:#1d2029;border-radius:12px;padding:10px;margin-bottom:8px;font-size:11px}
+  .post .who{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+  .av{width:20px;height:20px;border-radius:50%;background:rgba(255,90,31,.3);display:flex;align-items:center;justify-content:center;color:var(--primary);font-weight:800;font-size:10px}
+
+  /* sections */
+  section{position:relative;z-index:1;padding:80px 0}
+  .eyebrow-c{text-align:center;color:var(--primary);font-weight:800;letter-spacing:2px;font-size:13px;text-transform:uppercase;margin-bottom:12px}
+  h2{text-align:center;font-size:clamp(28px,4vw,44px);font-weight:900;letter-spacing:-1px;margin-bottom:14px}
+  .lead{text-align:center;color:var(--dim);max-width:620px;margin:0 auto 50px;font-size:17px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+  .feat{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px;transition:transform .25s,border-color .25s,background .25s}
+  .feat:hover{transform:translateY(-6px);border-color:var(--primary);background:#191b22}
+  .feat .ico{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;background:rgba(255,90,31,.12);margin-bottom:16px}
+  .feat h4{font-size:19px;margin-bottom:8px}
+  .feat p{color:var(--dim);font-size:15px}
+
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;counter-reset:s}
+  .step{background:linear-gradient(160deg,#16181f,#101218);border:1px solid var(--border);border-radius:18px;padding:30px 26px;position:relative}
+  .step::before{counter-increment:s;content:counter(s);position:absolute;top:-18px;left:26px;width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--primary2),var(--primary));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;box-shadow:0 8px 24px rgba(255,90,31,.4)}
+  .step h4{margin:14px 0 8px;font-size:19px}.step p{color:var(--dim);font-size:15px}
+
+  /* stats */
+  .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:50px;text-align:center}
+  .stat b{display:block;font-size:48px;font-weight:900;background:linear-gradient(120deg,#ff7a3c,#ff5a1f);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat span{color:var(--dim);font-size:15px}
+
+  /* cta + form */
+  .cta-box{background:linear-gradient(135deg,rgba(255,90,31,.16),rgba(124,92,255,.14));border:1px solid rgba(255,90,31,.3);border-radius:28px;padding:48px 30px;text-align:center}
+  form.join{max-width:520px;margin:28px auto 0;text-align:left;display:grid;gap:14px}
+  .field label{display:block;font-size:13px;color:var(--dim);font-weight:700;margin-bottom:6px}
+  .field input{width:100%;background:#0e1016;border:1px solid var(--border);border-radius:12px;color:var(--text);padding:13px 14px;font-size:15px;outline:none;transition:border-color .2s}
+  .field input:focus{border-color:var(--primary)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .color-row{display:flex;align-items:center;gap:12px}
+  .color-row input[type=color]{width:54px;height:46px;padding:0;border:1px solid var(--border);border-radius:12px;background:none;cursor:pointer}
+  form.join button{margin-top:6px;width:100%;font-size:16px;padding:15px}
+  .form-msg{margin-top:14px;text-align:center;font-size:15px;font-weight:600}
+  .form-msg.ok{color:var(--accent)}.form-msg.err{color:#ff6b6b}
+  @media(max-width:560px){.row2{grid-template-columns:1fr}}
+
+  footer{border-top:1px solid var(--border);padding:40px 0;text-align:center;color:var(--dim);font-size:14px;position:relative;z-index:1}
+
+  /* scroll reveal */
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  @media(max-width:760px){.nav-links{display:none}.phone:nth-child(3){display:none}.phones{gap:10px}}
+</style>
+</head>
+<body>
+<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+
+<nav>
+  <div class="wrap">
+    <div class="logo">
+      <svg class="mark" viewBox="0 0 512 320"><g fill="#ff5a1f" transform="translate(-100,-256)"><rect x="252" y="392" width="56" height="240" rx="18"/><rect x="326" y="437" width="48" height="150" rx="14"/><rect x="374" y="486" width="276" height="52" rx="14"/><rect x="650" y="437" width="48" height="150" rx="14"/><rect x="716" y="392" width="56" height="240" rx="18"/></g></svg>
+      <span><span class="fit">FIT</span><span class="hub">HUB</span></span>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">White-label</a>
+      <a href="admin.html">Admin Login</a>
+      <a href="#cta" class="btn btn-primary" style="padding:9px 18px">Get your gym on FitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+    <div class="badge">⚡ THE WHITE-LABEL FITNESS PLATFORM</div>
+    <h1>One platform.<br/>Every gym. <span class="grad">Your brand.</span></h1>
+    <p class="sub">Give your gym its own branded mobile app in minutes — AI diet plans, snap-a-photo calorie tracking, attendance, and a members-only community feed. Your name, your logo, your colors.</p>
+    <div class="cta-row">
+      <a href="#cta" class="btn btn-primary">Launch your gym app →</a>
+      <a href="#features" class="btn btn-ghost">See features</a>
+    </div>
+    <div class="hero-note">No app development needed · Live on iOS &amp; Android · Powered by AWS Bedrock AI</div>
+  </div>
+
+  <div class="phones">
+    <div class="phone"><div class="screen">
+      <div class="eyebrow" style="color:var(--primary)">X GYM</div>
+      <h3>Hey Rahul 💪</h3>
+      <div class="ring"><div class="inner"><b>1820</b><span style="font-size:10px;color:var(--dim)">/ 2990 kcal</span></div></div>
+      <div class="bar"><i style="width:70%;background:#23d18b"></i></div>
+      <div class="bar"><i style="width:45%;background:#f7b500"></i></div>
+      <div class="bar"><i style="width:60%;background:#7c5cff"></i></div>
+      <div style="margin-top:10px"><span class="pill">🟢 In the gym</span><span class="pill">12 here today</span></div>
+    </div></div>
+    <div class="phone"><div class="screen">
+      <div class="eyebrow" style="color:var(--accent)">SCAN FOOD</div>
+      <h3>Protein Bowl</h3>
+      <div style="background:#1d2029;border-radius:12px;height:120px;display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:12px">🥗</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><b style="color:var(--primary)">485</b><b style="color:#23d18b">32g</b><b style="color:#f7b500">36g</b><b style="color:#7c5cff">24g</b></div>
+      <div style="font-size:9px;color:var(--dim);display:flex;justify-content:space-between;margin-top:2px"><span>kcal</span><span>protein</span><span>carbs</span><span>fat</span></div>
+      <div class="pill" style="margin-top:12px;background:rgba(247,181,0,.15);color:#f7b500">⚠️ moderate sugar</div>
+    </div></div>
+    <div class="phone"><div class="screen">
+      <div class="eyebrow" style="color:var(--cyan)">COMMUNITY</div>
+      <h3>Feed</h3>
+      <div class="post"><div class="who"><div class="av">A</div><b>Arjun</b></div>New deadlift PR — 180kg! 🔥</div>
+      <div class="post"><div class="who"><div class="av">P</div><b>Priya</b></div>8 weeks transformation 💪</div>
+      <div class="post"><div class="who"><div class="av">R</div><b>Rahul</b></div>Leg day done ✅</div>
+    </div></div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow-c reveal">Everything your members need</div>
+    <h2 class="reveal">A complete fitness app — in your colors</h2>
+    <p class="lead reveal">One login per gym. Members pick your gym, then get the full experience under your brand.</p>
+    <div class="grid">
+      <div class="feat reveal"><div class="ico">🎨</div><h4>True white-label</h4><p>Your gym's name, logo, and brand color load from the server. One app, infinite gyms.</p></div>
+      <div class="feat reveal"><div class="ico">🤖</div><h4>AI diet plans</h4><p>Budget, home-cooked meal plans built around each member's schedule, goal & food preference.</p></div>
+      <div class="feat reveal"><div class="ico">📷</div><h4>Snap-a-photo calories</h4><p>Members photograph a meal and AI returns calories, protein, carbs, fat — plus health warnings.</p></div>
+      <div class="feat reveal"><div class="ico">📍</div><h4>Gym attendance</h4><p>One-tap check-in. See live headcount and weekly training streaks for every member.</p></div>
+      <div class="feat reveal"><div class="ico">🌐</div><h4>Community feed</h4><p>A members-only feed for PRs, transformations and motivation — text, photos & video.</p></div>
+      <div class="feat reveal"><div class="ico">📈</div><h4>Progress + AI coach</h4><p>Weight tracking, progress photos with AI analysis, and a friendly coach that knows their data.</p></div>
+      <div class="feat reveal"><div class="ico">⏰</div><h4>Smart reminders</h4><p>Meal & workout alarms that fire even when the app is closed — auto-set from the diet plan.</p></div>
+      <div class="feat reveal"><div class="ico">🔔</div><h4>One backend for all</h4><p>Every gym runs on one deployment. Add a new gym in seconds, no new app build.</p></div>
+      <div class="feat reveal"><div class="ico">📊</div><h4>Owner insights</h4><p>Attendance trends, active members and engagement — know how your gym is really doing.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how" style="background:var(--bg2)">
+  <div class="wrap">
+    <div class="eyebrow-c reveal">Go live in 3 steps</div>
+    <h2 class="reveal">White-label, the easy way</h2>
+    <p class="lead reveal">No developers. No app store headaches. We handle the platform — you bring the gym.</p>
+    <div class="steps">
+      <div class="step reveal"><h4>Create your gym</h4><p>We add your gym with your name, logo and brand color. It appears instantly in the app's gym list.</p></div>
+      <div class="step reveal"><h4>Members join you</h4><p>Members open the app, pick your gym, and sign up. Everything they see is your brand.</p></div>
+      <div class="step reveal"><h4>You grow</h4><p>Members train, log meals, post wins and check in. You get retention, engagement and data.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="stats">
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat reveal"><b data-count="1">0</b><span>app for every gym</span></div>
+      <div class="stat reveal"><b data-count="9">0</b><span>member features</span></div>
+      <div class="stat reveal"><b data-count="100">0</b><span>% your branding</span></div>
+      <div class="stat reveal"><b data-count="2">0</b><span>platforms (iOS &amp; Android)</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="cta">
+  <div class="wrap">
+    <div class="cta-box reveal">
+      <h2 style="margin-bottom:14px">Get your gym on FitHub</h2>
+      <p class="lead" style="margin-bottom:6px">Add your gym below — it appears in the app's gym list <b style="color:var(--primary)">instantly</b>, so your members can join your community.</p>
+
+      <form class="join" id="joinForm" autocomplete="off">
+        <div class="field">
+          <label>Gym name *</label>
+          <input id="f_name" placeholder="e.g. X Gym" required maxlength="60" />
+        </div>
+        <div class="field">
+          <label>Tagline</label>
+          <input id="f_tagline" placeholder="e.g. Push your limits." maxlength="120" />
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Your name *</label>
+            <input id="f_owner" placeholder="Owner / manager" maxlength="80" required />
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input id="f_phone" type="tel" placeholder="+91 98xxxxxxx" maxlength="20" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Email (this becomes your admin login) *</label>
+          <input id="f_email" type="email" placeholder="you@gym.com" required />
+        </div>
+        <div class="field">
+          <label>Choose a password *</label>
+          <input id="f_pass" type="password" placeholder="At least 6 characters" minlength="6" required />
+        </div>
+        <div class="field">
+          <label>Brand colour</label>
+          <div class="color-row">
+            <input type="color" id="f_color" value="#FF5A1F" />
+            <span style="color:var(--dim);font-size:14px">Pick your gym's accent colour — the whole app adopts it.</span>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="joinBtn">Add my gym to FitHub →</button>
+        <div class="form-msg" id="formMsg"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="logo" style="justify-content:center;margin-bottom:10px"><span class="fit">FIT</span><span class="hub">HUB</span></div>
+    © 2026 FitHub — the white-label fitness platform. Train. Eat. Track.
+  </div>
+</footer>
+
+<script>
+  // scroll reveal
+  const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.15});
+  document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%4*0.08)+'s';io.observe(el);});
+  // count-up stats
+  const cs=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){const b=e.target,t=+b.dataset.count;let n=0;const step=Math.max(1,Math.round(t/40));const tm=setInterval(()=>{n+=step;if(n>=t){n=t;clearInterval(tm);}b.textContent=n+(t===100?'%':'');},30);cs.unobserve(b);}}),{threshold:.6});
+  document.querySelectorAll('[data-count]').forEach(b=>cs.observe(b));
+
+  // ----- Register-your-gym form -----
+  // Point this at your deployed backend in production.
+  const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:4000/api'
+    : '/api';
+  const form = document.getElementById('joinForm');
+  const msg = document.getElementById('formMsg');
+  const btn = document.getElementById('joinBtn');
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const name = document.getElementById('f_name').value.trim();
+    const owner = document.getElementById('f_owner').value.trim();
+    const email = document.getElementById('f_email').value.trim();
+    const password = document.getElementById('f_pass').value;
+    if(name.length < 2){ msg.className='form-msg err'; msg.textContent='Please enter your gym name.'; return; }
+    if(!owner){ msg.className='form-msg err'; msg.textContent='Please enter your name.'; return; }
+    if(!email){ msg.className='form-msg err'; msg.textContent='Email is required — it becomes your admin login.'; return; }
+    if(password.length < 6){ msg.className='form-msg err'; msg.textContent='Choose a password of at least 6 characters.'; return; }
+    btn.disabled = true; btn.textContent = 'Creating…'; msg.textContent='';
+    try{
+      const res = await fetch(API_BASE + '/orgs', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          name, owner_name: owner, contact_email: email, password,
+          tagline: document.getElementById('f_tagline').value.trim() || undefined,
+          phone: document.getElementById('f_phone').value.trim() || undefined,
+          primary_color: document.getElementById('f_color').value,
+        }),
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error || 'Something went wrong');
+      // Success — confirm the admin login (password is the one they chose).
+      form.style.display='none';
+      msg.className='form-msg ok';
+      msg.innerHTML =
+        '<div style="background:#0e1016;border:1px solid var(--accent);border-radius:16px;padding:22px;text-align:left;max-width:480px;margin:0 auto">'
+        + '<div style="font-size:18px;margin-bottom:10px">✅ <b>'+data.organization.name+'</b> is live!</div>'
+        + '<div style="color:var(--dim);font-size:14px;margin-bottom:14px">Your admin login:</div>'
+        + '<div style="font-family:monospace;font-size:15px;line-height:1.9">Email: <b style="color:#fff">'+data.admin.email+'</b><br>Password: <b style="color:var(--primary)">the one you just chose</b></div>'
+        + '<a href="admin.html" class="btn btn-primary" style="margin-top:18px;width:100%">Log in to admin dashboard →</a>'
+        + '<div style="color:var(--dim);font-size:12px;margin-top:12px">Members can now open the FitHub app, choose “'+data.organization.name+'”, and join.</div>'
+        + '</div>';
+    }catch(err){
+      msg.className='form-msg err';
+      msg.textContent = err.message.includes('Failed to fetch') ? 'Could not reach the server. Is the backend running?' : err.message;
+    }finally{
+      btn.disabled = false; btn.textContent = 'Add my gym to FitHub →';
+    }
+  });
+</script>
+</body>
+</html>

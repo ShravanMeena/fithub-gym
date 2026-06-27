@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FitHub — Admin Dashboard</title>
+<style>
+  :root{--bg:#0b0c10;--card:#16181f;--card2:#1d2029;--border:#23262f;--text:#f5f6f8;--dim:#9aa0ac;--primary:#ff5a1f;--accent:#23d18b;--danger:#ff5a5a}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--primary);text-decoration:none}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:20px}
+  .logo .mark{width:32px;height:20px}
+  .fit{color:#fff}.hub{color:var(--primary)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;border-radius:11px;padding:12px 20px;cursor:pointer;border:none;font-size:15px;background:linear-gradient(135deg,#ff7a3c,var(--primary));color:#fff;transition:transform .15s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .btn.sm{padding:8px 14px;font-size:13px}
+  input{width:100%;background:#0e1016;border:1px solid var(--border);border-radius:11px;color:var(--text);padding:12px 14px;font-size:15px;outline:none}
+  input:focus{border-color:var(--primary)}
+  label{display:block;font-size:13px;color:var(--dim);font-weight:700;margin:0 0 6px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:18px}
+  /* login */
+  .login-wrap{max-width:400px;margin:8vh auto}
+  .field{margin-bottom:14px}
+  .msg{margin-top:10px;font-size:14px;font-weight:600}
+  .msg.err{color:var(--danger)}
+  /* dashboard */
+  header.top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:22px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center}
+  .stat b{display:block;font-size:34px;font-weight:900;color:var(--primary)}
+  .stat span{color:var(--dim);font-size:13px}
+  h3{font-size:18px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;color:var(--dim);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:1px solid var(--border)}
+  td{padding:12px;border-bottom:1px solid var(--border)}
+  tr:hover td{background:#181b22}
+  .pill{font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700}
+  .pill.in{background:rgba(35,209,139,.16);color:var(--accent)}
+  .pill.admin{background:rgba(255,90,31,.16);color:var(--primary)}
+  .pill.short{background:rgba(255,90,90,.16);color:var(--danger)}
+  .tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .tab{padding:9px 16px;border-radius:999px;background:var(--card);border:1px solid var(--border);cursor:pointer;font-weight:600;font-size:14px;color:var(--dim)}
+  .tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .muted{color:var(--dim)}
+  @media(max-width:640px){.stats{grid-template-columns:1fr}.row2{grid-template-columns:1fr}table{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- LOGIN -->
+  <div id="loginView" class="login-wrap">
+    <div class="logo" style="justify-content:center;margin-bottom:22px">
+      <svg class="mark" viewBox="0 0 512 320"><g fill="#ff5a1f" transform="translate(-100,-256)"><rect x="252" y="392" width="56" height="240" rx="18"/><rect x="326" y="437" width="48" height="150" rx="14"/><rect x="374" y="486" width="276" height="52" rx="14"/><rect x="650" y="437" width="48" height="150" rx="14"/><rect x="716" y="392" width="56" height="240" rx="18"/></g></svg>
+      <span><span class="fit">FIT</span><span class="hub">HUB</span> Admin</span>
+    </div>
+    <div class="card">
+      <div class="field"><label>Admin email</label><input id="l_email" type="email" placeholder="you@gym.com" /></div>
+      <div class="field"><label>Password</label><input id="l_pass" type="password" placeholder="••••••••" /></div>
+      <button class="btn" style="width:100%" id="loginBtn" onclick="doLogin()">Log in</button>
+      <div class="msg err" id="loginMsg"></div>
+      <div class="muted" style="font-size:13px;margin-top:14px;text-align:center">No gym yet? <a href="index.html#cta">Register your gym →</a></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashView" style="display:none">
+    <header class="top">
+      <div class="logo"><span class="fit">FIT</span><span class="hub">HUB</span> <span class="muted" style="font-weight:600;font-size:15px" id="gymName"></span></div>
+      <button class="btn ghost sm" onclick="logout()">Log out</button>
+    </header>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block;animation:pulse 1.6s infinite"></span><span class="muted" style="font-size:13px">Live · updates automatically</span></div>
+      <button class="btn ghost sm" onclick="loadData()">↻ Refresh</button>
+    </div>
+    <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+
+    <div class="stats">
+      <div class="stat"><b id="s_members">0</b><span>Members</span></div>
+      <div class="stat"><b id="s_today">0</b><span>Checked in today</span></div>
+      <div class="stat"><b id="s_now">0</b><span>In the gym now</span></div>
+    </div>
+
+    <div class="card" id="activeCard" style="display:none;border-color:var(--accent)">
+      <h3 style="margin-bottom:10px">🟢 In the gym right now</h3>
+      <div id="activeList"></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="members" onclick="switchTab('members')">Members</div>
+      <div class="tab" data-tab="notices" onclick="switchTab('notices')">Home Notices</div>
+      <div class="tab" data-tab="announce" onclick="switchTab('announce')">Announce</div>
+      <div class="tab" data-tab="attendance" onclick="switchTab('attendance')">Attendance log</div>
+      <div class="tab" data-tab="settings" onclick="switchTab('settings')">Settings</div>
+    </div>
+
+    <div id="tab_notices" class="card" style="display:none">
+      <h3>Home-screen notice 📢</h3>
+      <p class="muted" style="font-size:14px;margin-bottom:12px">Shows as a highlighted banner on every member's Home screen. Track who saw it and their Yes/No.</p>
+      <div style="margin-bottom:10px"><span class="muted" style="font-size:13px">Templates:</span>
+        <span class="tab" style="display:inline-block;margin:4px 4px 0 0;padding:6px 12px" onclick="tpl('Gym closed tomorrow','Closed for maintenance on the 15th. Sorry for the inconvenience!','info')">🔧 Closure</span>
+        <span class="tab" style="display:inline-block;margin:4px 4px 0 0;padding:6px 12px" onclick="tpl('New timings from Monday','Morning 5–11am, Evening 4–10pm. Please acknowledge.','ack')">🕒 New timings</span>
+        <span class="tab" style="display:inline-block;margin:4px 4px 0 0;padding:6px 12px" onclick="tpl('Sunday special session','Free HIIT bootcamp this Sunday 7am. Are you coming?','yesno')">🎉 Event RSVP</span>
+      </div>
+      <div class="field"><label>Title</label><input id="n_title" placeholder="e.g. Gym closed tomorrow" /></div>
+      <div class="field"><label>Message</label><input id="n_body" placeholder="Details…" /></div>
+      <div class="field"><label>Type</label>
+        <select id="n_type" style="width:auto;display:inline-block;padding:10px 12px">
+          <option value="info">Info (just close)</option>
+          <option value="ack">Acknowledge (Got it 👍)</option>
+          <option value="yesno">Yes / No (RSVP / poll)</option>
+        </select>
+      </div>
+      <button class="btn" onclick="postNotice()">📢 Push to members' home</button>
+      <div class="msg" id="noticeMsg" style="color:var(--accent)"></div>
+      <div id="noticeList" style="margin-top:18px"></div>
+    </div>
+
+    <div id="tab_announce" class="card" style="display:none">
+      <h3>Post to your community 📣</h3>
+      <p class="muted" style="font-size:14px;margin-bottom:12px">Promote a class, share news, or inform members (e.g. “Gym closed tomorrow”). It appears pinned in everyone's feed.</p>
+      <textarea id="ann_text" rows="3" placeholder="e.g. 🎉 New Zumba class every Saturday 7am! / Gym closed on 15th for maintenance." style="width:100%;background:#0e1016;border:1px solid var(--border);border-radius:11px;color:var(--text);padding:12px 14px;font-size:15px;outline:none;resize:vertical;margin-bottom:12px"></textarea>
+      <button class="btn" onclick="postAnnounce()">📣 Post announcement</button>
+      <div class="msg" id="annMsg" style="color:var(--accent)"></div>
+    </div>
+
+    <div id="tab_members" class="card">
+      <h3>Members & attendance</h3>
+      <div style="overflow-x:auto"><table id="membersTable"></table></div>
+    </div>
+
+    <div id="tab_attendance" class="card" style="display:none">
+      <h3>Recent check-ins</h3>
+      <div style="overflow-x:auto"><table id="attTable"></table></div>
+    </div>
+
+    <div id="tab_settings" class="card" style="display:none">
+      <h3>Gym settings</h3>
+      <div class="row2">
+        <div class="field"><label>Gym name</label><input id="set_name" /></div>
+        <div class="field"><label>Phone</label><input id="set_phone" /></div>
+      </div>
+      <div class="field"><label>Tagline</label><input id="set_tagline" /></div>
+      <div class="field"><label>Brand colour</label><input id="set_color" type="color" style="width:60px;height:44px;padding:2px" /></div>
+      <button class="btn" onclick="saveOrg()">Save gym</button>
+      <div class="msg" id="orgMsg" style="color:var(--accent)"></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:22px 0" />
+      <h3>Admin account</h3>
+      <div class="row2">
+        <div class="field"><label>Your name</label><input id="acc_name" /></div>
+        <div class="field"><label>Login email</label><input id="acc_email" type="email" /></div>
+      </div>
+      <div class="field"><label>New password (leave blank to keep)</label><input id="acc_pass" type="password" placeholder="••••••••" /></div>
+      <button class="btn" onclick="saveAccount()">Update account</button>
+      <div class="msg" id="accMsg" style="color:var(--accent)"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:4000/api' : '/api';
+  const TOKEN_KEY = 'fithub.admin.token';
+  let token = localStorage.getItem(TOKEN_KEY);
+
+  const $ = (id)=>document.getElementById(id);
+  const api = (path, opts={}) => fetch(API_BASE+path, {...opts, headers:{'Content-Type':'application/json', ...(token?{Authorization:'Bearer '+token}:{}) , ...(opts.headers||{})}}).then(async r=>{const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Error');return d;});
+
+  async function doLogin(){
+    const email=$('l_email').value.trim(), password=$('l_pass').value;
+    $('loginMsg').textContent=''; $('loginBtn').disabled=true; $('loginBtn').textContent='Logging in…';
+    try{
+      const d=await api('/auth/login',{method:'POST',body:JSON.stringify({email,password})});
+      if(d.user.role!=='admin'){ throw new Error('This login is not an admin account.'); }
+      token=d.token; localStorage.setItem(TOKEN_KEY,token);
+      showDash();
+    }catch(e){ $('loginMsg').textContent=e.message; }
+    finally{ $('loginBtn').disabled=false; $('loginBtn').textContent='Log in'; }
+  }
+  function logout(){ localStorage.removeItem(TOKEN_KEY); token=null; location.reload(); }
+
+  function switchTab(t){
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
+    ['members','notices','announce','attendance','settings'].forEach(x=>$('tab_'+x).style.display = x===t?'block':'none');
+    if(t==='notices') loadNotices();
+  }
+
+  function fmtDate(s){ return s? s.slice(0,16).replace('T',' ') : '—'; }
+
+  let pollTimer = null;
+  function showDash(){
+    $('loginView').style.display='none'; $('dashView').style.display='block';
+    loadData();
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(loadData, 8000); // live refresh every 8s
+  }
+
+  async function loadData(){
+    try{
+      const ov=await api('/admin/overview');
+      $('gymName').textContent='· '+ov.org.name;
+      $('s_members').textContent=ov.stats.memberCount;
+      $('s_today').textContent=ov.stats.todayCount;
+      $('s_now').textContent=ov.stats.inGymNow;
+      // settings prefill (only when fields are empty / not being edited)
+      if(document.activeElement.tagName!=='INPUT'){
+        $('set_name').value=ov.org.name||''; $('set_tagline').value=ov.org.tagline||'';
+        $('set_phone').value=ov.org.phone||''; $('set_color').value=ov.org.primary_color||'#ff5a1f';
+        $('acc_name').value=ov.org.owner_name||''; $('acc_email').value=ov.org.contact_email||'';
+      }
+
+      const {members}=await api('/admin/members');
+      // active-now list
+      const active=members.filter(m=>m.in_gym);
+      $('activeCard').style.display = active.length? 'block':'none';
+      $('activeList').innerHTML = active.map(m=>`<span class="pill in" style="margin:0 6px 6px 0;display:inline-block;font-size:13px">🟢 ${m.name}</span>`).join('');
+
+      $('membersTable').innerHTML =
+        '<tr><th>Name</th><th>Email</th><th>Phone</th><th>Visits</th><th>Status</th><th>AI</th><th></th></tr>' +
+        members.map(m=>{
+          const ai = m.ai_active ? `<span class="pill in">AI ✓</span>` : '<span class="muted">—</span>';
+          const action = (m.role==='admin') ? '' : `<a href="#" onclick="removeMember(${m.id},'${m.name.replace(/'/g,'')}');return false" style="color:var(--danger);font-size:13px">Remove</a>`;
+          return `<tr>
+            <td><b>${m.name}</b></td><td class="muted">${m.email}</td><td class="muted">${m.phone||'—'}</td>
+            <td>${m.visits}</td>
+            <td>${m.role==='admin'?'<span class="pill admin">owner</span>':m.in_gym?'<span class="pill in">in gym</span>':'<span class="muted">—</span>'}</td>
+            <td>${ai}</td>
+            <td>${action}</td>
+          </tr>`;
+        }).join('');
+
+      const {attendance}=await api('/admin/attendance');
+      $('attTable').innerHTML =
+        '<tr><th>Member</th><th>Check-in</th><th>Check-out</th><th>Duration</th><th>Note</th></tr>' +
+        (attendance.length? attendance.map(a=>`<tr>
+          <td><b>${a.name}</b></td><td class="muted">${fmtDate(a.checked_in_at)}</td>
+          <td class="muted">${a.checked_out_at?fmtDate(a.checked_out_at):'<span class="pill in">in gym</span>'}</td>
+          <td>${a.minutes!=null? (a.minutes<40?'<span class="pill short">'+a.minutes+'m</span>':a.minutes+'m') :'—'}</td>
+          <td class="muted">${a.reason||''}</td>
+        </tr>`).join('') : '<tr><td colspan="5" class="muted">No check-ins yet.</td></tr>');
+    }catch(e){ if(String(e.message).includes('token')||String(e.message).includes('Admin')){ if(pollTimer)clearInterval(pollTimer); logout(); } }
+  }
+
+  async function saveOrg(){
+    try{
+      await api('/admin/org',{method:'PUT',body:JSON.stringify({name:$('set_name').value.trim(),tagline:$('set_tagline').value.trim(),phone:$('set_phone').value.trim(),primary_color:$('set_color').value})});
+      $('orgMsg').textContent='✅ Saved'; loadData();
+    }catch(e){ $('orgMsg').style.color='var(--danger)'; $('orgMsg').textContent=e.message; }
+  }
+  async function saveAccount(){
+    const body={name:$('acc_name').value.trim(),email:$('acc_email').value.trim()};
+    if($('acc_pass').value) body.password=$('acc_pass').value;
+    try{
+      await api('/admin/account',{method:'PUT',body:JSON.stringify(body)});
+      $('accMsg').textContent='✅ Account updated'; $('acc_pass').value='';
+    }catch(e){ $('accMsg').style.color='var(--danger)'; $('accMsg').textContent=e.message; }
+  }
+
+  // ---- Announcements + member removal (gym owner) ----
+  async function postAnnounce(){
+    const content=$('ann_text').value.trim();
+    if(!content){ $('annMsg').style.color='var(--danger)'; $('annMsg').textContent='Write something first.'; return; }
+    try{ await api('/admin/announce',{method:'POST',body:JSON.stringify({content})});
+      $('ann_text').value=''; $('annMsg').style.color='var(--accent)'; $('annMsg').textContent='✅ Posted to your community feed.'; }
+    catch(e){ $('annMsg').style.color='var(--danger)'; $('annMsg').textContent=e.message; }
+  }
+  async function removeMember(id,name){
+    if(!confirm(`Remove ${name} from your gym? This deletes their account and data.`)) return;
+    try{ await api('/admin/members/'+id,{method:'DELETE'}); loadData(); }
+    catch(e){ alert(e.message); }
+  }
+
+  // ---- Home notices ----
+  function tpl(title, body, type){ $('n_title').value=title; $('n_body').value=body; $('n_type').value=type; }
+  async function postNotice(){
+    const title=$('n_title').value.trim();
+    if(!title){ $('noticeMsg').style.color='var(--danger)'; $('noticeMsg').textContent='Add a title.'; return; }
+    try{
+      await api('/admin/notices',{method:'POST',body:JSON.stringify({title,body:$('n_body').value.trim(),type:$('n_type').value})});
+      $('n_title').value=''; $('n_body').value='';
+      $('noticeMsg').style.color='var(--accent)'; $('noticeMsg').textContent='✅ Pushed to members’ home.';
+      loadNotices();
+    }catch(e){ $('noticeMsg').style.color='var(--danger)'; $('noticeMsg').textContent=e.message; }
+  }
+  async function loadNotices(){
+    try{
+      const {notices,totalMembers}=await api('/admin/notices');
+      $('noticeList').innerHTML = notices.length? notices.map(n=>{
+        let stats=`<span class="pill in">👁 ${n.seen}/${totalMembers} seen</span>`;
+        if(n.type==='yesno') stats+=` <span class="pill" style="background:rgba(35,209,139,.16);color:var(--accent)">✓ ${n.yes} yes</span> <span class="pill short">✕ ${n.no} no</span>`;
+        if(n.type==='ack') stats+=` <span class="pill in">👍 ${n.ack} acknowledged</span>`;
+        return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;${n.active?'':'opacity:.5'}">
+          <div style="display:flex;justify-content:space-between"><b>${n.title}</b>
+            <a href="#" onclick="delNotice(${n.id});return false" style="color:var(--danger);font-size:13px">${n.active?'Stop':'stopped'}</a></div>
+          ${n.body?`<div class="muted" style="font-size:13px;margin:4px 0">${n.body}</div>`:''}
+          <div style="margin-top:8px">${stats}</div>
+        </div>`;
+      }).join('') : '<div class="muted">No notices yet.</div>';
+    }catch(e){}
+  }
+  async function delNotice(id){ try{ await api('/admin/notices/'+id,{method:'DELETE'}); loadNotices(); }catch(e){ alert(e.message); } }
+
+  // auto-login if token present
+  if(token) showDash();
+</script>
+</body>
+</html>

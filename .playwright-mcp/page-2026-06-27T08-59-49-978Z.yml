@@ -1,0 +1,16 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - img [ref=e5]
+    - generic [ref=e12]: FITHUB Admin
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - generic [ref=e15]: Admin email
+      - textbox "you@gym.com" [ref=e16]
+    - generic [ref=e17]:
+      - generic [ref=e18]: Password
+      - textbox "••••••••" [ref=e19]
+    - button "Log in" [ref=e20] [cursor=pointer]
+    - generic [ref=e21]:
+      - text: No gym yet?
+      - link "Register your gym →" [ref=e22] [cursor=pointer]:
+        - /url: index.html#cta

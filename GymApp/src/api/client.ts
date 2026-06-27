@@ -1,0 +1,128 @@
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE } from './config';
+
+export const TOKEN_KEY = 'gym.token';
+
+export const api = axios.create({ baseURL: API_BASE, timeout: 60000 });
+
+// Attach the JWT to every request.
+api.interceptors.request.use(async (cfg) => {
+  const token = await AsyncStorage.getItem(TOKEN_KEY);
+  if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  return cfg;
+});
+
+// Server origin (without the /api suffix) for building image URLs.
+export const SERVER_ORIGIN = API_BASE.replace(/\/api$/, '');
+
+// Build an <Image> source for a protected photo URL (sends the JWT as a header).
+export async function authedImageSource(path: string) {
+  const token = await AsyncStorage.getItem(TOKEN_KEY);
+  return { uri: `${SERVER_ORIGIN}${path}`, headers: { Authorization: `Bearer ${token}` } };
+}
+
+// Build a <Video> source. Video players can't reliably send auth headers on iOS,
+// so we pass the JWT as a query param (the media route accepts ?token=).
+export async function authedVideoSource(path: string) {
+  const token = await AsyncStorage.getItem(TOKEN_KEY);
+  return { uri: `${SERVER_ORIGIN}${path}?token=${token}` };
+}
+
+// Surface a clean error message.
+export function apiError(err: any): string {
+  return (
+    err?.response?.data?.error ||
+    err?.message ||
+    'Something went wrong. Check your connection.'
+  );
+}
+
+// ---- Typed endpoint helpers ------------------------------------------------
+export const AuthAPI = {
+  signup: (name: string, email: string, password: string, org_id?: number) =>
+    api.post('/auth/signup', { name, email, password, org_id }).then((r) => r.data),
+  login: (email: string, password: string) =>
+    api.post('/auth/login', { email, password }).then((r) => r.data),
+  me: () => api.get('/auth/me').then((r) => r.data),
+};
+
+export const OrgAPI = {
+  list: () => api.get('/orgs').then((r) => r.data),
+  get: (slug: string) => api.get(`/orgs/${slug}`).then((r) => r.data),
+};
+
+export const AttendanceAPI = {
+  status: () => api.get('/attendance').then((r) => r.data),
+  checkin: () => api.post('/attendance/checkin').then((r) => r.data),
+  checkout: (reason?: string) => api.post('/attendance/checkout', { reason }).then((r) => r.data),
+  setReason: (id: number, reason: string) => api.put(`/attendance/${id}/reason`, { reason }).then((r) => r.data),
+};
+
+export const WorkoutAPI = {
+  list: () => api.get('/workouts').then((r) => r.data),
+  prs: () => api.get('/workouts/prs').then((r) => r.data),
+  create: (body: Record<string, any>) => api.post('/workouts', body).then((r) => r.data),
+  remove: (id: number) => api.delete(`/workouts/${id}`).then((r) => r.data),
+};
+
+export const FeedAPI = {
+  list: (before?: number) => api.get('/feed', { params: before ? { before } : {} }).then((r) => r.data),
+  publicFeed: (before?: number) => api.get('/feed/public', { params: before ? { before } : {} }).then((r) => r.data),
+  create: (body: Record<string, any>) => api.post('/feed', body).then((r) => r.data),
+  like: (id: number) => api.post(`/feed/${id}/like`).then((r) => r.data),
+  unlike: (id: number) => api.delete(`/feed/${id}/like`).then((r) => r.data),
+  remove: (id: number) => api.delete(`/feed/${id}`).then((r) => r.data),
+};
+
+export const ProfileAPI = {
+  get: () => api.get('/profile').then((r) => r.data),
+  update: (patch: Record<string, any>) => api.put('/profile', patch).then((r) => r.data),
+};
+
+export const DietAPI = {
+  generate: () => api.post('/diet/generate').then((r) => r.data),
+  normal: () => api.post('/diet/normal').then((r) => r.data),
+  current: () => api.get('/diet/current').then((r) => r.data),
+};
+
+export const FoodAPI = {
+  estimate: (imageBase64: string, mediaType?: string, note?: string) =>
+    api.post('/food/estimate', { imageBase64, mediaType, note }).then((r) => r.data),
+  estimateText: (text: string) =>
+    api.post('/food/estimate-text', { text }).then((r) => r.data),
+  log: (entry: Record<string, any>) => api.post('/food/log', entry).then((r) => r.data),
+  today: () => api.get('/food/today').then((r) => r.data),
+  remove: (id: number) => api.delete(`/food/log/${id}`).then((r) => r.data),
+};
+
+export const ProgressAPI = {
+  list: () => api.get('/progress').then((r) => r.data),
+  add: (entry: Record<string, any>) => api.post('/progress', entry).then((r) => r.data),
+  coach: (question?: string) => api.post('/progress/coach', { question }).then((r) => r.data),
+};
+
+export const PhotoAPI = {
+  upload: (imageBase64: string, visibility: 'private' | 'public', mediaType?: string, weight_kg?: number, note?: string) =>
+    api.post('/photos', { imageBase64, visibility, mediaType, weight_kg, note }).then((r) => r.data),
+  list: () => api.get('/photos').then((r) => r.data),
+  setVisibility: (id: number, visibility: 'private' | 'public') =>
+    api.put(`/photos/${id}`, { visibility }).then((r) => r.data),
+  remove: (id: number) => api.delete(`/photos/${id}`).then((r) => r.data),
+  analyze: () => api.post('/photos/analyze').then((r) => r.data),
+};
+
+export const NoticeAPI = {
+  active: () => api.get('/notices').then((r) => r.data),
+  seen: (id: number) => api.post(`/notices/${id}/seen`).then((r) => r.data),
+  dismiss: (id: number) => api.post(`/notices/${id}/dismiss`).then((r) => r.data),
+  respond: (id: number, response: 'yes' | 'no' | 'ack') => api.post(`/notices/${id}/respond`, { response }).then((r) => r.data),
+};
+
+export const ReminderAPI = {
+  list: () => api.get('/reminders').then((r) => r.data),
+  create: (r: Record<string, any>) => api.post('/reminders', r).then((res) => res.data),
+  update: (id: number, patch: Record<string, any>) =>
+    api.put(`/reminders/${id}`, patch).then((res) => res.data),
+  remove: (id: number) => api.delete(`/reminders/${id}`).then((res) => res.data),
+};

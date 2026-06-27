@@ -1,0 +1,304 @@
+- generic [ref=e21]:
+  - banner [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]: FIT
+      - generic [ref=e25]: HUB
+      - generic [ref=e26]: PLATFORM
+    - button "Log out" [ref=e27] [cursor=pointer]
+  - generic [ref=e28]:
+    - generic [ref=e29]:
+      - generic [ref=e30]: "13"
+      - text: Gyms
+    - generic [ref=e31]:
+      - generic [ref=e32]: "18"
+      - text: Total users
+    - generic [ref=e33]:
+      - generic [ref=e34]: "2"
+      - text: Active AI subscriptions
+  - generic [ref=e35]:
+    - generic [ref=e36] [cursor=pointer]: Users & AI access
+    - generic [ref=e37] [cursor=pointer]: Gyms
+  - generic [ref=e38]:
+    - generic [ref=e39]:
+      - textbox "Search by name, email or gym…" [ref=e40]
+      - button "Search" [ref=e41] [cursor=pointer]
+    - table [ref=e43]:
+      - rowgroup [ref=e44]:
+        - row "Name Email Gym AI Access Action" [ref=e45]:
+          - columnheader "Name" [ref=e46]
+          - columnheader "Email" [ref=e47]
+          - columnheader "Gym" [ref=e48]
+          - columnheader "AI Access" [ref=e49]
+          - columnheader "Action" [ref=e50]
+        - row "AjayFree ajay1782554953057@pulse.com Pulse Gym AI ✓ till 2026-07-27 1 month Grant Revoke" [ref=e51]:
+          - cell "AjayFree" [ref=e52]
+          - cell "ajay1782554953057@pulse.com" [ref=e53]
+          - cell "Pulse Gym" [ref=e54]
+          - cell "AI ✓ till 2026-07-27" [ref=e55]
+          - cell "1 month Grant Revoke" [ref=e56]:
+            - combobox [ref=e57]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e58] [cursor=pointer]
+            - button "Revoke" [ref=e59] [cursor=pointer]
+        - row "Adm owner adm.pay@x.com PayTest Gym locked 1 month Grant" [ref=e60]:
+          - cell "Adm owner" [ref=e61]
+          - cell "adm.pay@x.com" [ref=e62]
+          - cell "PayTest Gym" [ref=e63]
+          - cell "locked" [ref=e64]
+          - cell "1 month Grant" [ref=e65]:
+            - combobox [ref=e66]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e67] [cursor=pointer]
+        - row "FreeUser free.u@x.com PayTest Gym AI ✓ till 2026-07-12 1 month Grant Revoke" [ref=e68]:
+          - cell "FreeUser" [ref=e69]
+          - cell "free.u@x.com" [ref=e70]
+          - cell "PayTest Gym" [ref=e71]
+          - cell "AI ✓ till 2026-07-12" [ref=e72]
+          - cell "1 month Grant Revoke" [ref=e73]:
+            - combobox [ref=e74]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e75] [cursor=pointer]
+            - button "Revoke" [ref=e76] [cursor=pointer]
+        - row "VTest vtest1782552736070@x.com ABCDE GYM 2 locked 1 month Grant" [ref=e77]:
+          - cell "VTest" [ref=e78]
+          - cell "vtest1782552736070@x.com" [ref=e79]
+          - cell "ABCDE GYM 2" [ref=e80]
+          - cell "locked" [ref=e81]
+          - cell "1 month Grant" [ref=e82]:
+            - combobox [ref=e83]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e84] [cursor=pointer]
+        - row "Seema seema@gmail.com ABCDE GYM 2 locked 1 month Grant" [ref=e85]:
+          - cell "Seema" [ref=e86]
+          - cell "seema@gmail.com" [ref=e87]
+          - cell "ABCDE GYM 2" [ref=e88]
+          - cell "locked" [ref=e89]
+          - cell "1 month Grant" [ref=e90]:
+            - combobox [ref=e91]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e92] [cursor=pointer]
+        - row "Sara owner sara@pulse.com Pulse Gym locked 1 month Grant" [ref=e93]:
+          - cell "Sara owner" [ref=e94]
+          - cell "sara@pulse.com" [ref=e95]
+          - cell "Pulse Gym" [ref=e96]
+          - cell "locked" [ref=e97]
+          - cell "1 month Grant" [ref=e98]:
+            - combobox [ref=e99]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e100] [cursor=pointer]
+        - row "Rohit rohit@pulse.com Pulse Gym locked 1 month Grant" [ref=e101]:
+          - cell "Rohit" [ref=e102]
+          - cell "rohit@pulse.com" [ref=e103]
+          - cell "Pulse Gym" [ref=e104]
+          - cell "locked" [ref=e105]
+          - cell "1 month Grant" [ref=e106]:
+            - combobox [ref=e107]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e108] [cursor=pointer]
+        - row "Meera meera@pulse.com Pulse Gym locked 1 month Grant" [ref=e109]:
+          - cell "Meera" [ref=e110]
+          - cell "meera@pulse.com" [ref=e111]
+          - cell "Pulse Gym" [ref=e112]
+          - cell "locked" [ref=e113]
+          - cell "1 month Grant" [ref=e114]:
+            - combobox [ref=e115]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e116] [cursor=pointer]
+        - row "Karan karan1782552058074@x.com FlexZone Elite locked 1 month Grant" [ref=e117]:
+          - cell "Karan" [ref=e118]
+          - cell "karan1782552058074@x.com" [ref=e119]
+          - cell "FlexZone Elite" [ref=e120]
+          - cell "locked" [ref=e121]
+          - cell "1 month Grant" [ref=e122]:
+            - combobox [ref=e123]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e124] [cursor=pointer]
+        - row "Dev owner dev.flex1782552057863@x.com FlexZone Elite locked 1 month Grant" [ref=e125]:
+          - cell "Dev owner" [ref=e126]
+          - cell "dev.flex1782552057863@x.com" [ref=e127]
+          - cell "FlexZone Elite" [ref=e128]
+          - cell "locked" [ref=e129]
+          - cell "1 month Grant" [ref=e130]:
+            - combobox [ref=e131]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e132] [cursor=pointer]
+        - row "sdf jk owner shravanmeena@gmail.com ABCDE GYM 2 locked 1 month Grant" [ref=e133]:
+          - cell "sdf jk owner" [ref=e134]
+          - cell "shravanmeena@gmail.com" [ref=e135]
+          - cell "ABCDE GYM 2" [ref=e136]
+          - cell "locked" [ref=e137]
+          - cell "1 month Grant" [ref=e138]:
+            - combobox [ref=e139]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e140] [cursor=pointer]
+        - row "Neha owner neha@apex.com Apex Gym locked 1 month Grant" [ref=e141]:
+          - cell "Neha owner" [ref=e142]
+          - cell "neha@apex.com" [ref=e143]
+          - cell "Apex Gym" [ref=e144]
+          - cell "locked" [ref=e145]
+          - cell "1 month Grant" [ref=e146]:
+            - combobox [ref=e147]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e148] [cursor=pointer]
+        - row "Raj owner raj.admin@elite.com Elite Fitness Club locked 1 month Grant" [ref=e149]:
+          - cell "Raj owner" [ref=e150]
+          - cell "raj.admin@elite.com" [ref=e151]
+          - cell "Elite Fitness Club" [ref=e152]
+          - cell "locked" [ref=e153]
+          - cell "1 month Grant" [ref=e154]:
+            - combobox [ref=e155]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e156] [cursor=pointer]
+        - row "Coach Vikram owner vikram1782550662057@ph.com PowerHouse Gym locked 1 month Grant" [ref=e157]:
+          - cell "Coach Vikram owner" [ref=e158]
+          - cell "vikram1782550662057@ph.com" [ref=e159]
+          - cell "PowerHouse Gym" [ref=e160]
+          - cell "locked" [ref=e161]
+          - cell "1 month Grant" [ref=e162]:
+            - combobox [ref=e163]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e164] [cursor=pointer]
+        - row "Aman aman1782550662260@ph.com PowerHouse Gym locked 1 month Grant" [ref=e165]:
+          - cell "Aman" [ref=e166]
+          - cell "aman1782550662260@ph.com" [ref=e167]
+          - cell "PowerHouse Gym" [ref=e168]
+          - cell "locked" [ref=e169]
+          - cell "1 month Grant" [ref=e170]:
+            - combobox [ref=e171]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e172] [cursor=pointer]
+        - row "Rahul rahul1782547569856@x.com X Gym locked 1 month Grant" [ref=e173]:
+          - cell "Rahul" [ref=e174]
+          - cell "rahul1782547569856@x.com" [ref=e175]
+          - cell "X Gym" [ref=e176]
+          - cell "locked" [ref=e177]
+          - cell "1 month Grant" [ref=e178]:
+            - combobox [ref=e179]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e180] [cursor=pointer]
+        - row "Real real@test.com X Gym locked 1 month Grant" [ref=e181]:
+          - cell "Real" [ref=e182]
+          - cell "real@test.com" [ref=e183]
+          - cell "X Gym" [ref=e184]
+          - cell "locked" [ref=e185]
+          - cell "1 month Grant" [ref=e186]:
+            - combobox [ref=e187]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e188] [cursor=pointer]
+        - row "Shravan shravan@gmail.com X Gym locked 1 month Grant" [ref=e189]:
+          - cell "Shravan" [ref=e190]
+          - cell "shravan@gmail.com" [ref=e191]
+          - cell "X Gym" [ref=e192]
+          - cell "locked" [ref=e193]
+          - cell "1 month Grant" [ref=e194]:
+            - combobox [ref=e195]:
+              - option "1 day"
+              - option "7 days"
+              - option "15 days"
+              - option "1 month" [selected]
+              - option "3 months"
+              - option "6 months"
+              - option "12 months"
+            - button "Grant" [ref=e196] [cursor=pointer]
