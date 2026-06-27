@@ -19,6 +19,13 @@ backend/gcp-key.json
 backend/cloud-sql-proxy
 gcp-key.json
 
+# Firebase / push secrets (NEVER commit)
+backend/firebase-admin.json
+firebase-admin.json
+GymApp/android/app/google-services.json
+GymApp/ios/GymApp/GoogleService-Info.plist
+*.p8
+
 # misc
 .DS_Store
 *.log

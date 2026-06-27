@@ -52,6 +52,13 @@ export const OrgAPI = {
   get: (slug: string) => api.get(`/orgs/${slug}`).then((r) => r.data),
 };
 
+export const DeviceAPI = {
+  register: (token: string, platform: string, orgId?: number) =>
+    api.post('/devices/register', { token, platform, orgId }).then((r) => r.data),
+  unregister: (token: string) =>
+    api.post('/devices/unregister', { token }).then((r) => r.data),
+};
+
 export const AttendanceAPI = {
   status: () => api.get('/attendance').then((r) => r.data),
   checkin: () => api.post('/attendance/checkin').then((r) => r.data),
@@ -119,10 +126,15 @@ export const NoticeAPI = {
   respond: (id: number, response: 'yes' | 'no' | 'ack') => api.post(`/notices/${id}/respond`, { response }).then((r) => r.data),
 };
 
+// Minutes this device is ahead of UTC (IST = +330). The server uses this to
+// fire each reminder at the user's local time via push.
+const tzOffset = () => -new Date().getTimezoneOffset();
+
 export const ReminderAPI = {
   list: () => api.get('/reminders').then((r) => r.data),
-  create: (r: Record<string, any>) => api.post('/reminders', r).then((res) => res.data),
+  create: (r: Record<string, any>) =>
+    api.post('/reminders', { ...r, tz_offset: tzOffset() }).then((res) => res.data),
   update: (id: number, patch: Record<string, any>) =>
-    api.put(`/reminders/${id}`, patch).then((res) => res.data),
+    api.put(`/reminders/${id}`, { ...patch, tz_offset: tzOffset() }).then((res) => res.data),
   remove: (id: number) => api.delete(`/reminders/${id}`).then((res) => res.data),
 };

@@ -19,9 +19,12 @@ import workoutRoutes from './routes/workouts.js';
 import adminRoutes from './routes/admin.js';
 import superRoutes from './routes/super.js';
 import noticeRoutes from './routes/notices.js';
+import deviceRoutes from './routes/devices.js';
 import { initDb } from './db/index.js';
 import { aiMode } from './services/bedrock.js';
 import { storageMode } from './services/storage.js';
+import { initPush } from './services/push.js';
+import { startReminderScheduler } from './services/reminderScheduler.js';
 
 const app = express();
 // Large limit so base64 photos / short videos fit.
@@ -44,6 +47,7 @@ app.use('/api/workouts', workoutRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/super', superRoutes);
 app.use('/api/notices', noticeRoutes);
+app.use('/api/devices', deviceRoutes);
 
 // Unknown /api routes -> JSON 404.
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
@@ -65,7 +69,9 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 4000;
 initDb()
-  .then(() => {
+  .then(async () => {
+    await initPush();
+    startReminderScheduler();
     app.listen(PORT, () => {
       console.log(`FitHub backend on :${PORT}  (AI: ${aiMode()}, storage: ${storageMode()}, static: ${existsSync(STATIC_DIR) ? 'on' : 'off'})`);
     });

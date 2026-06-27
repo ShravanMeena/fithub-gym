@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthAPI, TOKEN_KEY } from '../api/client';
+import { registerForPush, unregisterPush } from '../notifications/push';
 
 type User = {
   id: number;
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const { user } = await AuthAPI.me();
           setUser(user);
+          registerForPush(user.org?.id).catch(() => {});
         } catch {
           await AsyncStorage.removeItem(TOKEN_KEY);
         }
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const persist = async (data: { token: string; user: User }) => {
     await AsyncStorage.setItem(TOKEN_KEY, data.token);
     setUser(data.user);
+    registerForPush(data.user.org?.id).catch(() => {});
   };
 
   const signup = useCallback(async (name: string, email: string, password: string, orgId?: number) => {
@@ -57,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    await unregisterPush().catch(() => {});
     await AsyncStorage.removeItem(TOKEN_KEY);
     setUser(null);
   }, []);

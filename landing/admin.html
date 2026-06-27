@@ -93,10 +93,25 @@
 
     <div class="tabs">
       <div class="tab active" data-tab="members" onclick="switchTab('members')">Members</div>
+      <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Send Notification</div>
       <div class="tab" data-tab="notices" onclick="switchTab('notices')">Home Notices</div>
       <div class="tab" data-tab="announce" onclick="switchTab('announce')">Announce</div>
       <div class="tab" data-tab="attendance" onclick="switchTab('attendance')">Attendance log</div>
       <div class="tab" data-tab="settings" onclick="switchTab('settings')">Settings</div>
+    </div>
+
+    <div id="tab_push" class="card" style="display:none">
+      <h3>Send a live notification 🔔</h3>
+      <p class="muted" style="font-size:14px;margin-bottom:12px">Instantly pushes to every member's phone — even if the app is closed. Use it for urgent, one-off alerts (it does <b>not</b> stay on the home screen or feed).</p>
+      <div style="margin-bottom:10px"><span class="muted" style="font-size:13px">Quick fills:</span>
+        <span class="tab" style="display:inline-block;margin:4px 4px 0 0;padding:6px 12px" onclick="ptpl('Gym closed today','Closed today due to unforeseen reasons. Sorry for the inconvenience!')">🚪 Closed today</span>
+        <span class="tab" style="display:inline-block;margin:4px 4px 0 0;padding:6px 12px" onclick="ptpl('Power cut at the gym','No power right now — we will update you once it is back.')">⚡ Power cut</span>
+        <span class="tab" style="display:inline-block;margin:4px 4px 0 0;padding:6px 12px" onclick="ptpl('Closing early today','We are closing at 8pm today. Plan your workout accordingly!')">🕗 Closing early</span>
+      </div>
+      <div class="field"><label>Title</label><input id="p_title" placeholder="e.g. Gym closed today" maxlength="80" /></div>
+      <div class="field"><label>Message</label><input id="p_body" placeholder="Short details members will see…" maxlength="180" /></div>
+      <button class="btn" onclick="sendPush()" id="pushBtn">🔔 Send to all members now</button>
+      <div class="msg" id="pushMsg" style="color:var(--accent)"></div>
     </div>
 
     <div id="tab_notices" class="card" style="display:none">
@@ -185,7 +200,7 @@
 
   function switchTab(t){
     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
-    ['members','notices','announce','attendance','settings'].forEach(x=>$('tab_'+x).style.display = x===t?'block':'none');
+    ['members','push','notices','announce','attendance','settings'].forEach(x=>$('tab_'+x).style.display = x===t?'block':'none');
     if(t==='notices') loadNotices();
   }
 
@@ -272,6 +287,26 @@
     if(!confirm(`Remove ${name} from your gym? This deletes their account and data.`)) return;
     try{ await api('/admin/members/'+id,{method:'DELETE'}); loadData(); }
     catch(e){ alert(e.message); }
+  }
+
+  // ---- Live push notification ----
+  function ptpl(title, body){ $('p_title').value=title; $('p_body').value=body; }
+  async function sendPush(){
+    const title=$('p_title').value.trim(), body=$('p_body').value.trim();
+    if(!title){ $('pushMsg').style.color='var(--danger)'; $('pushMsg').textContent='Add a title.'; return; }
+    if(!confirm('Send this notification to every member right now?')) return;
+    $('pushBtn').disabled=true; $('pushBtn').textContent='Sending…'; $('pushMsg').textContent='';
+    try{
+      const d=await api('/admin/push',{method:'POST',body:JSON.stringify({title,body})});
+      $('p_title').value=''; $('p_body').value='';
+      $('pushMsg').style.color='var(--accent)';
+      $('pushMsg').textContent=`✅ Sent to ${d.sent} device${d.sent===1?'':'s'}.`;
+    }catch(e){
+      $('pushMsg').style.color='var(--danger)';
+      $('pushMsg').textContent = e.message.includes('not configured')
+        ? '⚠️ Push isn’t set up on the server yet (Firebase key missing).'
+        : e.message;
+    }finally{ $('pushBtn').disabled=false; $('pushBtn').textContent='🔔 Send to all members now'; }
   }
 
   // ---- Home notices ----

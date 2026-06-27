@@ -3,6 +3,14 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
+import { sendToOrg, pushEnabled } from '../services/push.js';
+
+// Fire-and-forget push to all members of a gym (never blocks the response).
+function pushToOrg(orgId, excludeUserId, payload) {
+  sendToOrg(orgId, payload, { excludeUserId }).catch((e) =>
+    console.log('[push] org notify failed —', e.message)
+  );
+}
 
 const router = Router();
 router.use(authRequired);
@@ -68,7 +76,38 @@ router.post('/announce', async (req, res, next) => {
       "INSERT INTO posts (user_id, org_id, type, content, is_announcement) VALUES ($1,$2,'text',$3,1) RETURNING id",
       [req.user.id, req.orgId, content.slice(0, 2000)]
     );
+    const org = await one('SELECT name FROM organizations WHERE id = $1', [req.orgId]);
+    pushToOrg(req.orgId, req.user.id, {
+      title: `📢 ${org?.name || 'Your gym'}`,
+      body: content.slice(0, 180),
+      data: { type: 'announcement', postId: row.id, screen: 'Feed' },
+    });
     res.json({ id: row.id });
+  } catch (e) { next(e); }
+});
+
+// Live push — blast an instant notification to every member's phone. No feed
+// post, no home banner; purely a push (e.g. "Gym closed today due to rain").
+// Awaits the send so the panel can report how many devices got it.
+router.post('/push', async (req, res, next) => {
+  try {
+    const title = (req.body?.title || '').toString().trim();
+    const body = (req.body?.body || '').toString().trim();
+    if (!title) return res.status(400).json({ error: 'Add a title.' });
+    if (!pushEnabled()) {
+      return res.status(503).json({ error: 'Push is not configured on the server yet.', configured: false });
+    }
+    const org = await one('SELECT name FROM organizations WHERE id = $1', [req.orgId]);
+    const result = await sendToOrg(
+      req.orgId,
+      {
+        title: `🔔 ${title}`,
+        body: body || (org?.name ? `From ${org.name}` : 'Tap to open'),
+        data: { type: 'alert', screen: 'Home' },
+      },
+      { excludeUserId: req.user.id }
+    );
+    res.json({ sent: result.sent || 0, configured: true });
   } catch (e) { next(e); }
 });
 
@@ -95,6 +134,11 @@ router.post('/notices', async (req, res, next) => {
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
     const d = parsed.data;
     const row = await one('INSERT INTO notices (org_id, title, body, type) VALUES ($1,$2,$3,$4) RETURNING id', [req.orgId, d.title.trim(), d.body?.trim() || null, d.type]);
+    pushToOrg(req.orgId, req.user.id, {
+      title: d.title.trim(),
+      body: (d.body?.trim() || 'Tap to view').slice(0, 180),
+      data: { type: 'notice', noticeId: row.id, screen: 'Home' },
+    });
     res.json({ id: row.id });
   } catch (e) { next(e); }
 });

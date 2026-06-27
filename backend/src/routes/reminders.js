@@ -12,6 +12,7 @@ const schema = z.object({
   hour: z.number().int().min(0).max(23),
   minute: z.number().int().min(0).max(59),
   enabled: z.boolean().default(true),
+  tz_offset: z.number().int().min(-720).max(840).optional(), // minutes ahead of UTC
 });
 
 router.get('/', async (req, res, next) => {
@@ -27,8 +28,8 @@ router.post('/', async (req, res, next) => {
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
     const d = parsed.data;
     const reminder = await one(
-      'INSERT INTO reminders (user_id, title, body, hour, minute, enabled) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
-      [req.user.id, d.title, d.body ?? null, d.hour, d.minute, d.enabled ? 1 : 0]
+      'INSERT INTO reminders (user_id, title, body, hour, minute, enabled, tz_offset) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+      [req.user.id, d.title, d.body ?? null, d.hour, d.minute, d.enabled ? 1 : 0, d.tz_offset ?? 0]
     );
     res.json({ reminder });
   } catch (e) { next(e); }

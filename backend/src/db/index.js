@@ -178,6 +178,23 @@ CREATE TABLE IF NOT EXISTS notice_responses (
   response TEXT, responded_at TIMESTAMPTZ,
   PRIMARY KEY (notice_id, user_id)
 );
+
+-- FCM/APNs push tokens, one row per device. user_id may be null until login.
+CREATE TABLE IF NOT EXISTS device_tokens (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  org_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
+  platform TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_device_tokens_org ON device_tokens(org_id);
+CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id);
+
+-- Reminders are delivered by server push: store the device's UTC offset (minutes
+-- ahead of UTC, e.g. IST = 330) so the scheduler knows the user's local time,
+-- plus a debounce timestamp so we never push the same reminder twice in a minute.
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS tz_offset INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE reminders ADD COLUMN IF NOT EXISTS last_pushed_at TIMESTAMPTZ;
 `;
 
 const SEED_ORGS = [

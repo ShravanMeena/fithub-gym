@@ -2,7 +2,6 @@ import notifee, {
   AndroidImportance,
   TriggerType,
   TimestampTrigger,
-  RepeatFrequency,
   AuthorizationStatus,
 } from '@notifee/react-native';
 
@@ -19,15 +18,6 @@ export async function ensureNotifPermission(): Promise<boolean> {
   return settings.authorizationStatus >= AuthorizationStatus.AUTHORIZED;
 }
 
-// Next occurrence of hour:minute (today if still ahead, else tomorrow).
-function nextOccurrence(hour: number, minute: number): number {
-  const now = new Date();
-  const t = new Date();
-  t.setHours(hour, minute, 0, 0);
-  if (t.getTime() <= now.getTime()) t.setDate(t.getDate() + 1);
-  return t.getTime();
-}
-
 export type Reminder = {
   id: number;
   title: string;
@@ -37,33 +27,17 @@ export type Reminder = {
   enabled: number | boolean;
 };
 
-// Schedule a repeating daily notification. notifeeId is derived from reminder id
-// so re-scheduling replaces the previous trigger instead of duplicating it.
+// Daily reminders are delivered by the SERVER via push now (the backend reminder
+// scheduler fires each one at the user's local time). These remain as no-ops so
+// existing call sites keep working — there's nothing to schedule on-device, and
+// it avoids double notifications. We just clean up any leftover local triggers
+// from older app versions.
 export async function scheduleReminder(r: Reminder): Promise<void> {
-  const notifeeId = `reminder-${r.id}`;
-  await notifee.cancelNotification(notifeeId);
-  if (!r.enabled) return;
-
-  const trigger: TimestampTrigger = {
-    type: TriggerType.TIMESTAMP,
-    timestamp: nextOccurrence(r.hour, r.minute),
-    repeatFrequency: RepeatFrequency.DAILY,
-  };
-
-  await notifee.createTriggerNotification(
-    {
-      id: notifeeId,
-      title: r.title,
-      body: r.body || 'Time to stay on track 💪',
-      android: { channelId: CHANNEL_ID, importance: AndroidImportance.HIGH, pressAction: { id: 'default' } },
-      ios: { sound: 'default' },
-    },
-    trigger,
-  );
+  await notifee.cancelTriggerNotification(`reminder-${r.id}`).catch(() => {});
 }
 
 export async function cancelReminder(id: number): Promise<void> {
-  await notifee.cancelNotification(`reminder-${id}`);
+  await notifee.cancelTriggerNotification(`reminder-${id}`).catch(() => {});
 }
 
 const CHECKOUT_ID = 'checkout-reminder';
@@ -109,8 +83,8 @@ export async function sendNow(title: string, body: string): Promise<boolean> {
   return true;
 }
 
-// Re-sync all reminders from the server (call after login / on changes).
-export async function syncReminders(reminders: Reminder[]): Promise<void> {
+// Reminders are server-pushed now; this just makes sure notification permission
+// and the channel are ready so pushes can display.
+export async function syncReminders(_reminders: Reminder[]): Promise<void> {
   await ensureNotifPermission();
-  for (const r of reminders) await scheduleReminder(r);
 }
