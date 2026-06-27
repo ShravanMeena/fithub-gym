@@ -79,6 +79,33 @@ router.get('/prs', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Per-exercise strength progression over time (best estimated 1RM per session).
+// Epley 1RM = weight * (1 + reps/30); reps capped at 12 so high-rep sets don't
+// inflate the estimate. Used for the progress charts.
+router.get('/strength', async (req, res, next) => {
+  try {
+    const rows = await q(
+      `SELECT w.created_at::date AS date, ws.exercise,
+              MAX(ws.weight_kg * (1 + LEAST(ws.reps, 12) / 30.0)) AS est_1rm,
+              MAX(ws.weight_kg) AS top_weight
+       FROM workout_sets ws JOIN workouts w ON w.id = ws.workout_id
+       WHERE ws.user_id = $1 AND ws.weight_kg > 0
+       GROUP BY w.created_at::date, ws.exercise
+       ORDER BY date ASC`,
+      [req.user.id]
+    );
+    const map = new Map();
+    for (const r of rows) {
+      if (!map.has(r.exercise)) map.set(r.exercise, []);
+      map.get(r.exercise).push({ date: r.date, est1rm: Math.round(r.est_1rm), topWeight: r.top_weight });
+    }
+    const series = [...map.entries()]
+      .map(([exercise, points]) => ({ exercise, points, sessions: points.length }))
+      .sort((a, b) => b.sessions - a.sessions);
+    res.json({ series });
+  } catch (e) { next(e); }
+});
+
 router.delete('/:id', async (req, res, next) => {
   try {
     await one('DELETE FROM workouts WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.id, req.user.id]);

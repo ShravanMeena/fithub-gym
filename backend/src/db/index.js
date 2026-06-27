@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 // rest of the app behaves like it did on SQLite.
 pg.types.setTypeParser(1114, (v) => v); // timestamp -> string
 pg.types.setTypeParser(1184, (v) => v); // timestamptz -> string
+pg.types.setTypeParser(1082, (v) => v); // date -> 'YYYY-MM-DD' string (no tz shift)
 pg.types.setTypeParser(20, (v) => (v === null ? null : parseInt(v, 10))); // int8/bigint -> number
 
 export const pool = new pg.Pool({

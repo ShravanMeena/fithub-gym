@@ -3,7 +3,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
-import { sendToOrg, pushEnabled } from '../services/push.js';
+import { sendToOrg, sendToTokens, pushEnabled } from '../services/push.js';
 
 // Fire-and-forget push to all members of a gym (never blocks the response).
 function pushToOrg(orgId, excludeUserId, payload) {
@@ -108,6 +108,54 @@ router.post('/push', async (req, res, next) => {
       { excludeUserId: req.user.id }
     );
     res.json({ sent: result.sent || 0, configured: true });
+  } catch (e) { next(e); }
+});
+
+// Members who haven't checked in for `days` days (default 14) — win-back list.
+router.get('/inactive', async (req, res, next) => {
+  try {
+    const days = Math.min(180, Math.max(1, parseInt(req.query.days, 10) || 14));
+    const members = await q(
+      `SELECT u.id, u.name, u.email, u.phone,
+              (SELECT MAX(checked_in_at) FROM attendance a WHERE a.user_id = u.id) AS last_visit,
+              EXISTS (SELECT 1 FROM device_tokens dt WHERE dt.user_id = u.id) AS reachable
+       FROM users u
+       WHERE u.org_id = $1 AND u.role = 'member'
+         AND NOT EXISTS (
+           SELECT 1 FROM attendance a
+           WHERE a.user_id = u.id AND a.checked_in_at >= current_date - make_interval(days => $2)
+         )
+       ORDER BY last_visit ASC NULLS FIRST`,
+      [req.orgId, days]
+    );
+    res.json({ days, members });
+  } catch (e) { next(e); }
+});
+
+// Push a "we miss you" nudge to every inactive member's devices.
+router.post('/nudge-inactive', async (req, res, next) => {
+  try {
+    if (!pushEnabled()) return res.status(503).json({ error: 'Push is not configured on the server yet.' });
+    const days = Math.min(180, Math.max(1, parseInt(req.body?.days, 10) || 14));
+    const title = (req.body?.title || '').toString().trim();
+    const body = (req.body?.body || '').toString().trim();
+    const org = await one('SELECT name FROM organizations WHERE id = $1', [req.orgId]);
+    const rows = await q(
+      `SELECT DISTINCT dt.token
+       FROM device_tokens dt JOIN users u ON u.id = dt.user_id
+       WHERE u.org_id = $1 AND u.role = 'member'
+         AND NOT EXISTS (
+           SELECT 1 FROM attendance a
+           WHERE a.user_id = u.id AND a.checked_in_at >= current_date - make_interval(days => $2)
+         )`,
+      [req.orgId, days]
+    );
+    const result = await sendToTokens(rows.map((r) => r.token), {
+      title: title || `We miss you at ${org?.name || 'the gym'}! 💪`,
+      body: body || 'It’s been a while — come crush a workout today.',
+      data: { type: 'alert', screen: 'Home' },
+    });
+    res.json({ sent: result.sent || 0 });
   } catch (e) { next(e); }
 });
 

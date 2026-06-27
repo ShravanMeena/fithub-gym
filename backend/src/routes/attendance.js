@@ -62,4 +62,49 @@ router.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Streak + calendar + monthly leaderboard rank (all from attendance data).
+router.get('/stats', async (req, res, next) => {
+  try {
+    const oid = await orgId(req.user.id);
+    // Distinct check-in days over the last ~4 months (for streak + calendar).
+    const rows = await q(
+      `SELECT DISTINCT checked_in_at::date AS d FROM attendance
+       WHERE user_id = $1 AND checked_in_at >= current_date - interval '120 days'
+       ORDER BY d DESC`,
+      [req.user.id]
+    );
+    const days = rows.map((r) => r.d); // 'YYYY-MM-DD' strings, newest first
+    const set = new Set(days);
+
+    // Current streak: consecutive days ending today (or yesterday if not yet in today).
+    const iso = (dt) => dt.toISOString().slice(0, 10);
+    const cur = new Date();
+    if (!set.has(iso(cur))) cur.setUTCDate(cur.getUTCDate() - 1);
+    let streak = 0;
+    while (set.has(iso(cur))) { streak++; cur.setUTCDate(cur.getUTCDate() - 1); }
+
+    // This-month visit count + rank within the gym (by distinct days visited).
+    const rank = await one(
+      `WITH mv AS (
+         SELECT user_id, COUNT(DISTINCT checked_in_at::date) AS d
+         FROM attendance
+         WHERE org_id = $1 AND date_trunc('month', checked_in_at) = date_trunc('month', current_date)
+         GROUP BY user_id
+       )
+       SELECT COALESCE((SELECT d FROM mv WHERE user_id = $2), 0) AS my_days,
+              (SELECT COUNT(*) + 1 FROM mv WHERE d > COALESCE((SELECT d FROM mv WHERE user_id = $2), 0)) AS rank,
+              (SELECT COUNT(*) FROM mv) AS ranked`,
+      [oid, req.user.id]
+    );
+
+    res.json({
+      streak,
+      days,
+      monthVisits: rank?.my_days || 0,
+      rank: rank?.my_days > 0 ? rank.rank : null,
+      rankedMembers: rank?.ranked || 0,
+    });
+  } catch (e) { next(e); }
+});
+
 export default router;

@@ -2,7 +2,8 @@ import React, { useCallback, useState } from 'react';
 import { ScrollView, View, Alert, Image, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Field, Button, Pill } from '../components/UI';
-import { ProgressAPI, PhotoAPI, authedImageSource, apiError } from '../api/client';
+import { LineChart } from '../components/Charts';
+import { ProgressAPI, PhotoAPI, ProfileAPI, WorkoutAPI, authedImageSource, apiError } from '../api/client';
 import { scanOrUpload } from '../utils/imagePicker';
 import { useBilling } from '../context/BillingContext';
 import { colors, font, radius, spacing } from '../theme';
@@ -14,6 +15,9 @@ export default function ProgressScreen() {
   const [bodyFat, setBodyFat] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [targetWeight, setTargetWeight] = useState<number | null>(null);
+  const [strength, setStrength] = useState<any[]>([]);
+  const [exercise, setExercise] = useState<string | null>(null);
 
   // Progress photos
   const [photos, setPhotos] = useState<any[]>([]);
@@ -38,8 +42,16 @@ export default function ProgressScreen() {
 
   const load = useCallback(async () => {
     try {
-      const { entries } = await ProgressAPI.list();
+      const [{ entries }, prof, str] = await Promise.all([
+        ProgressAPI.list(),
+        ProfileAPI.get().catch(() => null),
+        WorkoutAPI.strength().catch(() => ({ series: [] })),
+      ]);
       setEntries(entries);
+      setTargetWeight(prof?.profile?.target_weight_kg ?? null);
+      const series = (str?.series || []).filter((s: any) => s.points.length >= 2);
+      setStrength(series);
+      setExercise((cur) => cur && series.some((s: any) => s.exercise === cur) ? cur : series[0]?.exercise ?? null);
       await loadPhotos();
     } catch (e) {
       Alert.alert('Error', apiError(e));
@@ -113,10 +125,6 @@ export default function ProgressScreen() {
   const last = weights[weights.length - 1];
   const delta = first && last ? (last.weight_kg - first.weight_kg) : null;
 
-  const maxW = Math.max(...weights.map((w) => w.weight_kg), 1);
-  const minW = Math.min(...weights.map((w) => w.weight_kg), maxW);
-  const range = Math.max(1, maxW - minW);
-
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">Progress</Txt>
@@ -141,16 +149,45 @@ export default function ProgressScreen() {
         </Card>
       )}
 
-      {/* Simple bar sparkline of weight history */}
+      {/* Weight trend line chart with goal line */}
       {weights.length > 1 && (
         <Card>
           <Txt weight="700" style={{ marginBottom: spacing(1) }}>Weight trend</Txt>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 100, gap: 4 }}>
-            {weights.slice(-20).map((w, i) => {
-              const h = 20 + ((w.weight_kg - minW) / range) * 70;
-              return <View key={i} style={{ flex: 1, height: h, backgroundColor: colors.primary, borderRadius: 3, opacity: 0.5 + (i / 40) }} />;
-            })}
+          <LineChart values={weights.slice(-30).map((w) => w.weight_kg)} goal={targetWeight} unit="kg" />
+          {targetWeight != null && last && (
+            <Txt dim size={font.tiny} style={{ marginTop: 6 }}>
+              {Math.abs(last.weight_kg - targetWeight) < 0.5
+                ? '🎯 At your goal weight!'
+                : `${Math.abs(last.weight_kg - targetWeight).toFixed(1)}kg ${last.weight_kg > targetWeight ? 'to lose' : 'to gain'} to reach your ${targetWeight}kg goal`}
+            </Txt>
+          )}
+        </Card>
+      )}
+
+      {/* Strength progression per exercise (estimated 1RM) */}
+      {strength.length > 0 && (
+        <Card>
+          <Txt weight="700" style={{ marginBottom: spacing(1) }}>Strength progress 💪</Txt>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(1) }}>
+            {strength.slice(0, 6).map((s) => (
+              <Pill key={s.exercise} label={s.exercise} active={exercise === s.exercise} onPress={() => setExercise(s.exercise)} />
+            ))}
           </View>
+          {(() => {
+            const sel = strength.find((s) => s.exercise === exercise);
+            if (!sel) return null;
+            const first1rm = sel.points[0].est1rm;
+            const last1rm = sel.points[sel.points.length - 1].est1rm;
+            const gain = last1rm - first1rm;
+            return (
+              <>
+                <LineChart values={sel.points.map((p: any) => p.est1rm)} unit="kg" />
+                <Txt dim size={font.tiny} style={{ marginTop: 6 }}>
+                  Est. 1-rep max · {gain >= 0 ? '▲' : '▼'} {gain >= 0 ? '+' : ''}{gain}kg over {sel.points.length} sessions
+                </Txt>
+              </>
+            );
+          })()}
         </Card>
       )}
 

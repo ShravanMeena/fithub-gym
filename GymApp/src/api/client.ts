@@ -61,6 +61,7 @@ export const DeviceAPI = {
 
 export const AttendanceAPI = {
   status: () => api.get('/attendance').then((r) => r.data),
+  stats: () => api.get('/attendance/stats').then((r) => r.data),
   checkin: () => api.post('/attendance/checkin').then((r) => r.data),
   checkout: (reason?: string) => api.post('/attendance/checkout', { reason }).then((r) => r.data),
   setReason: (id: number, reason: string) => api.put(`/attendance/${id}/reason`, { reason }).then((r) => r.data),
@@ -69,6 +70,7 @@ export const AttendanceAPI = {
 export const WorkoutAPI = {
   list: () => api.get('/workouts').then((r) => r.data),
   prs: () => api.get('/workouts/prs').then((r) => r.data),
+  strength: () => api.get('/workouts/strength').then((r) => r.data),
   create: (body: Record<string, any>) => api.post('/workouts', body).then((r) => r.data),
   remove: (id: number) => api.delete(`/workouts/${id}`).then((r) => r.data),
 };

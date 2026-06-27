@@ -93,11 +93,26 @@
 
     <div class="tabs">
       <div class="tab active" data-tab="members" onclick="switchTab('members')">Members</div>
+      <div class="tab" data-tab="inactive" onclick="switchTab('inactive')">😴 Win-back</div>
       <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Send Notification</div>
       <div class="tab" data-tab="notices" onclick="switchTab('notices')">Home Notices</div>
       <div class="tab" data-tab="announce" onclick="switchTab('announce')">Announce</div>
       <div class="tab" data-tab="attendance" onclick="switchTab('attendance')">Attendance log</div>
       <div class="tab" data-tab="settings" onclick="switchTab('settings')">Settings</div>
+    </div>
+
+    <div id="tab_inactive" class="card" style="display:none">
+      <h3>Win back inactive members 😴</h3>
+      <p class="muted" style="font-size:14px;margin-bottom:12px">Members who haven't checked in for a while. Nudge them with a push before they cancel.</p>
+      <div style="margin-bottom:12px">
+        <span class="muted" style="font-size:13px">Inactive for:</span>
+        <span class="tab" id="inact_7" style="display:inline-block;margin:0 4px;padding:6px 12px" onclick="loadInactive(7)">7+ days</span>
+        <span class="tab active" id="inact_14" style="display:inline-block;margin:0 4px;padding:6px 12px" onclick="loadInactive(14)">14+ days</span>
+        <span class="tab" id="inact_30" style="display:inline-block;margin:0 4px;padding:6px 12px" onclick="loadInactive(30)">30+ days</span>
+      </div>
+      <button class="btn" onclick="sendNudge()" id="nudgeBtn">💪 Send “we miss you” push to all below</button>
+      <div class="msg" id="nudgeMsg" style="color:var(--accent)"></div>
+      <div id="inactiveList" style="margin-top:16px"></div>
     </div>
 
     <div id="tab_push" class="card" style="display:none">
@@ -200,8 +215,9 @@
 
   function switchTab(t){
     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
-    ['members','push','notices','announce','attendance','settings'].forEach(x=>$('tab_'+x).style.display = x===t?'block':'none');
+    ['members','inactive','push','notices','announce','attendance','settings'].forEach(x=>$('tab_'+x).style.display = x===t?'block':'none');
     if(t==='notices') loadNotices();
+    if(t==='inactive') loadInactive(inactiveDays);
   }
 
   function fmtDate(s){ return s? s.slice(0,16).replace('T',' ') : '—'; }
@@ -287,6 +303,44 @@
     if(!confirm(`Remove ${name} from your gym? This deletes their account and data.`)) return;
     try{ await api('/admin/members/'+id,{method:'DELETE'}); loadData(); }
     catch(e){ alert(e.message); }
+  }
+
+  // ---- Win-back: inactive members ----
+  let inactiveDays = 14;
+  function ago(s){
+    if(!s) return 'never visited';
+    const d=Math.floor((Date.now()-new Date(s))/86400000);
+    return d<=0?'today':`${d}d ago`;
+  }
+  async function loadInactive(days){
+    inactiveDays = days;
+    ['7','14','30'].forEach(d=>$('inact_'+d).classList.toggle('active', String(days)===d));
+    $('inactiveList').innerHTML='<div class="muted">Loading…</div>';
+    try{
+      const {members}=await api('/admin/inactive?days='+days);
+      $('inactiveList').innerHTML = members.length
+        ? '<table><tr><th>Name</th><th>Last visit</th><th>Push</th></tr>'+
+          members.map(m=>`<tr>
+            <td><b>${m.name}</b><br><span class="muted" style="font-size:12px">${m.email}</span></td>
+            <td>${ago(m.last_visit)}</td>
+            <td>${m.reachable?'<span class="pill in">📱 reachable</span>':'<span class="muted">—</span>'}</td>
+          </tr>`).join('')+'</table>'
+        : '<div class="muted">🎉 Nobody inactive — everyone\'s been showing up!</div>';
+    }catch(e){ $('inactiveList').innerHTML='<div class="muted" style="color:var(--danger)">'+e.message+'</div>'; }
+  }
+  async function sendNudge(){
+    if(!confirm('Send a “we miss you” push to every member inactive for '+inactiveDays+'+ days?')) return;
+    $('nudgeBtn').disabled=true; $('nudgeBtn').textContent='Sending…'; $('nudgeMsg').textContent='';
+    try{
+      const d=await api('/admin/nudge-inactive',{method:'POST',body:JSON.stringify({days:inactiveDays})});
+      $('nudgeMsg').style.color='var(--accent)';
+      $('nudgeMsg').textContent=`✅ Nudged ${d.sent} device${d.sent===1?'':'s'}.`;
+    }catch(e){
+      $('nudgeMsg').style.color='var(--danger)';
+      $('nudgeMsg').textContent = e.message.includes('not configured')
+        ? '⚠️ Push isn’t set up on the server yet (Firebase key missing).'
+        : e.message;
+    }finally{ $('nudgeBtn').disabled=false; $('nudgeBtn').textContent='💪 Send “we miss you” push to all below'; }
   }
 
   // ---- Live push notification ----

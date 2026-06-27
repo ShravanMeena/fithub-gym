@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Button } from '../components/UI';
 import { CalorieSummary, MacroBars } from '../components/Macros';
 import { AttendanceManager } from '../components/AttendanceManager';
+import { StreakCard } from '../components/StreakCard';
 import { NoticeBanner } from '../components/NoticeBanner';
 import { ProfileAPI, FoodAPI, ReminderAPI, AttendanceAPI, apiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -65,6 +66,9 @@ export default function HomeScreen({ navigation }: any) {
 
       {/* Attendance — check-in/out, app-open prompt, checkout reminder */}
       <AttendanceManager attendance={attendance} reload={load} gymName={org?.name || user?.org?.name} />
+
+      {/* Streak, check-in calendar, monthly gym rank */}
+      <StreakCard />
 
       <Card>
         <Txt dim size={font.small} weight="700" style={{ textTransform: 'uppercase', letterSpacing: 1 }}>Today</Txt>
