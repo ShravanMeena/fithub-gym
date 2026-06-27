@@ -17,7 +17,14 @@ export function Screen({ children, style }: ViewProps) {
   return <View style={[styles.screen, style]}>{children}</View>;
 }
 
-export function Card({ children, style }: ViewProps) {
+export function Card({ children, style, onPress }: ViewProps & { onPress?: () => void }) {
+  if (onPress) {
+    return (
+      <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.card, style]}>
+        {children}
+      </TouchableOpacity>
+    );
+  }
   return <View style={[styles.card, style]}>{children}</View>;
 }
 

@@ -11,10 +11,9 @@ import { colors, font, spacing } from '../theme';
 const W = Math.min(300, Dimensions.get('window').width * 0.82);
 
 const ITEMS: { label: string; icon: IconName; screen: string }[] = [
-  { label: 'Log Workout', icon: 'workout', screen: 'Workout' },
-  { label: 'Progress', icon: 'progress', screen: 'Progress' },
-  { label: 'AI Coach', icon: 'coach', screen: 'Coach' },
-  { label: 'Attendance', icon: 'attendance', screen: 'Attendance' },
+  { label: 'AI Coach ✨', icon: 'coach', screen: 'Coach' },
+  { label: 'Leaderboard', icon: 'attendance', screen: 'Challenges' },
+  { label: 'Attendance history', icon: 'attendance', screen: 'Attendance' },
   { label: 'Reminders', icon: 'reminders', screen: 'Reminders' },
   { label: 'Profile & Goals', icon: 'profile', screen: 'Profile' },
 ];

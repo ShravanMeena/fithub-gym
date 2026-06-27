@@ -69,7 +69,7 @@ export default function FoodScanScreen({ navigation }: any) {
         source,
       });
       Alert.alert('Logged!', `${estimate.name} added to today.`, [
-        { text: 'OK', onPress: () => navigation.navigate('Home') },
+        { text: 'OK', onPress: () => navigation.navigate('Today') },
       ]);
       setAsset(null);
       setEstimate(null);

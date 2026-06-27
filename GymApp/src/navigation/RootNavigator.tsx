@@ -1,5 +1,5 @@
-import React from 'react';
-import { ActivityIndicator, View, Text, TouchableOpacity } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, View, TouchableOpacity } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -10,12 +10,14 @@ import { useUI } from '../context/UIContext';
 import { navRef } from './ref';
 import { Sidebar } from '../components/Sidebar';
 import { Icon, IconName } from '../components/Icon';
+import { ProfileAPI } from '../api/client';
 import { colors } from '../theme';
 
 import OrgSelectScreen from '../screens/OrgSelectScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
-import HomeScreen from '../screens/HomeScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
+import TodayScreen from '../screens/TodayScreen';
 import DietScreen from '../screens/DietScreen';
 import FoodScanScreen from '../screens/FoodScanScreen';
 import ProgressScreen from '../screens/ProgressScreen';
@@ -47,6 +49,7 @@ function MenuButton() {
   );
 }
 
+// 5 clear tabs that map to the daily loop.
 function MainTabs() {
   return (
     <Tab.Navigator
@@ -59,12 +62,40 @@ function MainTabs() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textDim,
       }}>
-      <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarIcon: tabIcon('home') }} />
-      <Tab.Screen name="Diet" component={DietScreen} options={{ tabBarIcon: tabIcon('diet') }} />
-      <Tab.Screen name="Scan" component={FoodScanScreen} options={{ title: 'Scan Food', tabBarIcon: tabIcon('scan') }} />
-      <Tab.Screen name="Feed" component={FeedScreen} options={{ tabBarIcon: tabIcon('feed') }} />
+      <Tab.Screen name="Today" component={TodayScreen} options={{ tabBarIcon: tabIcon('home') }} />
+      <Tab.Screen name="Train" component={WorkoutScreen} options={{ tabBarIcon: tabIcon('workout') }} />
+      <Tab.Screen name="Eat" component={DietScreen} options={{ tabBarIcon: tabIcon('diet') }} />
+      <Tab.Screen name="Progress" component={ProgressScreen} options={{ tabBarIcon: tabIcon('progress') }} />
+      <Tab.Screen name="Gym" component={FeedScreen} options={{ tabBarIcon: tabIcon('feed') }} />
     </Tab.Navigator>
   );
+}
+
+// Gate that decides between first-run onboarding and the main app, based on
+// whether the member has set up their profile/targets yet.
+function AppGate() {
+  const [state, setState] = useState<'loading' | 'onboard' | 'app'>('loading');
+
+  const check = useCallback(() => {
+    ProfileAPI.get()
+      .then(({ profile, targets }) => {
+        const ready = !!targets && !!profile?.weight_kg && !!profile?.goal;
+        setState(ready ? 'app' : 'onboard');
+      })
+      .catch(() => setState('app')); // don't trap the user if the check fails
+  }, []);
+
+  React.useEffect(() => { check(); }, [check]);
+
+  if (state === 'loading') {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+  if (state === 'onboard') return <OnboardingScreen onDone={() => setState('app')} />;
+  return <MainTabs />;
 }
 
 export default function RootNavigator() {
@@ -90,13 +121,12 @@ export default function RootNavigator() {
           }}>
           {user ? (
             <>
-              <Stack.Screen name="Tabs" component={MainTabs} options={{ headerShown: false }} />
-              <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile & Goals' }} />
-              <Stack.Screen name="Reminders" component={RemindersScreen} options={{ title: 'Reminders' }} />
-              <Stack.Screen name="Workout" component={WorkoutScreen} options={{ title: 'Workout' }} />
-              <Stack.Screen name="Progress" component={ProgressScreen} options={{ title: 'Progress' }} />
+              <Stack.Screen name="Main" component={AppGate} options={{ headerShown: false }} />
+              <Stack.Screen name="Scan" component={FoodScanScreen} options={{ title: 'Log a Meal' }} />
               <Stack.Screen name="Coach" component={CoachScreen} options={{ title: 'AI Coach' }} />
               <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Attendance' }} />
+              <Stack.Screen name="Reminders" component={RemindersScreen} options={{ title: 'Reminders' }} />
+              <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile & Goals' }} />
               <Stack.Screen name="Challenges" component={ChallengesScreen} options={{ title: 'Leaderboard' }} />
             </>
           ) : !org ? (
