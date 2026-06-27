@@ -196,6 +196,9 @@ CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id);
 -- plus a debounce timestamp so we never push the same reminder twice in a minute.
 ALTER TABLE reminders ADD COLUMN IF NOT EXISTS tz_offset INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE reminders ADD COLUMN IF NOT EXISTS last_pushed_at TIMESTAMPTZ;
+
+-- Device timezone (minutes ahead of UTC) for evening streak-saver pushes.
+ALTER TABLE device_tokens ADD COLUMN IF NOT EXISTS tz_offset INTEGER NOT NULL DEFAULT 0;
 `;
 
 const SEED_ORGS = [

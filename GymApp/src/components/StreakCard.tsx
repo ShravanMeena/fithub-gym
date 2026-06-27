@@ -1,7 +1,7 @@
 // Home-screen card: workout streak, check-in calendar, and monthly gym rank.
 // Pure motivation, built entirely from attendance data (no AI).
 import React, { useCallback, useState } from 'react';
-import { View } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt } from './UI';
 import { ContributionGrid } from './Charts';
@@ -10,7 +10,7 @@ import { colors, font, spacing } from '../theme';
 
 type Stats = { streak: number; days: string[]; monthVisits: number; rank: number | null; rankedMembers: number };
 
-export function StreakCard() {
+export function StreakCard({ onLeaderboard }: { onLeaderboard?: () => void }) {
   const [s, setS] = useState<Stats | null>(null);
 
   useFocusEffect(
@@ -49,6 +49,12 @@ export function StreakCard() {
         <ContributionGrid days={s.days} />
       ) : (
         <Txt dim size={font.small}>Check in at the gym to start your streak 💪</Txt>
+      )}
+
+      {onLeaderboard && (
+        <TouchableOpacity onPress={onLeaderboard} style={{ marginTop: spacing(1.5), alignItems: 'flex-end' }}>
+          <Txt size={font.small} weight="700" style={{ color: colors.primary }}>🏆 View gym leaderboard →</Txt>
+        </TouchableOpacity>
       )}
     </Card>
   );

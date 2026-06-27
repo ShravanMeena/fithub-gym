@@ -69,6 +69,32 @@ export async function cancelCheckoutReminder(): Promise<void> {
   await notifee.cancelNotification(CHECKOUT_ID);
 }
 
+const REST_ID = 'rest-timer';
+
+// Fire a notification when the rest timer ends — works even if the screen locks.
+export async function scheduleRestDone(seconds: number): Promise<void> {
+  await notifee.cancelNotification(REST_ID);
+  if (seconds <= 0) return;
+  const trigger: TimestampTrigger = {
+    type: TriggerType.TIMESTAMP,
+    timestamp: Date.now() + seconds * 1000,
+  };
+  await notifee.createTriggerNotification(
+    {
+      id: REST_ID,
+      title: 'Rest over! 💪',
+      body: 'Time for your next set.',
+      android: { channelId: CHANNEL_ID, importance: AndroidImportance.HIGH, pressAction: { id: 'default' } },
+      ios: { sound: 'default' },
+    },
+    trigger,
+  );
+}
+
+export async function cancelRestDone(): Promise<void> {
+  await notifee.cancelNotification(REST_ID);
+}
+
 // Fire a notification immediately (used by the "Test" button so the user can
 // confirm reminders actually pop up on their device).
 export async function sendNow(title: string, body: string): Promise<boolean> {

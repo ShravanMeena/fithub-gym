@@ -68,7 +68,7 @@ export default function HomeScreen({ navigation }: any) {
       <AttendanceManager attendance={attendance} reload={load} gymName={org?.name || user?.org?.name} />
 
       {/* Streak, check-in calendar, monthly gym rank */}
-      <StreakCard />
+      <StreakCard onLeaderboard={() => navigation.navigate('Challenges')} />
 
       <Card>
         <Txt dim size={font.small} weight="700" style={{ textTransform: 'uppercase', letterSpacing: 1 }}>Today</Txt>

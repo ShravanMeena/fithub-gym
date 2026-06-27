@@ -1,7 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ScrollView, View, Alert, TouchableOpacity, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Field, Button, Pill } from '../components/UI';
+import { RestTimer, RestTimerHandle } from '../components/RestTimer';
+import { ExerciseLibrary } from '../components/ExerciseLibrary';
+import { TEMPLATES } from '../data/templates';
 import { WorkoutAPI, apiError } from '../api/client';
 import { colors, font, radius, spacing } from '../theme';
 
@@ -21,6 +24,21 @@ export default function WorkoutScreen() {
   const [prs, setPrs] = useState<any[]>([]);
   const [totalWorkouts, setTotalWorkouts] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [libOpen, setLibOpen] = useState(false);
+  const timerRef = useRef<RestTimerHandle>(null);
+
+  const loadTemplate = (t: (typeof TEMPLATES)[number]) => {
+    setTitle(t.name);
+    // Expand each template entry into its number of sets.
+    const expanded: SetRow[] = [];
+    t.sets.forEach((s) => {
+      for (let i = 0; i < s.sets; i++) {
+        const reps = /^\d+$/.test(s.reps) ? s.reps : '';
+        expanded.push({ exercise: s.exercise, weight_kg: '', reps });
+      }
+    });
+    setRows(expanded.length ? expanded : [{ exercise: '', weight_kg: '', reps: '' }]);
+  };
 
   const load = useCallback(async () => {
     try {
@@ -38,8 +56,11 @@ export default function WorkoutScreen() {
   const updateRow = (i: number, key: keyof SetRow, val: string) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [key]: val } : r)));
 
-  const addRow = (exercise?: string) =>
+  const addRow = (exercise?: string) => {
     setRows((prev) => [...prev, { exercise: exercise || '', weight_kg: '', reps: '' }]);
+    // "Add set" (no preset exercise) = finished a set → auto-start the rest timer.
+    if (!exercise) timerRef.current?.start();
+  };
 
   const removeRow = (i: number) => setRows((prev) => prev.filter((_, idx) => idx !== i));
 
@@ -50,11 +71,18 @@ export default function WorkoutScreen() {
     if (sets.length === 0) return Alert.alert('Add a set', 'Enter at least one exercise with reps.');
     setSaving(true);
     try {
-      await WorkoutAPI.create({ title: title.trim() || 'Workout', sets });
+      const res = await WorkoutAPI.create({ title: title.trim() || 'Workout', sets });
       setRows([{ exercise: '', weight_kg: '', reps: '' }]);
       setTitle('Workout');
       await load();
-      Alert.alert('Saved 💪', 'Workout logged.');
+      if (res.prs?.length) {
+        const lines = res.prs
+          .map((p: any) => `🏆 ${p.exercise}: ${p.weight}kg${p.prev > 0 ? ` (was ${p.prev}kg)` : ''}`)
+          .join('\n');
+        Alert.alert('🎉 New Personal Record!', `${lines}\n\nKeep crushing it 💪`);
+      } else {
+        Alert.alert('Saved 💪', 'Workout logged.');
+      }
     } catch (e) {
       Alert.alert('Error', apiError(e));
     } finally {
@@ -96,10 +124,32 @@ export default function WorkoutScreen() {
         </Card>
       )}
 
+      {/* Routine templates */}
+      <Txt dim size={font.small} weight="700" style={{ marginBottom: 6 }}>LOAD A ROUTINE</Txt>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing(2) }}>
+        {TEMPLATES.map((t) => (
+          <TouchableOpacity
+            key={t.name}
+            onPress={() => loadTemplate(t)}
+            style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing(1.5), marginRight: 10, width: 150 }}>
+            <Txt size={20}>{t.emoji}</Txt>
+            <Txt weight="800" style={{ marginTop: 4 }}>{t.name}</Txt>
+            <Txt dim size={font.tiny} style={{ marginTop: 2 }}>{t.focus}</Txt>
+            <Txt size={font.tiny} style={{ marginTop: 6, color: colors.primary }}>{t.sets.length} exercises →</Txt>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Rest timer */}
+      <RestTimer ref={timerRef} />
+
       {/* Composer */}
       <Card>
         <Field label="Workout name" value={title} onChangeText={setTitle} placeholder="Push Day" />
-        <Txt dim size={font.small} style={{ marginBottom: 6 }}>Quick add exercise</Txt>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <Txt dim size={font.small}>Quick add exercise</Txt>
+          <TouchableOpacity onPress={() => setLibOpen(true)}><Txt size={font.small} weight="700" style={{ color: colors.accent }}>📖 Library</Txt></TouchableOpacity>
+        </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(1) }}>
           {LIBRARY.slice(0, 8).map((ex) => (
             <Pill key={ex} label={ex} onPress={() => addRow(ex)} />
@@ -144,6 +194,8 @@ export default function WorkoutScreen() {
         ))
       )}
       <View style={{ height: spacing(4) }} />
+
+      <ExerciseLibrary visible={libOpen} onClose={() => setLibOpen(false)} onPick={(name) => addRow(name)} />
     </ScrollView>
   );
 }

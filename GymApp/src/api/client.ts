@@ -54,7 +54,7 @@ export const OrgAPI = {
 
 export const DeviceAPI = {
   register: (token: string, platform: string, orgId?: number) =>
-    api.post('/devices/register', { token, platform, orgId }).then((r) => r.data),
+    api.post('/devices/register', { token, platform, orgId, tz_offset: -new Date().getTimezoneOffset() }).then((r) => r.data),
   unregister: (token: string) =>
     api.post('/devices/unregister', { token }).then((r) => r.data),
 };
@@ -65,6 +65,11 @@ export const AttendanceAPI = {
   checkin: () => api.post('/attendance/checkin').then((r) => r.data),
   checkout: (reason?: string) => api.post('/attendance/checkout', { reason }).then((r) => r.data),
   setReason: (id: number, reason: string) => api.put(`/attendance/${id}/reason`, { reason }).then((r) => r.data),
+};
+
+export const ChallengeAPI = {
+  leaderboard: (period: 'month' | 'week' = 'month') =>
+    api.get('/challenges/leaderboard', { params: { period } }).then((r) => r.data),
 };
 
 export const WorkoutAPI = {

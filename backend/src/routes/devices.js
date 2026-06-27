@@ -13,6 +13,7 @@ router.post('/register', async (req, res, next) => {
   try {
     const { token, platform } = req.body || {};
     if (!token) return res.status(400).json({ error: 'token required' });
+    const tz = Number.isInteger(req.body?.tz_offset) ? req.body.tz_offset : 0;
 
     // Prefer an org from the body; fall back to the user's own org.
     let orgId = req.body?.orgId || null;
@@ -22,14 +23,15 @@ router.post('/register', async (req, res, next) => {
     }
 
     await exec(
-      `INSERT INTO device_tokens (token, user_id, org_id, platform, updated_at)
-       VALUES ($1, $2, $3, $4, now())
+      `INSERT INTO device_tokens (token, user_id, org_id, platform, tz_offset, updated_at)
+       VALUES ($1, $2, $3, $4, $5, now())
        ON CONFLICT (token) DO UPDATE
          SET user_id = EXCLUDED.user_id,
              org_id = EXCLUDED.org_id,
              platform = EXCLUDED.platform,
+             tz_offset = EXCLUDED.tz_offset,
              updated_at = now()`,
-      [token, req.user.id, orgId, platform || null]
+      [token, req.user.id, orgId, platform || null, tz]
     );
     res.json({ ok: true });
   } catch (e) { next(e); }

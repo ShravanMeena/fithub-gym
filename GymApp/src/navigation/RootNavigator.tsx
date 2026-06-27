@@ -25,6 +25,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 import RemindersScreen from '../screens/RemindersScreen';
 import WorkoutScreen from '../screens/WorkoutScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
+import ChallengesScreen from '../screens/ChallengesScreen';
 
 const navTheme = {
   ...DefaultTheme,
@@ -96,6 +97,7 @@ export default function RootNavigator() {
               <Stack.Screen name="Progress" component={ProgressScreen} options={{ title: 'Progress' }} />
               <Stack.Screen name="Coach" component={CoachScreen} options={{ title: 'AI Coach' }} />
               <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Attendance' }} />
+              <Stack.Screen name="Challenges" component={ChallengesScreen} options={{ title: 'Leaderboard' }} />
             </>
           ) : !org ? (
             <Stack.Screen name="OrgSelect" component={OrgSelectScreen} options={{ headerShown: false }} />

@@ -41,6 +41,7 @@ function routeFromData(data?: Record<string, any>) {
   if (data.type === 'announcement') navTo('Feed');
   else if (data.type === 'notice' || data.type === 'alert') navTo('Home');
   else if (data.type === 'reminder') navTo('Reminders');
+  else if (data.type === 'pr') navTo('Workout');
   else if (data.screen) navTo(String(data.screen));
 }
 

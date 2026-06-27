@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { q, one, pool } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
+import { sendToUser } from '../services/push.js';
 
 const router = Router();
 router.use(authRequired);
@@ -23,6 +24,15 @@ router.post('/', async (req, res, next) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
   const { title, notes, sets } = parsed.data;
+
+  // Prior best weight per exercise (before this workout) — for PR detection.
+  const names = [...new Set(sets.map((s) => s.exercise.trim()))];
+  const priorRows = await q(
+    'SELECT exercise, MAX(weight_kg) AS best FROM workout_sets WHERE user_id = $1 AND exercise = ANY($2) GROUP BY exercise',
+    [req.user.id, names]
+  );
+  const prior = Object.fromEntries(priorRows.map((r) => [r.exercise, r.best || 0]));
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -39,7 +49,30 @@ router.post('/', async (req, res, next) => {
       );
     }
     await client.query('COMMIT');
-    res.json({ id: w.id });
+
+    // New PRs: best weight this workout beats the prior best for that exercise.
+    const thisMax = {};
+    for (const s of sets) {
+      const ex = s.exercise.trim();
+      if (s.weight_kg > 0) thisMax[ex] = Math.max(thisMax[ex] || 0, s.weight_kg);
+    }
+    const prs = Object.entries(thisMax)
+      .filter(([ex, wt]) => wt > (prior[ex] || 0))
+      .map(([exercise, weight]) => ({ exercise, weight, prev: prior[exercise] || 0 }));
+
+    if (prs.length) {
+      const top = prs[0];
+      const gain = top.prev > 0 ? ` (+${Math.round((top.weight - top.prev) * 10) / 10}kg)` : '';
+      sendToUser(req.user.id, {
+        title: '🎉 New Personal Record!',
+        body: prs.length === 1
+          ? `${top.exercise} ${top.weight}kg${gain}`
+          : `${top.exercise} ${top.weight}kg${gain} +${prs.length - 1} more`,
+        data: { type: 'pr', screen: 'Workout' },
+      }).catch(() => {});
+    }
+
+    res.json({ id: w.id, prs });
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});
     next(e);

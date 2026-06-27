@@ -85,7 +85,33 @@ async function main() {
     }
   }
 
-  console.log('\n✅ Demo member seeded.');
+  // A few peer members so the gym leaderboard looks alive (varying monthly visits).
+  const peers = [
+    { name: 'Priya', email: 'priya.demo@fithub.app', days: 12 },
+    { name: 'Arjun', email: 'arjun.demo@fithub.app', days: 9 },
+    { name: 'Rahul', email: 'rahul.demo@fithub.app', days: 6 },
+    { name: 'Sneha', email: 'sneha.demo@fithub.app', days: 4 },
+  ];
+  for (const p of peers) {
+    let pu = await one('SELECT id FROM users WHERE email = $1', [p.email]);
+    if (!pu) {
+      pu = await one('INSERT INTO users (email, name, password_hash, role, org_id) VALUES ($1,$2,$3,$4,$5) RETURNING id',
+        [p.email, p.name, hash, 'member', org.id]);
+    } else {
+      await exec('UPDATE users SET org_id=$2 WHERE id=$1', [pu.id, org.id]);
+    }
+    await exec('DELETE FROM attendance WHERE user_id=$1', [pu.id]);
+    // Check-ins on the first N days of this month (all in the past, distinct days).
+    for (let k = 0; k < p.days; k++) {
+      await exec(
+        `INSERT INTO attendance (user_id, org_id, checked_in_at, checked_out_at)
+         VALUES ($1,$2, date_trunc('month', current_date) + make_interval(days => $3) + interval '8 hours',
+                       date_trunc('month', current_date) + make_interval(days => $3) + interval '9 hours')`,
+        [pu.id, org.id, k]);
+    }
+  }
+
+  console.log('\n✅ Demo member + 4 leaderboard peers seeded.');
   console.log('   Gym:      ' + org.name + '  (pick this on the org screen)');
   console.log('   Email:    ' + EMAIL);
   console.log('   Password: ' + PASSWORD);
