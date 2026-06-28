@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { ScrollView, View, Image, Alert, TouchableOpacity, ToastAndroid, Platform } from 'react-native';
+import { View, Image, Alert, TouchableOpacity, ToastAndroid, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
 import { Card, Txt, Button, Field } from '../components/UI';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { FoodAPI, apiError } from '../api/client';
 import { captureImage } from '../utils/imagePicker';
 import { useBilling } from '../context/BillingContext';
@@ -78,9 +79,7 @@ export default function FoodScanScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <KeyboardScroll style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">Log a Meal</Txt>
       <Txt dim style={{ marginBottom: spacing(1.5) }}>Snap a photo for instant calories, or quick-add from the list.</Txt>
 
@@ -188,7 +187,7 @@ export default function FoodScanScreen({ navigation }: any) {
         </>
       )}
       <View style={{ height: spacing(4) }} />
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 

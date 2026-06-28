@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, Switch, Alert, TouchableOpacity } from 'react-native';
+import { View, Switch, Alert, TouchableOpacity } from 'react-native';
 import { Card, Txt, Field, Button } from '../components/UI';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { ReminderAPI, apiError } from '../api/client';
 import { scheduleReminder, cancelReminder, ensureNotifPermission, sendNow } from '../notifications';
 import { colors, font, spacing } from '../theme';
@@ -91,9 +92,7 @@ export default function RemindersScreen() {
   };
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <KeyboardScroll style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">Meal & Workout Reminders</Txt>
       <Txt dim style={{ marginBottom: spacing(2) }}>Daily alarms so you never miss a meal or session. They fire even when the app is closed.</Txt>
 
@@ -153,6 +152,6 @@ export default function RemindersScreen() {
         ))
       )}
       <View style={{ height: spacing(4) }} />
-    </ScrollView>
+    </KeyboardScroll>
   );
 }

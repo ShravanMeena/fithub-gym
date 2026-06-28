@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { ScrollView, View, Alert, RefreshControl, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Button, Field, Pill } from '../components/UI';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { DietAPI, ProfileAPI, ReminderAPI, apiError } from '../api/client';
 import { scheduleReminder, ensureNotifPermission } from '../notifications';
 import { useBilling } from '../context/BillingContext';
@@ -133,9 +134,7 @@ export default function DietScreen({ navigation }: any) {
   const plan = plans[selected];
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled"
+    <KeyboardScroll
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ padding: spacing(2) }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
@@ -235,7 +234,7 @@ export default function DietScreen({ navigation }: any) {
         </>
       )}
       <View style={{ height: spacing(4) }} />
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 

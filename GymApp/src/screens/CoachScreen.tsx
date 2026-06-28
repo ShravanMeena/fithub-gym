@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ScrollView, View, Alert } from 'react-native';
+import { View, Alert } from 'react-native';
 import { Card, Txt, Field, Button } from '../components/UI';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { ProgressAPI, apiError } from '../api/client';
 import { useBilling } from '../context/BillingContext';
 import { colors, font, spacing } from '../theme';
@@ -26,9 +27,7 @@ export default function CoachScreen() {
   };
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <KeyboardScroll style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">AI Coach 🤖</Txt>
       <Txt dim style={{ marginBottom: spacing(2) }}>
         Personalized advice from your profile, progress and recent meals.
@@ -61,6 +60,6 @@ export default function CoachScreen() {
         </Card>
       )}
       <View style={{ height: spacing(4) }} />
-    </ScrollView>
+    </KeyboardScroll>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, Alert, TouchableOpacity } from 'react-native';
+import { View, Alert, TouchableOpacity } from 'react-native';
 import { Card, Txt, Field, Button, Pill } from '../components/UI';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { Avatar } from '../components/Avatar';
 import { ProfileAPI, apiError } from '../api/client';
 import { scanOrUpload } from '../utils/imagePicker';
@@ -104,9 +105,8 @@ export default function ProfileScreen() {
   );
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <KeyboardScroll
+      style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       {/* Profile photo */}
       <View style={{ alignItems: 'center', marginBottom: spacing(2) }}>
         <TouchableOpacity onPress={changePhoto}>
@@ -174,7 +174,7 @@ export default function ProfileScreen() {
 
       <Button title="Save Profile" loading={loading} onPress={save} style={{ marginTop: spacing(1) }} />
       <View style={{ height: spacing(4) }} />
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 

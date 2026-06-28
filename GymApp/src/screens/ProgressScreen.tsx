@@ -5,6 +5,7 @@ import React, { useCallback, useState } from 'react';
 import { ScrollView, View, Alert, Image, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Field, Button, Pill } from '../components/UI';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { LineChart } from '../components/Charts';
 import { ProgressAPI, PhotoAPI, ProfileAPI, authedImageSource, apiError } from '../api/client';
 import { scanOrUpload } from '../utils/imagePicker';
@@ -120,9 +121,7 @@ export default function ProgressScreen() {
   const latest = entries[entries.length - 1] || {};
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <KeyboardScroll style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">My Progress</Txt>
       <Txt dim style={{ marginBottom: spacing(2) }}>Track your transformation — weight, measurements & photos.</Txt>
 
@@ -277,7 +276,7 @@ export default function ProgressScreen() {
       )}
 
       <View style={{ height: spacing(4) }} />
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 

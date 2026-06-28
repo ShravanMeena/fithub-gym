@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { ScrollView, View, Alert, TouchableOpacity, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Field, Button, Pill } from '../components/UI';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { RestTimer, RestTimerHandle } from '../components/RestTimer';
 import { ExerciseLibrary } from '../components/ExerciseLibrary';
 import { TEMPLATES } from '../data/templates';
@@ -98,9 +99,7 @@ export default function WorkoutScreen() {
   };
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled"
+    <KeyboardScroll
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ padding: spacing(2) }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
@@ -198,6 +197,6 @@ export default function WorkoutScreen() {
       <View style={{ height: spacing(4) }} />
 
       <ExerciseLibrary visible={libOpen} onClose={() => setLibOpen(false)} onPick={(name) => addRow(name)} />
-    </ScrollView>
+    </KeyboardScroll>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, Alert, TouchableOpacity } from 'react-native';
 import { Txt, Field, Button } from '../components/UI';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
 import { apiError } from '../api/client';
@@ -31,10 +32,8 @@ export default function SignupScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView
+      <KeyboardScroll
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: spacing(2.5) }}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}>
         <Txt size={font.h1} weight="800">Create account</Txt>
         <Txt dim style={{ marginBottom: spacing(4) }}>
@@ -55,7 +54,7 @@ export default function SignupScreen({ navigation }: any) {
             <Txt weight="700" style={{ color: colors.primary }}>Log in</Txt>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </KeyboardScroll>
     </View>
   );
 }

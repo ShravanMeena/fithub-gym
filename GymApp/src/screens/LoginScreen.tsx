@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Alert, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Alert, TouchableOpacity } from 'react-native';
 import { Txt, Field, Button } from '../components/UI';
+import { KeyboardScroll } from '../components/KeyboardScroll';
 import { BrandMark } from '../components/BrandMark';
 import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
@@ -34,10 +35,8 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <ScrollView
+        <KeyboardScroll
           contentContainerStyle={{ padding: spacing(2.5), paddingTop: spacing(7), paddingBottom: spacing(4) }}
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}>
           <View style={{ alignItems: 'center', marginBottom: spacing(3) }}>
             <BrandMark name={org?.name || 'Your Gym'} tagline={org?.tagline} color={org?.primary_color} />
@@ -74,7 +73,7 @@ export default function LoginScreen({ navigation }: any) {
               <Txt weight="800" style={{ color: colors.primary }}>Create account</Txt>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </KeyboardScroll>
     </View>
   );
 }
