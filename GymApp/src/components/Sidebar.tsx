@@ -16,6 +16,7 @@ const ITEMS: { label: string; icon: IconName; screen: string }[] = [
   { label: 'AI Coach ✨', icon: 'coach', screen: 'Coach' },
   { label: 'Leaderboard', icon: 'attendance', screen: 'Challenges' },
   { label: 'Attendance history', icon: 'attendance', screen: 'Attendance' },
+  { label: 'Gym Schedule 📅', icon: 'reminders', screen: 'GymSchedule' },
   { label: 'Reminders', icon: 'reminders', screen: 'Reminders' },
   { label: 'Log a workout', icon: 'workout', screen: 'Workout' },
   { label: 'Profile & Goals', icon: 'profile', screen: 'Profile' },

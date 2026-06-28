@@ -38,7 +38,7 @@ async function streakSaver(utcMin) {
       await sendToTokens(rows.map((r) => r.token), {
         title: '🔥 Keep your streak alive!',
         body: "You haven't checked in today — a quick session keeps the streak going 💪",
-        data: { type: 'alert', screen: 'Home' },
+        data: { type: 'alert', screen: 'Today' },
       });
       console.log(`[reminders] streak-saver pushed to ${rows.length} device(s) (tz ${tz})`);
     }
@@ -52,9 +52,14 @@ async function waterReminders(utcMin) {
   for (const { tz_offset: tz } of tzRows) {
     const localMin = (((utcMin + tz) % 1440) + 1440) % 1440;
     if (!WATER_LOCAL_MINS.includes(localMin)) continue;
+    // Opted-in users in this tz who haven't yet hit today's water goal.
     const rows = await q(
       `SELECT DISTINCT dt.token FROM device_tokens dt JOIN users u ON u.id = dt.user_id
-       WHERE dt.tz_offset = $1 AND u.water_reminders = 1`,
+       WHERE dt.tz_offset = $1 AND u.water_reminders = 1
+         AND COALESCE(
+           (SELECT w.glasses FROM water_intake w
+             WHERE w.user_id = u.id AND w.day = (now() + make_interval(mins => $1))::date),
+           0) < u.water_goal`,
       [tz]
     );
     if (rows.length) {

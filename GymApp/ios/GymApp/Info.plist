@@ -33,6 +33,12 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCalendarsUsageDescription</key>
+	<string>FitHub adds your gym sessions to your calendar so you get reminded before each workout.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>FitHub adds your gym sessions to your calendar so you get reminded before each workout.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>FitHub adds your gym sessions to your calendar so you get reminded before each workout.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>IronFuel uses your camera to photograph meals and estimate their nutrition.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

@@ -148,6 +148,17 @@ export default function TodayScreen({ navigation }: any) {
         </View>
       </Card>
 
+      {/* Gym schedule → device calendar reminders */}
+      <Card onPress={() => navigation.navigate('GymSchedule')}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <Txt weight="800">📅 Add your gym times to calendar</Txt>
+            <Txt dim size={font.small} style={{ marginTop: 2 }}>Get reminded before every session →</Txt>
+          </View>
+          <Txt size={22}>›</Txt>
+        </View>
+      </Card>
+
       {/* AI coach as an optional helper */}
       <Card onPress={() => navigation.navigate('Coach')} style={{ backgroundColor: colors.cardAlt }}>
         <Txt weight="800">✨ Ask the AI Coach</Txt>

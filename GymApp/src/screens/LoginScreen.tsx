@@ -54,18 +54,6 @@ export default function LoginScreen({ navigation }: any) {
             🎁 New members get free Premium to start
           </Txt>
 
-          <View style={[{ backgroundColor: colors.card, borderRadius: radius.xl, padding: spacing(2), marginBottom: spacing(3) }, shadow]}>
-            {VALUE.map(([icon, title, sub], i) => (
-              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: i < VALUE.length - 1 ? spacing(1.75) : 0 }}>
-                <Txt size={26} style={{ width: 40 }}>{icon}</Txt>
-                <View style={{ flex: 1 }}>
-                  <Txt weight="800">{title}</Txt>
-                  <Txt dim size={font.small}>{sub}</Txt>
-                </View>
-              </View>
-            ))}
-          </View>
-
           <Field label="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} placeholder="you@example.com" />
           <Field label="Password" secureTextEntry value={password} onChangeText={setPassword} placeholder="••••••••" />
           <Button title="Log In" loading={loading} onPress={onLogin} style={{ marginTop: spacing(1) }} />
