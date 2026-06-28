@@ -70,6 +70,7 @@
     <div class="tabs">
       <div class="tab active" data-tab="users" onclick="switchTab('users')">Users &amp; AI access</div>
       <div class="tab" data-tab="gyms" onclick="switchTab('gyms')">Gyms</div>
+      <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Push</div>
       <div class="tab" data-tab="appupdate" onclick="switchTab('appupdate')">📲 App Update</div>
     </div>
 
@@ -84,6 +85,29 @@
     <div id="tab_gyms" class="card" style="display:none">
       <h3>All gyms</h3>
       <div style="overflow-x:auto"><table id="gymsTable"></table></div>
+    </div>
+
+    <div id="tab_push" style="display:none">
+      <div class="card" id="pushStatusCard"><div class="muted">Loading push status…</div></div>
+      <div class="card">
+        <h3>Send a push notification</h3>
+        <div class="field"><label>Send to</label>
+          <select id="np_aud" style="width:auto;display:inline-block;padding:10px 12px">
+            <option value="all">Everyone</option>
+            <option value="android">Android only</option>
+            <option value="ios">iOS only</option>
+          </select>
+        </div>
+        <div class="field"><label>Title</label><input id="np_title" placeholder="e.g. New feature is live!" maxlength="80"></div>
+        <div class="field"><label>Message</label><input id="np_body" placeholder="Short message users will see" maxlength="180"></div>
+        <button class="btn" id="npBtn" onclick="sendPlatformPush()">🔔 Send notification</button>
+        <span class="msg" id="npMsg" style="color:var(--accent);margin-left:10px"></span>
+      </div>
+      <div class="card">
+        <h3>Registered devices <span class="muted" id="devCount" style="font-size:14px"></span></h3>
+        <p class="muted" style="font-size:13px">Each row is a device that installed the app and logged in. No rows = no one to send to.</p>
+        <div style="overflow-x:auto"><table id="devTable"></table></div>
+      </div>
     </div>
 
     <div id="tab_appupdate" style="display:none">
@@ -111,7 +135,55 @@
     finally{ $('loginBtn').disabled=false; $('loginBtn').textContent='Log in'; }
   }
   function logout(){ localStorage.removeItem(TOKEN_KEY); token=null; location.reload(); }
-  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms','appupdate'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); }
+  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms','push','appupdate'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); }
+
+  // ---- Push notifications ----
+  async function loadPush(){
+    try{
+      const s=await api('/super/push-status');
+      $('pushStatusCard').innerHTML = `
+        <h3 style="margin:0 0 10px">Push status</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="stat" style="flex:1;min-width:120px;padding:14px"><b style="font-size:20px;color:${s.configured?'var(--accent)':'var(--danger)'}">${s.configured?'✅ ON':'⚠️ OFF'}</b><span>server push</span></div>
+          <div class="stat" style="flex:1;min-width:120px;padding:14px"><b style="font-size:24px">${s.total}</b><span>devices</span></div>
+          <div class="stat" style="flex:1;min-width:120px;padding:14px"><b style="font-size:24px">${s.android}</b><span>android</span></div>
+          <div class="stat" style="flex:1;min-width:120px;padding:14px"><b style="font-size:24px">${s.ios}</b><span>ios</span></div>
+        </div>
+        ${!s.configured?'<p style="color:var(--danger);font-size:13px;margin-top:12px">Push is OFF — set FIREBASE_PROJECT_ID on the server.</p>':
+          s.total===0?'<p style="color:var(--danger);font-size:13px;margin-top:12px">0 devices — no one has installed the app & logged in yet. Install the app on an Android phone, log in and allow notifications, then refresh.</p>':''}`;
+      const {devices}=await api('/super/devices');
+      $('devCount').textContent = `(${devices.length})`;
+      $('devTable').innerHTML = devices.length
+        ? '<tr><th>User</th><th>Gym</th><th>Platform</th><th>Token</th><th>Updated</th><th></th></tr>'+
+          devices.map(d=>`<tr>
+            <td><b>${d.name}</b><br><span class="muted" style="font-size:12px">${d.email}</span></td>
+            <td class="muted">${d.gym||'—'}</td>
+            <td>${d.platform==='android'?'🤖 Android':d.platform==='ios'?'🍎 iOS':d.platform||'—'}</td>
+            <td class="muted" style="font-size:11px">${(d.token||'').slice(0,16)}…</td>
+            <td class="muted" style="font-size:12px">${fmtT(d.updated_at)}</td>
+            <td><a href="#" onclick="sendToUser(${d.user_id},'${(d.name||'').replace(/'/g,'')}');return false" style="font-size:13px">Notify</a></td>
+          </tr>`).join('')
+        : '<tr><td class="muted">No registered devices yet.</td></tr>';
+    }catch(e){ $('pushStatusCard').innerHTML='<div class="muted" style="color:var(--danger)">'+e.message+'</div>'; }
+  }
+  function fmtT(s){ return s? String(s).slice(0,16).replace('T',' ') : '—'; }
+  async function sendPlatformPush(aud){
+    const audience = aud || $('np_aud').value;
+    const title=$('np_title').value.trim(), body=$('np_body').value.trim();
+    if(!title){ $('npMsg').style.color='var(--danger)'; $('npMsg').textContent='Add a title.'; return; }
+    $('npBtn').disabled=true; $('npBtn').textContent='Sending…'; $('npMsg').textContent='';
+    try{ const d=await api('/super/notify',{method:'POST',body:JSON.stringify({title,body,audience})});
+      $('npMsg').style.color='var(--accent)'; $('npMsg').textContent=`✅ Sent to ${d.sent} of ${d.targeted} device(s)`;
+    }catch(e){ $('npMsg').style.color='var(--danger)'; $('npMsg').textContent=e.message; }
+    finally{ $('npBtn').disabled=false; $('npBtn').textContent='🔔 Send notification'; }
+  }
+  async function sendToUser(uid,name){
+    const title=prompt('Notification title for '+name+':'); if(!title) return;
+    const body=prompt('Message:')||'';
+    try{ const d=await api('/super/notify',{method:'POST',body:JSON.stringify({title,body,audience:String(uid)})});
+      alert(`Sent to ${d.sent} device(s).`);
+    }catch(e){ alert(e.message); }
+  }
 
   // ---- App update (force/soft) ----
   const esc=(s)=>String(s==null?'':s).replace(/"/g,'&quot;').replace(/</g,'&lt;');

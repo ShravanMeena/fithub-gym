@@ -3,7 +3,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
-import { sendToOrg, sendToTokens, pushEnabled } from '../services/push.js';
+import { sendToOrg, sendToTokens, sendToUser, pushEnabled } from '../services/push.js';
 
 // Fire-and-forget push to all members of a gym (never blocks the response).
 function pushToOrg(orgId, excludeUserId, payload) {
@@ -45,8 +45,12 @@ router.get('/members', async (req, res, next) => {
         (SELECT ROUND(AVG(EXTRACT(EPOCH FROM (checked_out_at - checked_in_at))/60))
            FROM attendance a WHERE a.user_id = u.id AND a.checked_out_at IS NOT NULL) AS avg_minutes,
         u.ai_until,
-        (u.ai_until IS NOT NULL AND u.ai_until > now()) AS ai_active
-       FROM users u WHERE u.org_id = $1 ORDER BY u.created_at DESC`,
+        (u.ai_until IS NOT NULL AND u.ai_until > now()) AS ai_active,
+        mi.paid_until, mi.fee_amount,
+        CASE WHEN mi.paid_until IS NULL THEN 'none'
+             WHEN mi.paid_until >= current_date THEN 'active' ELSE 'expired' END AS fee_status
+       FROM users u LEFT JOIN member_info mi ON mi.user_id = u.id
+       WHERE u.org_id = $1 ORDER BY u.created_at DESC`,
       [req.orgId]
     );
     res.json({ members });
@@ -153,6 +157,78 @@ router.post('/nudge-inactive', async (req, res, next) => {
     const result = await sendToTokens(rows.map((r) => r.token), {
       title: title || `We miss you at ${org?.name || 'the gym'}! 💪`,
       body: body || 'It’s been a while — come crush a workout today.',
+      data: { type: 'alert', screen: 'Home' },
+    });
+    res.json({ sent: result.sent || 0 });
+  } catch (e) { next(e); }
+});
+
+// Full member detail — profile, attendance, fees/membership, notes.
+router.get('/members/:id', async (req, res, next) => {
+  try {
+    const u = await one(
+      `SELECT u.id, u.name, u.email, u.phone, u.role, u.created_at, u.ai_until,
+              (u.ai_until IS NOT NULL AND u.ai_until > now()) AS ai_active
+       FROM users u WHERE u.id = $1 AND u.org_id = $2`,
+      [req.params.id, req.orgId]
+    );
+    if (!u) return res.status(404).json({ error: 'Member not found in your gym' });
+    const profile = await one('SELECT gender, age, height_cm, weight_kg, target_weight_kg, goal, activity_level, diet_pref FROM profiles WHERE user_id = $1', [u.id]);
+    const info = await one('SELECT fee_amount, plan, paid_until, notes FROM member_info WHERE user_id = $1', [u.id]);
+    const att = await one(
+      `SELECT COUNT(*) AS visits, MAX(checked_in_at) AS last_visit,
+              COUNT(*) FILTER (WHERE checked_in_at >= now() - interval '30 days') AS visits_30d,
+              ROUND(AVG(EXTRACT(EPOCH FROM (checked_out_at - checked_in_at))/60)) FILTER (WHERE checked_out_at IS NOT NULL) AS avg_minutes
+       FROM attendance WHERE user_id = $1`, [u.id]);
+    const recent = await q(
+      `SELECT checked_in_at, checked_out_at FROM attendance WHERE user_id = $1 ORDER BY checked_in_at DESC LIMIT 8`, [u.id]);
+    res.json({ member: u, profile: profile || {}, info: info || {}, attendance: { ...att, recent } });
+  } catch (e) { next(e); }
+});
+
+// Update a member's fees / membership / notes.
+const infoSchema = z.object({
+  fee_amount: z.number().min(0).max(1000000).nullable().optional(),
+  plan: z.string().max(40).optional(),
+  paid_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  notes: z.string().max(1000).optional(),
+});
+router.put('/members/:id/info', async (req, res, next) => {
+  try {
+    const m = await one('SELECT id FROM users WHERE id = $1 AND org_id = $2', [req.params.id, req.orgId]);
+    if (!m) return res.status(404).json({ error: 'Member not found in your gym' });
+    const parsed = infoSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+    const d = parsed.data;
+    await one(
+      `INSERT INTO member_info (user_id, fee_amount, plan, paid_until, notes, updated_at)
+       VALUES ($1,$2,$3,$4,$5, now())
+       ON CONFLICT (user_id) DO UPDATE SET
+         fee_amount = COALESCE(EXCLUDED.fee_amount, member_info.fee_amount),
+         plan = COALESCE(EXCLUDED.plan, member_info.plan),
+         paid_until = EXCLUDED.paid_until,
+         notes = COALESCE(EXCLUDED.notes, member_info.notes),
+         updated_at = now()
+       RETURNING user_id`,
+      [m.id, d.fee_amount ?? null, d.plan ?? null, d.paid_until ?? null, d.notes ?? null]
+    );
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// Send a custom alert (push) to a single member.
+router.post('/members/:id/alert', async (req, res, next) => {
+  try {
+    const m = await one('SELECT id FROM users WHERE id = $1 AND org_id = $2', [req.params.id, req.orgId]);
+    if (!m) return res.status(404).json({ error: 'Member not found in your gym' });
+    if (!pushEnabled()) return res.status(503).json({ error: 'Push is not configured on the server yet.' });
+    const title = (req.body?.title || '').toString().trim();
+    const body = (req.body?.body || '').toString().trim();
+    if (!title) return res.status(400).json({ error: 'Add a title.' });
+    const org = await one('SELECT name FROM organizations WHERE id = $1', [req.orgId]);
+    const result = await sendToUser(m.id, {
+      title: `🔔 ${title}`,
+      body: body || (org?.name ? `From ${org.name}` : 'Tap to open'),
       data: { type: 'alert', screen: 'Home' },
     });
     res.json({ sent: result.sent || 0 });

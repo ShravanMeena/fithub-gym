@@ -243,6 +243,16 @@ ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS waist_cm REAL;
 ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS chest_cm REAL;
 ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS arms_cm REAL;
 
+-- Gym-owner-managed info about a member: fees, membership validity, notes.
+CREATE TABLE IF NOT EXISTS member_info (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  fee_amount REAL,
+  plan TEXT,
+  paid_until DATE,
+  notes TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- App update gating (force/soft), one row per platform, managed by superadmin.
 CREATE TABLE IF NOT EXISTS app_update (
   platform TEXT PRIMARY KEY,                    -- 'ios' | 'android'

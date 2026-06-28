@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
+import { sendToTokens, pushEnabled } from '../services/push.js';
 
 const router = Router();
 router.use(authRequired);
@@ -70,6 +71,54 @@ router.post('/users/:id/ai-access', async (req, res, next) => {
     }
     const row = await one("SELECT ai_until, (ai_until IS NOT NULL AND ai_until > now()) AS ai_active FROM users WHERE id = $1", [u.id]);
     res.json({ ai_until: row.ai_until, ai_active: !!row.ai_active });
+  } catch (e) { next(e); }
+});
+
+// ---- Push notifications (platform-wide) ----
+
+// Diagnostic: is push configured on the server, and how many devices exist?
+router.get('/push-status', async (req, res, next) => {
+  try {
+    const total = (await one('SELECT COUNT(*) AS c FROM device_tokens'))?.c || 0;
+    const android = (await one("SELECT COUNT(*) AS c FROM device_tokens WHERE platform = 'android'"))?.c || 0;
+    const ios = (await one("SELECT COUNT(*) AS c FROM device_tokens WHERE platform = 'ios'"))?.c || 0;
+    const users = (await one('SELECT COUNT(DISTINCT user_id) AS c FROM device_tokens'))?.c || 0;
+    res.json({ configured: pushEnabled(), total, android, ios, users });
+  } catch (e) { next(e); }
+});
+
+// All registered devices + the user they belong to.
+router.get('/devices', async (req, res, next) => {
+  try {
+    const devices = await q(
+      `SELECT dt.token, dt.platform, dt.updated_at, u.id AS user_id, u.name, u.email, o.name AS gym
+       FROM device_tokens dt JOIN users u ON u.id = dt.user_id LEFT JOIN organizations o ON o.id = dt.org_id
+       ORDER BY dt.updated_at DESC LIMIT 500`
+    );
+    res.json({ devices });
+  } catch (e) { next(e); }
+});
+
+// Send a push to everyone / a platform / a single user.
+const notifySchema = z.object({
+  title: z.string().min(1).max(120),
+  body: z.string().max(300).optional(),
+  audience: z.string().default('all'), // 'all' | 'android' | 'ios' | a numeric userId
+});
+router.post('/notify', async (req, res, next) => {
+  try {
+    if (!pushEnabled()) return res.status(503).json({ error: 'Push is not configured on the server (FIREBASE_PROJECT_ID / credentials missing).' });
+    const parsed = notifySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+    const { title, body, audience } = parsed.data;
+    let where = '', params = [];
+    if (audience === 'android' || audience === 'ios') { where = 'WHERE platform = $1'; params = [audience]; }
+    else if (/^\d+$/.test(audience)) { where = 'WHERE user_id = $1'; params = [Number(audience)]; }
+    const rows = await q(`SELECT token FROM device_tokens ${where}`, params);
+    const result = await sendToTokens(rows.map((r) => r.token), {
+      title: `🔔 ${title}`, body: body || '', data: { type: 'alert', screen: 'Home' },
+    });
+    res.json({ sent: result.sent || 0, targeted: rows.length });
   } catch (e) { next(e); }
 });
 
