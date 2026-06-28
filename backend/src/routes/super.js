@@ -73,4 +73,43 @@ router.post('/users/:id/ai-access', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ---- App update management (force / soft update) ----
+router.get('/app-update', async (req, res, next) => {
+  try {
+    const platforms = await q('SELECT * FROM app_update ORDER BY platform');
+    res.json({ platforms });
+  } catch (e) { next(e); }
+});
+
+const updateSchema = z.object({
+  enabled: z.boolean().optional(),
+  mode: z.enum(['auto', 'soft', 'force', 'off']).optional(),
+  latest_version: z.string().max(20).optional(),
+  min_version: z.string().max(20).optional(),
+  title: z.string().max(120).optional(),
+  message: z.string().max(500).optional(),
+  button_text: z.string().max(40).optional(),
+  download_url: z.string().max(500).optional(),
+});
+
+router.put('/app-update/:platform', async (req, res, next) => {
+  try {
+    const platform = req.params.platform === 'ios' ? 'ios' : 'android';
+    const parsed = updateSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+    const f = { ...parsed.data };
+    if ('enabled' in f) f.enabled = f.enabled ? 1 : 0;
+    const keys = Object.keys(f);
+    if (keys.length) {
+      const set = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
+      await one(
+        `UPDATE app_update SET ${set}, updated_at = now() WHERE platform = $${keys.length + 1} RETURNING platform`,
+        [...keys.map((k) => f[k]), platform]
+      );
+    }
+    const row = await one('SELECT * FROM app_update WHERE platform = $1', [platform]);
+    res.json({ platform: row });
+  } catch (e) { next(e); }
+});
+
 export default router;

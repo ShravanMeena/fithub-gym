@@ -11,6 +11,10 @@ import { Platform } from 'react-native';
 // 🌐 Production server (live). This is what real builds use.
 export const PROD_API_URL = 'https://fithub.shravanmeena.com/api';
 
+// App version for the server-driven update check. Keep in sync with the native
+// versionName (android/app/build.gradle + iOS) on every release.
+export const APP_VERSION = '1.1';
+
 // Local-dev fallback (only used when PROD_API_URL is empty).
 export const LAN_IP = '192.168.1.15';
 const USE_LOCALHOST = false;

@@ -228,6 +228,20 @@ CREATE TABLE IF NOT EXISTS post_comments (
 ALTER TABLE post_likes ADD COLUMN IF NOT EXISTS reaction TEXT NOT NULL DEFAULT 'like';
 -- Track the highest streak milestone we've auto-celebrated, to avoid repeats.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_milestone INTEGER NOT NULL DEFAULT 0;
+
+-- App update gating (force/soft), one row per platform, managed by superadmin.
+CREATE TABLE IF NOT EXISTS app_update (
+  platform TEXT PRIMARY KEY,                    -- 'ios' | 'android'
+  enabled INTEGER NOT NULL DEFAULT 0,
+  mode TEXT NOT NULL DEFAULT 'auto',            -- 'auto' | 'soft' | 'force' | 'off'
+  latest_version TEXT NOT NULL DEFAULT '1.0',
+  min_version TEXT NOT NULL DEFAULT '1.0',      -- below this => force update
+  title TEXT NOT NULL DEFAULT 'Update available',
+  message TEXT NOT NULL DEFAULT 'A new version of FitHub is available with improvements and fixes.',
+  button_text TEXT NOT NULL DEFAULT 'Update now',
+  download_url TEXT NOT NULL DEFAULT '',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;
 
 const SEED_ORGS = [
@@ -246,6 +260,11 @@ export async function initDb() {
       [o.slug, o.name, o.tagline, o.color]
     );
   }
+  // App-update config rows (one per platform), disabled by default.
+  for (const p of ['ios', 'android']) {
+    await pool.query('INSERT INTO app_update (platform) VALUES ($1) ON CONFLICT (platform) DO NOTHING', [p]);
+  }
+
   // Platform super-admin
   const superEmail = (process.env.SUPERADMIN_EMAIL || 'platform@fithub.app').toLowerCase();
   const superPass = process.env.SUPERADMIN_PASSWORD || 'platform123';

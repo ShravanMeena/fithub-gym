@@ -7,6 +7,7 @@ import { OrgProvider } from './src/context/OrgContext';
 import { UIProvider } from './src/context/UIContext';
 import { BillingProvider } from './src/context/BillingContext';
 import RootNavigator from './src/navigation/RootNavigator';
+import { UpdateGate } from './src/components/UpdateGate';
 import { setupPushHandlers } from './src/notifications/push';
 import { colors } from './src/theme';
 
@@ -24,6 +25,7 @@ export default function App() {
           <BillingProvider>
             <UIProvider>
               <RootNavigator />
+              <UpdateGate />
             </UIProvider>
           </BillingProvider>
         </AuthProvider>

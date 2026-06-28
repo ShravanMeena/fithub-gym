@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE } from './config';
+import { API_BASE, APP_VERSION } from './config';
 
 export const TOKEN_KEY = 'gym.token';
 
@@ -66,6 +67,11 @@ export const AttendanceAPI = {
   checkin: () => api.post('/attendance/checkin').then((r) => r.data),
   checkout: (reason?: string) => api.post('/attendance/checkout', { reason }).then((r) => r.data),
   setReason: (id: number, reason: string) => api.put(`/attendance/${id}/reason`, { reason }).then((r) => r.data),
+};
+
+export const AppAPI = {
+  checkUpdate: () =>
+    api.get('/app/update', { params: { platform: Platform.OS, version: APP_VERSION } }).then((r) => r.data),
 };
 
 export const WaterAPI = {

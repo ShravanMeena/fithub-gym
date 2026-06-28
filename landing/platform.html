@@ -70,6 +70,7 @@
     <div class="tabs">
       <div class="tab active" data-tab="users" onclick="switchTab('users')">Users &amp; AI access</div>
       <div class="tab" data-tab="gyms" onclick="switchTab('gyms')">Gyms</div>
+      <div class="tab" data-tab="appupdate" onclick="switchTab('appupdate')">📲 App Update</div>
     </div>
 
     <div id="tab_users" class="card">
@@ -83,6 +84,11 @@
     <div id="tab_gyms" class="card" style="display:none">
       <h3>All gyms</h3>
       <div style="overflow-x:auto"><table id="gymsTable"></table></div>
+    </div>
+
+    <div id="tab_appupdate" style="display:none">
+      <p class="muted" style="font-size:14px;margin-bottom:14px">Control force / soft updates per platform. The app reads this on launch and shows an update card with your text, button and download link.</p>
+      <div id="appUpdateCards"></div>
     </div>
   </div>
 </div>
@@ -105,7 +111,55 @@
     finally{ $('loginBtn').disabled=false; $('loginBtn').textContent='Log in'; }
   }
   function logout(){ localStorage.removeItem(TOKEN_KEY); token=null; location.reload(); }
-  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); }
+  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms','appupdate'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); }
+
+  // ---- App update (force/soft) ----
+  const esc=(s)=>String(s==null?'':s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  async function loadAppUpdate(){
+    try{
+      const {platforms}=await api('/super/app-update');
+      $('appUpdateCards').innerHTML = platforms.map(p=>{
+        const on=p.enabled? 'checked':'';
+        const opt=(v,l)=>`<option value="${v}" ${p.mode===v?'selected':''}>${l}</option>`;
+        return `<div class="card" style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="margin:0">${p.platform==='ios'?'🍎 iOS':'🤖 Android'}</h3>
+            <label style="font-size:14px"><input type="checkbox" id="u_${p.platform}_enabled" ${on}> Enabled</label>
+          </div>
+          <div class="field"><label>Mode</label>
+            <select id="u_${p.platform}_mode" style="width:auto;display:inline-block;padding:8px 10px">
+              ${opt('auto','Auto (by version)')}${opt('soft','Soft (suggest)')}${opt('force','Force (block)')}${opt('off','Off')}
+            </select>
+            <span class="muted" style="font-size:12px;margin-left:8px">Auto: below "Min" = force, below "Latest" = soft</span>
+          </div>
+          <div style="display:flex;gap:10px">
+            <div class="field" style="flex:1"><label>Latest version</label><input id="u_${p.platform}_latest_version" value="${esc(p.latest_version)}" placeholder="1.2"></div>
+            <div class="field" style="flex:1"><label>Min version (force below)</label><input id="u_${p.platform}_min_version" value="${esc(p.min_version)}" placeholder="1.1"></div>
+          </div>
+          <div class="field"><label>Title</label><input id="u_${p.platform}_title" value="${esc(p.title)}"></div>
+          <div class="field"><label>Message</label><input id="u_${p.platform}_message" value="${esc(p.message)}"></div>
+          <div style="display:flex;gap:10px">
+            <div class="field" style="flex:1"><label>Button text</label><input id="u_${p.platform}_button_text" value="${esc(p.button_text)}"></div>
+            <div class="field" style="flex:2"><label>Download URL (store link)</label><input id="u_${p.platform}_download_url" value="${esc(p.download_url)}" placeholder="https://play.google.com/store/apps/details?id=com.fithub.gym"></div>
+          </div>
+          <button class="btn" onclick="saveAppUpdate('${p.platform}')">Save ${p.platform}</button>
+          <span class="msg" id="u_${p.platform}_msg" style="color:var(--accent);margin-left:10px"></span>
+        </div>`;
+      }).join('');
+    }catch(e){ $('appUpdateCards').innerHTML='<div class="muted" style="color:var(--danger)">'+e.message+'</div>'; }
+  }
+  async function saveAppUpdate(pf){
+    const v=(k)=>$('u_'+pf+'_'+k).value.trim();
+    const body={
+      enabled: $('u_'+pf+'_enabled').checked,
+      mode: $('u_'+pf+'_mode').value,
+      latest_version: v('latest_version'), min_version: v('min_version'),
+      title: v('title'), message: v('message'), button_text: v('button_text'), download_url: v('download_url'),
+    };
+    try{ await api('/super/app-update/'+pf,{method:'PUT',body:JSON.stringify(body)});
+      $('u_'+pf+'_msg').style.color='var(--accent)'; $('u_'+pf+'_msg').textContent='✅ Saved';
+    }catch(e){ $('u_'+pf+'_msg').style.color='var(--danger)'; $('u_'+pf+'_msg').textContent=e.message; }
+  }
 
   async function showDash(){
     $('loginView').style.display='none'; $('dashView').style.display='block';
