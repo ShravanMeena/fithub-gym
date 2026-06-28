@@ -178,7 +178,7 @@ router.get('/members/:id', async (req, res, next) => {
     const att = await one(
       `SELECT COUNT(*) AS visits, MAX(checked_in_at) AS last_visit,
               COUNT(*) FILTER (WHERE checked_in_at >= now() - interval '30 days') AS visits_30d,
-              ROUND(AVG(EXTRACT(EPOCH FROM (checked_out_at - checked_in_at))/60)) FILTER (WHERE checked_out_at IS NOT NULL) AS avg_minutes
+              ROUND(AVG(EXTRACT(EPOCH FROM (checked_out_at - checked_in_at))/60) FILTER (WHERE checked_out_at IS NOT NULL)) AS avg_minutes
        FROM attendance WHERE user_id = $1`, [u.id]);
     const recent = await q(
       `SELECT checked_in_at, checked_out_at FROM attendance WHERE user_id = $1 ORDER BY checked_in_at DESC LIMIT 8`, [u.id]);
