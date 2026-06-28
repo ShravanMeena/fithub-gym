@@ -5,6 +5,7 @@ import { Asset } from 'react-native-image-picker';
 import Video from 'react-native-video';
 import VideoTrim, { showEditor } from 'react-native-video-trim';
 import { Card, Txt, Button, Field } from '../components/UI';
+import { PostInteractions } from '../components/PostInteractions';
 import { FeedAPI, authedImageSource, authedVideoSource, apiError } from '../api/client';
 import { useOrg } from '../context/OrgContext';
 import { scanOrUpload, pickVideo, uriToBase64 } from '../utils/imagePicker';
@@ -98,11 +99,6 @@ export default function FeedScreen() {
     } catch (e) {
       Alert.alert('Could not post', apiError(e));
     } finally { setPosting(false); }
-  };
-
-  const toggleLike = async (p: any) => {
-    setPosts((prev) => prev.map((x) => x.id === p.id ? { ...x, liked: !x.liked, likes: x.likes + (x.liked ? -1 : 1) } : x));
-    try { p.liked ? await FeedAPI.unlike(p.id) : await FeedAPI.like(p.id); } catch { load(tab); }
   };
 
   const remove = (p: any) => {
@@ -209,10 +205,7 @@ export default function FeedScreen() {
               </View>
             ) : null}
 
-            <TouchableOpacity onPress={() => toggleLike(p)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-              <Txt size={font.body}>{p.liked ? '❤️' : '🤍'}</Txt>
-              <Txt dim size={font.small} style={{ marginLeft: 6 }}>{p.likes} {p.likes === 1 ? 'like' : 'likes'}</Txt>
-            </TouchableOpacity>
+            <PostInteractions post={p} />
           </Card>
         ))
       )}

@@ -199,6 +199,35 @@ ALTER TABLE reminders ADD COLUMN IF NOT EXISTS last_pushed_at TIMESTAMPTZ;
 
 -- Device timezone (minutes ahead of UTC) for evening streak-saver pushes.
 ALTER TABLE device_tokens ADD COLUMN IF NOT EXISTS tz_offset INTEGER NOT NULL DEFAULT 0;
+
+-- Daily water intake (one row per user per day).
+CREATE TABLE IF NOT EXISTS water_intake (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day DATE NOT NULL DEFAULT current_date,
+  glasses INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, day)
+);
+
+-- Planned rest days that protect a check-in streak.
+CREATE TABLE IF NOT EXISTS rest_days (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day DATE NOT NULL,
+  PRIMARY KEY (user_id, day)
+);
+
+-- Comments on community posts.
+CREATE TABLE IF NOT EXISTS post_comments (
+  id SERIAL PRIMARY KEY,
+  post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Emoji reaction type on a like (one per user per post).
+ALTER TABLE post_likes ADD COLUMN IF NOT EXISTS reaction TEXT NOT NULL DEFAULT 'like';
+-- Track the highest streak milestone we've auto-celebrated, to avoid repeats.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_milestone INTEGER NOT NULL DEFAULT 0;
 `;
 
 const SEED_ORGS = [

@@ -5,12 +5,8 @@ export const WHATSAPP_NUMBER = '919660801827'; // country code + number, no +
 export type Plan = { label: string; days: number; price: number };
 
 export const PLANS: Plan[] = [
-  { label: '1 Day', days: 1, price: 49 },
-  { label: '7 Days', days: 7, price: 299 },
-  { label: '15 Days', days: 15, price: 399 },
-  { label: '1 Month', days: 30, price: 499 },
-  { label: '3 Months', days: 90, price: 649 },
-  { label: '6 Months', days: 180, price: 799 },
-  { label: '9 Months', days: 270, price: 899 },
-  { label: '12 Months', days: 365, price: 999 },
+  { label: 'Weekly', days: 7, price: 99 },
+  { label: 'Monthly', days: 30, price: 299 },
+  { label: 'Quarterly', days: 90, price: 699 },
+  { label: 'Yearly', days: 365, price: 999 },
 ];

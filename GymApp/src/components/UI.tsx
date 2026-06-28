@@ -98,11 +98,16 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg, padding: spacing(2) },
   card: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing(2),
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: spacing(1.5),
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   btn: {
     height: 50,

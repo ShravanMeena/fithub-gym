@@ -46,12 +46,17 @@ function likeInfo(row, userId) {
     media_url: row.media_path ? `/api/feed/${row.id}/media` : null,
     author: row.author_name, gym: row.gym_name || null, created_at: row.created_at,
     is_announcement: !!row.is_announcement, is_public: !!row.is_public,
-    likes: Number(row.likes) || 0, liked: !!row.liked, mine: row.user_id === userId };
+    likes: Number(row.likes) || 0, liked: !!row.liked, myReaction: row.my_reaction || null,
+    comments: Number(row.comments) || 0, mine: row.user_id === userId };
 }
 
 const SEL = `p.*, u.name AS author_name, o.name AS gym_name,
   (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
+  (SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id) AS comments,
+  (SELECT reaction FROM post_likes l WHERE l.post_id = p.id AND l.user_id = $1) AS my_reaction,
   EXISTS(SELECT 1 FROM post_likes l WHERE l.post_id = p.id AND l.user_id = $1) AS liked`;
+
+const REACTIONS = ['like', 'fire', 'muscle', 'clap'];
 
 const createSchema = z.object({
   type: z.enum(['text', 'image', 'video']).default('text'),
@@ -125,6 +130,58 @@ router.delete('/:id/like', async (req, res, next) => {
     await one('DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2 RETURNING post_id', [req.params.id, req.user.id]);
     const likes = (await one('SELECT COUNT(*) AS c FROM post_likes WHERE post_id = $1', [req.params.id]))?.c || 0;
     res.json({ likes, liked: false });
+  } catch (e) { next(e); }
+});
+
+// Emoji reaction (🔥💪👏❤️). Tapping the same one again removes it.
+router.post('/:id/react', async (req, res, next) => {
+  try {
+    const reaction = REACTIONS.includes(req.body?.reaction) ? req.body.reaction : 'like';
+    const existing = await one('SELECT reaction FROM post_likes WHERE post_id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    if (existing && existing.reaction === reaction) {
+      await one('DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2 RETURNING post_id', [req.params.id, req.user.id]);
+    } else {
+      await one(
+        `INSERT INTO post_likes (post_id, user_id, reaction) VALUES ($1,$2,$3)
+         ON CONFLICT (post_id, user_id) DO UPDATE SET reaction = $3 RETURNING post_id`,
+        [req.params.id, req.user.id, reaction]
+      );
+    }
+    const likes = (await one('SELECT COUNT(*) AS c FROM post_likes WHERE post_id = $1', [req.params.id]))?.c || 0;
+    const mine = await one('SELECT reaction FROM post_likes WHERE post_id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    res.json({ likes, myReaction: mine?.reaction || null });
+  } catch (e) { next(e); }
+});
+
+// Comments
+router.get('/:id/comments', async (req, res, next) => {
+  try {
+    const comments = await q(
+      `SELECT c.id, c.body, c.created_at, u.name AS author, (c.user_id = $2) AS mine
+       FROM post_comments c JOIN users u ON u.id = c.user_id
+       WHERE c.post_id = $1 ORDER BY c.id ASC`,
+      [req.params.id, req.user.id]
+    );
+    res.json({ comments });
+  } catch (e) { next(e); }
+});
+
+router.post('/:id/comments', async (req, res, next) => {
+  try {
+    const body = (req.body?.body || '').toString().trim();
+    if (!body) return res.status(400).json({ error: 'Write a comment.' });
+    const row = await one(
+      'INSERT INTO post_comments (post_id, user_id, body) VALUES ($1,$2,$3) RETURNING id, body, created_at',
+      [req.params.id, req.user.id, body.slice(0, 500)]
+    );
+    res.json({ comment: { ...row, author: 'You', mine: true } });
+  } catch (e) { next(e); }
+});
+
+router.delete('/comments/:cid', async (req, res, next) => {
+  try {
+    await one('DELETE FROM post_comments WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.cid, req.user.id]);
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 

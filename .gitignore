@@ -26,6 +26,9 @@ GymApp/android/app/google-services.json
 GymApp/ios/GymApp/GoogleService-Info.plist
 *.p8
 
+# Android release signing (NEVER commit the upload keystore)
+GymApp/android/app/my-upload-key.keystore
+
 # misc
 .DS_Store
 *.log

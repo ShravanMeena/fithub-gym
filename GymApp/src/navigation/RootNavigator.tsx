@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, View, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, View, TouchableOpacity, Text } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -11,7 +11,7 @@ import { navRef } from './ref';
 import { Sidebar } from '../components/Sidebar';
 import { Icon, IconName } from '../components/Icon';
 import { ProfileAPI } from '../api/client';
-import { colors } from '../theme';
+import { colors, shadow } from '../theme';
 
 import OrgSelectScreen from '../screens/OrgSelectScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -39,6 +39,18 @@ const Tab = createBottomTabNavigator();
 
 const tabIcon = (name: IconName) => ({ color }: { color: string }) => <Icon name={name} color={color} size={24} />;
 
+// Raised, accent center button for the priority action: Scan a meal.
+function ScanTabButton({ onPress }: any) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-start' }}>
+      <View style={[{ top: -18, width: 60, height: 60, borderRadius: 30, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: colors.bg }, shadow]}>
+        <Icon name="scan" color="#fff" size={26} />
+      </View>
+      <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '800', top: -14 }}>Scan</Text>
+    </TouchableOpacity>
+  );
+}
+
 // Hamburger that opens the sidebar.
 function MenuButton() {
   const { openSidebar } = useUI();
@@ -63,10 +75,14 @@ function MainTabs() {
         tabBarInactiveTintColor: colors.textDim,
       }}>
       <Tab.Screen name="Today" component={TodayScreen} options={{ tabBarIcon: tabIcon('home') }} />
-      <Tab.Screen name="Train" component={WorkoutScreen} options={{ tabBarIcon: tabIcon('workout') }} />
-      <Tab.Screen name="Eat" component={DietScreen} options={{ tabBarIcon: tabIcon('diet') }} />
+      <Tab.Screen name="Diet" component={DietScreen} options={{ tabBarIcon: tabIcon('diet') }} />
+      <Tab.Screen
+        name="Scan"
+        component={FoodScanScreen}
+        options={{ title: 'Scan Food', tabBarButton: (props) => <ScanTabButton {...props} /> }}
+      />
+      <Tab.Screen name="Community" component={FeedScreen} options={{ tabBarIcon: tabIcon('feed') }} />
       <Tab.Screen name="Progress" component={ProgressScreen} options={{ tabBarIcon: tabIcon('progress') }} />
-      <Tab.Screen name="Gym" component={FeedScreen} options={{ tabBarIcon: tabIcon('feed') }} />
     </Tab.Navigator>
   );
 }
@@ -122,7 +138,7 @@ export default function RootNavigator() {
           {user ? (
             <>
               <Stack.Screen name="Main" component={AppGate} options={{ headerShown: false }} />
-              <Stack.Screen name="Scan" component={FoodScanScreen} options={{ title: 'Log a Meal' }} />
+              <Stack.Screen name="Workout" component={WorkoutScreen} options={{ title: 'Log Workout' }} />
               <Stack.Screen name="Coach" component={CoachScreen} options={{ title: 'AI Coach' }} />
               <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Attendance' }} />
               <Stack.Screen name="Reminders" component={RemindersScreen} options={{ title: 'Reminders' }} />

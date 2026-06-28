@@ -15,6 +15,7 @@ const ITEMS: { label: string; icon: IconName; screen: string }[] = [
   { label: 'Leaderboard', icon: 'attendance', screen: 'Challenges' },
   { label: 'Attendance history', icon: 'attendance', screen: 'Attendance' },
   { label: 'Reminders', icon: 'reminders', screen: 'Reminders' },
+  { label: 'Log a workout', icon: 'workout', screen: 'Workout' },
   { label: 'Profile & Goals', icon: 'profile', screen: 'Profile' },
 ];
 

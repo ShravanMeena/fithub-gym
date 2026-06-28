@@ -111,7 +111,32 @@ async function main() {
     }
   }
 
-  console.log('\n✅ Demo member + 4 leaderboard peers seeded.');
+  // A lively community: posts + reactions + comments.
+  const allEmails = [EMAIL, ...peers.map((p) => p.email)];
+  await exec(`DELETE FROM posts WHERE user_id IN (SELECT id FROM users WHERE email = ANY($1))`, [allEmails]);
+  const uid_of = async (email) => (await one('SELECT id, org_id FROM users WHERE email = $1', [email]));
+  const mkPost = async (email, content) => {
+    const u = await uid_of(email);
+    return (await one(`INSERT INTO posts (user_id, org_id, type, content, is_public) VALUES ($1,$2,'text',$3,1) RETURNING id`, [u.id, u.org_id, content])).id;
+  };
+  const react = async (postId, email, reaction) => {
+    const u = await uid_of(email);
+    await exec(`INSERT INTO post_likes (post_id, user_id, reaction) VALUES ($1,$2,$3) ON CONFLICT (post_id, user_id) DO UPDATE SET reaction=$3`, [postId, u.id, reaction]);
+  };
+  const comment = async (postId, email, body) => {
+    const u = await uid_of(email);
+    await exec('INSERT INTO post_comments (post_id, user_id, body) VALUES ($1,$2,$3)', [postId, u.id, body]);
+  };
+  const p1 = await mkPost('priya.demo@fithub.app', 'Crushed it today 🔥 12-day streak going strong! Who is in tomorrow?');
+  const p2 = await mkPost(EMAIL, 'Down 4kg this month 💪 the daily check-in streak really keeps me going.');
+  const p3 = await mkPost('arjun.demo@fithub.app', 'Post-workout shake: banana + peanut butter + whey 🍌 try it!');
+  await react(p1, EMAIL, 'fire'); await react(p1, 'arjun.demo@fithub.app', 'muscle'); await react(p1, 'rahul.demo@fithub.app', 'clap');
+  await react(p2, 'priya.demo@fithub.app', 'clap'); await react(p2, 'sneha.demo@fithub.app', 'fire');
+  await react(p3, EMAIL, 'fire');
+  await comment(p1, EMAIL, 'Beast mode 👏'); await comment(p1, 'sneha.demo@fithub.app', "Let's go!");
+  await comment(p2, 'arjun.demo@fithub.app', 'Great progress 🔥');
+
+  console.log('\n✅ Demo member + 4 leaderboard peers + community posts seeded.');
   console.log('   Gym:      ' + org.name + '  (pick this on the org screen)');
   console.log('   Email:    ' + EMAIL);
   console.log('   Password: ' + PASSWORD);

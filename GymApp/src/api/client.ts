@@ -62,9 +62,15 @@ export const DeviceAPI = {
 export const AttendanceAPI = {
   status: () => api.get('/attendance').then((r) => r.data),
   stats: () => api.get('/attendance/stats').then((r) => r.data),
+  rest: () => api.post('/attendance/rest').then((r) => r.data),
   checkin: () => api.post('/attendance/checkin').then((r) => r.data),
   checkout: (reason?: string) => api.post('/attendance/checkout', { reason }).then((r) => r.data),
   setReason: (id: number, reason: string) => api.put(`/attendance/${id}/reason`, { reason }).then((r) => r.data),
+};
+
+export const WaterAPI = {
+  today: () => api.get('/water').then((r) => r.data),
+  add: (delta: 1 | -1 = 1) => api.post('/water/add', { delta }).then((r) => r.data),
 };
 
 export const ChallengeAPI = {
@@ -86,6 +92,9 @@ export const FeedAPI = {
   create: (body: Record<string, any>) => api.post('/feed', body).then((r) => r.data),
   like: (id: number) => api.post(`/feed/${id}/like`).then((r) => r.data),
   unlike: (id: number) => api.delete(`/feed/${id}/like`).then((r) => r.data),
+  react: (id: number, reaction: string) => api.post(`/feed/${id}/react`, { reaction }).then((r) => r.data),
+  comments: (id: number) => api.get(`/feed/${id}/comments`).then((r) => r.data),
+  addComment: (id: number, body: string) => api.post(`/feed/${id}/comments`, { body }).then((r) => r.data),
   remove: (id: number) => api.delete(`/feed/${id}`).then((r) => r.data),
 };
 
@@ -107,6 +116,7 @@ export const FoodAPI = {
     api.post('/food/estimate-text', { text }).then((r) => r.data),
   log: (entry: Record<string, any>) => api.post('/food/log', entry).then((r) => r.data),
   today: () => api.get('/food/today').then((r) => r.data),
+  recent: () => api.get('/food/recent').then((r) => r.data),
   remove: (id: number) => api.delete(`/food/log/${id}`).then((r) => r.data),
 };
 

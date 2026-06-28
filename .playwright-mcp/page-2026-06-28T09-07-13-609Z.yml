@@ -1,0 +1,16 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - img [ref=e3]
+    - generic [ref=e9]: FitHub
+  - generic [ref=e10]: Show up. Eat right. Stay strong.
+  - generic [ref=e11]: Your gym membership, leveled up — streaks, diet & community in one app
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - img [ref=e15]
+      - generic [ref=e16]: 🔥 Build your streak
+    - generic [ref=e17]:
+      - img [ref=e19]
+      - generic [ref=e20]: 🥗 Log meals in seconds
+    - generic [ref=e21]:
+      - img [ref=e23]
+      - generic [ref=e24]: 🏆 Climb the leaderboard

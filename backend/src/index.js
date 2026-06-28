@@ -21,6 +21,7 @@ import superRoutes from './routes/super.js';
 import noticeRoutes from './routes/notices.js';
 import deviceRoutes from './routes/devices.js';
 import challengeRoutes from './routes/challenges.js';
+import waterRoutes from './routes/water.js';
 import { initDb } from './db/index.js';
 import { aiMode } from './services/bedrock.js';
 import { storageMode } from './services/storage.js';
@@ -50,6 +51,7 @@ app.use('/api/super', superRoutes);
 app.use('/api/notices', noticeRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/challenges', challengeRoutes);
+app.use('/api/water', waterRoutes);
 
 // Unknown /api routes -> JSON 404.
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));

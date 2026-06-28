@@ -24,7 +24,16 @@ export function setBrandColor(hex?: string | null) {
 
 export const spacing = (n: number) => n * 8;
 
-export const radius = { sm: 8, md: 14, lg: 20, pill: 999 };
+export const radius = { sm: 8, md: 14, lg: 20, xl: 26, pill: 999 };
+
+// Soft elevation for a premium, layered feel.
+export const shadow = {
+  shadowColor: '#000',
+  shadowOpacity: 0.35,
+  shadowRadius: 16,
+  shadowOffset: { width: 0, height: 8 },
+  elevation: 8,
+};
 
 export const font = {
   h1: 30,

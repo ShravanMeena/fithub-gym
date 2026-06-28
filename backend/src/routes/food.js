@@ -75,6 +75,19 @@ router.get('/today', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Distinct recently-logged foods, for one-tap re-logging (free, no AI).
+router.get('/recent', async (req, res, next) => {
+  try {
+    const rows = await q(
+      `SELECT DISTINCT ON (lower(name)) name, calories, protein_g, carbs_g, fat_g
+       FROM food_logs WHERE user_id = $1 AND eaten_at >= now() - interval '45 days'
+       ORDER BY lower(name), eaten_at DESC`,
+      [req.user.id]
+    );
+    res.json({ recent: rows.slice(0, 15) });
+  } catch (e) { next(e); }
+});
+
 router.delete('/log/:id', async (req, res, next) => {
   try {
     await one('DELETE FROM food_logs WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.id, req.user.id]);

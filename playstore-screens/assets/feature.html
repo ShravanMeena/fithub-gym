@@ -1,0 +1,54 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1024px; height:500px; overflow:hidden; }
+  body {
+    font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+    background:
+      radial-gradient(900px 500px at 78% 50%, rgba(255,90,31,0.28), transparent 60%),
+      radial-gradient(600px 400px at 10% 110%, rgba(255,90,31,0.12), transparent 60%),
+      linear-gradient(135deg,#0E0F13 0%,#16181f 100%);
+    color:#fff; display:flex; align-items:center; position:relative;
+  }
+  .wrap { display:flex; align-items:center; width:100%; padding:0 64px; gap:40px; }
+  .left { flex:1.15; }
+  .brandrow { display:flex; align-items:center; gap:16px; margin-bottom:18px; }
+  .logo { width:64px; height:64px; }
+  .brand { font-size:64px; font-weight:900; letter-spacing:-1px; }
+  .brand .hub { color:#FF5A1F; }
+  .tag { font-size:27px; font-weight:800; line-height:1.25; margin-bottom:10px; }
+  .sub { font-size:18px; color:#9AA0AC; font-weight:600; }
+  .right { flex:1; display:flex; flex-direction:column; gap:14px; }
+  .chip {
+    display:flex; align-items:center; gap:14px; background:rgba(26,28,34,0.85);
+    border:1px solid #2C2F38; border-radius:18px; padding:16px 20px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.35);
+  }
+  .chip .em { font-size:30px; }
+  .chip .t { font-size:19px; font-weight:800; }
+  .chip .s { font-size:14px; color:#9AA0AC; font-weight:600; }
+  .pill { display:inline-block; margin-top:22px; background:#FF5A1F; color:#fff;
+    font-weight:900; font-size:17px; padding:12px 22px; border-radius:999px; }
+</style></head><body>
+  <div class="wrap">
+    <div class="left">
+      <div class="brandrow">
+        <svg class="logo" viewBox="0 0 100 100">
+          <rect x="26" y="45" width="48" height="10" rx="5" fill="#FF5A1F"/>
+          <rect x="17" y="34" width="10" height="32" rx="4" fill="#FF5A1F"/>
+          <rect x="8" y="40" width="8" height="20" rx="4" fill="#FF7A3F"/>
+          <rect x="73" y="34" width="10" height="32" rx="4" fill="#FF5A1F"/>
+          <rect x="84" y="40" width="8" height="20" rx="4" fill="#FF7A3F"/>
+        </svg>
+        <div class="brand">Fit<span class="hub">Hub</span></div>
+      </div>
+      <div class="tag">Your gym membership,<br>leveled up.</div>
+      <div class="sub">Show up · eat right · stay connected</div>
+      <div class="pill">Build your streak 🔥</div>
+    </div>
+    <div class="right">
+      <div class="chip"><div class="em">🔥</div><div><div class="t">Check-in streaks</div><div class="s">Show up & never lose momentum</div></div></div>
+      <div class="chip"><div class="em">🥗</div><div><div class="t">Diet made simple</div><div class="s">Track meals & hit your targets</div></div></div>
+      <div class="chip"><div class="em">💬</div><div><div class="t">Gym community</div><div class="s">Wins, updates & a leaderboard</div></div></div>
+    </div>
+  </div>
+</body></html>
