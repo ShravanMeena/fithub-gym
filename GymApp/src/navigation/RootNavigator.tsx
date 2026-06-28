@@ -147,7 +147,7 @@ export default function RootNavigator() {
               <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile & Goals' }} />
               <Stack.Screen name="Challenges" component={ChallengesScreen} options={{ title: 'Leaderboard' }} />
               <Stack.Screen name="Referral" component={ReferralScreen} options={{ title: 'Share & Earn' }} />
-              <Stack.Screen name="GymSchedule" component={GymScheduleScreen} options={{ title: 'Gym Schedule' }} />
+              <Stack.Screen name="GymSchedule" component={GymScheduleScreen} options={{ title: 'Gym Timing' }} />
             </>
           ) : !org ? (
             <Stack.Screen name="OrgSelect" component={OrgSelectScreen} options={{ headerShown: false }} />

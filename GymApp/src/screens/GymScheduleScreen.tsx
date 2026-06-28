@@ -1,5 +1,6 @@
-// Set your gym days + time and add them to your phone's calendar, so you get a
-// reminder before every session — no notifications/login needed, the OS handles it.
+// Gym timing: the member sets when they go to the gym (e.g. 6:00 am) and on which
+// days, and we set a repeating ALARM in their Clock app for it — plus optionally
+// add it to their calendar. The OS rings it even if the app is closed.
 import React, { useState } from 'react';
 import { View, TouchableOpacity, Alert, Linking } from 'react-native';
 import { Card, Txt, Field, Button } from '../components/UI';
@@ -9,14 +10,20 @@ import { colors, font, radius, spacing } from '../theme';
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // index 0=Sun
 const LEADS = [
   { label: 'At gym time', min: 0 },
+  { label: '15 min before', min: 15 },
   { label: '30 min before', min: 30 },
-  { label: '1 hour before', min: 60 },
 ];
 
+// hour:minute minus `lead` minutes, wrapped within the day.
+function minusLead(hour: number, minute: number, lead: number) {
+  let total = ((hour * 60 + minute - lead) % 1440 + 1440) % 1440;
+  return { hour: Math.floor(total / 60), minute: total % 60 };
+}
+
 export default function GymScheduleScreen() {
-  const [days, setDays] = useState<number[]>([1, 3, 5]); // Mon/Wed/Fri
-  const [time, setTime] = useState('18:00');
-  const [lead, setLead] = useState(30);
+  const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5, 6]); // Mon–Sat
+  const [time, setTime] = useState('06:00');
+  const [lead, setLead] = useState(0);
   const [saving, setSaving] = useState(false);
 
   const toggleDay = (d: number) =>
@@ -26,41 +33,22 @@ export default function GymScheduleScreen() {
   const parseInput = (): { hour: number; minute: number } | null => {
     if (days.length === 0) { Alert.alert('Pick your days', 'Select at least one gym day.'); return null; }
     const m = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
-    if (!m) { Alert.alert('Check the time', 'Enter time as HH:MM, e.g. 18:00'); return null; }
+    if (!m) { Alert.alert('Check the time', 'Enter your gym time as HH:MM, e.g. 06:00'); return null; }
     const hour = Number(m[1]), minute = Number(m[2]);
     if (hour > 23 || minute > 59) { Alert.alert('Check the time', 'Enter a valid 24-hour time.'); return null; }
     return { hour, minute };
   };
 
-  const onAdd = async () => {
-    const t = parseInput();
-    if (!t) return;
-    setSaving(true);
-    try {
-      const ok = await ensureCalendarPermission();
-      if (!ok) {
-        Alert.alert('Calendar access needed', 'Allow calendar access so we can add your gym reminders.', [
-          { text: 'Open Settings', onPress: () => Linking.openSettings() },
-          { text: 'Cancel', style: 'cancel' },
-        ]);
-        return;
-      }
-      const n = await addGymSchedule(days, t.hour, t.minute, lead);
-      Alert.alert('Added to your calendar 📅', `${n} weekly gym reminder${n === 1 ? '' : 's'} set${lead ? ` (${lead} min before)` : ''}. Your phone will remind you before every session 💪`);
-    } catch (e: any) {
-      Alert.alert('Could not add', e?.message || 'Something went wrong adding to your calendar.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  // Set a repeating Clock alarm (ringing) for the gym time, minus the lead.
   const onSetAlarm = async () => {
     const t = parseInput();
     if (!t) return;
+    const a = minusLead(t.hour, t.minute, lead);
     setSaving(true);
     try {
-      await setGymAlarm(days, t.hour, t.minute);
-      Alert.alert('Alarm set ⏰', "A repeating alarm is set in your Clock app for your gym days. It'll ring even if the app is closed.");
+      await setGymAlarm(days, a.hour, a.minute);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      Alert.alert('Alarm set ⏰', `A repeating alarm is set for ${pad(a.hour)}:${pad(a.minute)} on your gym days. It'll ring even if the app is closed.`);
     } catch (e: any) {
       Alert.alert('Could not set alarm', e?.message || 'Your Clock app may not support auto-setting alarms — try opening it manually.');
     } finally {
@@ -68,15 +56,38 @@ export default function GymScheduleScreen() {
     }
   };
 
+  // Add the gym time to the phone calendar with a reminder.
+  const onAddCalendar = async () => {
+    const t = parseInput();
+    if (!t) return;
+    setSaving(true);
+    try {
+      const ok = await ensureCalendarPermission();
+      if (!ok) {
+        Alert.alert('Calendar access needed', 'Allow calendar access so we can add your gym timing.', [
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          { text: 'Cancel', style: 'cancel' },
+        ]);
+        return;
+      }
+      const n = await addGymSchedule(days, t.hour, t.minute, lead);
+      Alert.alert('Added to your calendar 📅', `${n} weekly gym reminder${n === 1 ? '' : 's'} added${lead ? ` (${lead} min before)` : ''}.`);
+    } catch (e: any) {
+      Alert.alert('Could not add', e?.message || 'Something went wrong adding to your calendar.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, padding: spacing(2) }}>
-      <Txt size={font.h2} weight="800">Gym Schedule 📅</Txt>
+      <Txt size={font.h2} weight="800">Gym Timing ⏰</Txt>
       <Txt dim style={{ marginBottom: spacing(2) }}>
-        Add your gym timings to your phone calendar and get a reminder before every session.
+        Set the time you go to the gym and we'll set a repeating alarm — so you never miss your slot.
       </Txt>
 
       <Card>
-        <Txt weight="800" style={{ marginBottom: spacing(1) }}>Which days do you train?</Txt>
+        <Txt weight="800" style={{ marginBottom: spacing(1) }}>Which days do you go?</Txt>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           {DAYS.map((label, i) => {
             const on = days.includes(i);
@@ -90,9 +101,9 @@ export default function GymScheduleScreen() {
         </View>
 
         <View style={{ height: spacing(2) }} />
-        <Field label="Gym time (24h, e.g. 18:00)" value={time} onChangeText={setTime} placeholder="18:00" keyboardType="numbers-and-punctuation" />
+        <Field label="Your gym time (24h, e.g. 06:00)" value={time} onChangeText={setTime} placeholder="06:00" keyboardType="numbers-and-punctuation" />
 
-        <Txt dim size={font.small} weight="700" style={{ marginBottom: 8 }}>Remind me</Txt>
+        <Txt dim size={font.small} weight="700" style={{ marginBottom: 8 }}>Ring the alarm</Txt>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(1) }}>
           {LEADS.map((l) => (
             <TouchableOpacity key={l.min} onPress={() => setLead(l.min)}
@@ -102,15 +113,21 @@ export default function GymScheduleScreen() {
           ))}
         </View>
 
-        <Button title="📅 Add to my calendar" loading={saving} onPress={onAdd} style={{ marginTop: spacing(1) }} />
-        {canSetAlarm && (
-          <Button title="⏰ Also set a phone alarm" variant="ghost" loading={saving} onPress={onSetAlarm} style={{ marginTop: spacing(1) }} />
+        {canSetAlarm ? (
+          <>
+            <Button title="⏰ Set my gym alarm" loading={saving} onPress={onSetAlarm} style={{ marginTop: spacing(1) }} />
+            <Button title="📅 Also add to calendar" variant="ghost" loading={saving} onPress={onAddCalendar} style={{ marginTop: spacing(1) }} />
+          </>
+        ) : (
+          <Button title="📅 Add to my calendar" loading={saving} onPress={onAddCalendar} style={{ marginTop: spacing(1) }} />
         )}
       </Card>
 
       <Card style={{ backgroundColor: colors.cardAlt }}>
         <Txt dim size={font.small} style={{ lineHeight: 20 }}>
-          We'll create a repeating weekly event on your chosen days. Your phone's calendar reminds you — it works even if the app is closed, and you can edit or remove the events anytime in your Calendar app.
+          {canSetAlarm
+            ? "The alarm repeats weekly on your chosen days and rings even if the app is closed. You can edit or delete it anytime in your Clock app."
+            : 'We add a repeating weekly event with an alert on your chosen days. You can edit or remove it anytime in your Calendar app.'}
         </Txt>
       </Card>
     </View>
