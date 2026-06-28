@@ -8,6 +8,8 @@ import { scheduleCheckoutReminder, cancelCheckoutReminder } from '../notificatio
 import { colors, font, radius, spacing } from '../theme';
 
 const SESSION_KEY = 'gym.sessionMin';
+const SNOOZE_KEY = 'gym.checkinSnoozeUntil';
+const SNOOZE_MS = 6 * 60 * 60 * 1000; // hide the prompt 6h after "Maybe later"
 const DURATIONS = [
   { label: '45 min', min: 45 },
   { label: '1 hour', min: 60 },
@@ -43,6 +45,7 @@ export function AttendanceManager({ attendance, reload, gymName }: { attendance:
   const [cm, setCm] = useState(0); // custom minutes
   const durationMode = useRef<'first' | 'update'>('first');
   const promptedRef = useRef(false);
+  const snoozeUntil = useRef(0);
 
   const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
   const closeDuration = () => { setShowDuration(false); setCustomMode(false); };
@@ -51,15 +54,23 @@ export function AttendanceManager({ attendance, reload, gymName }: { attendance:
 
   useEffect(() => {
     AsyncStorage.getItem(SESSION_KEY).then((v) => v && setSessionMin(Number(v)));
+    AsyncStorage.getItem(SNOOZE_KEY).then((v) => { if (v) snoozeUntil.current = Number(v); });
   }, []);
 
-  // Prompt to check in when the app opens / returns to foreground (if not already in).
+  // Prompt to check in when the app opens (unless snoozed via "Maybe later").
   useEffect(() => {
-    if (attendance && !checkedIn && !promptedRef.current) {
+    if (attendance && !checkedIn && !promptedRef.current && Date.now() > snoozeUntil.current) {
       promptedRef.current = true;
       setShowCheckIn(true);
     }
   }, [attendance, checkedIn]);
+
+  // "Maybe later" → don't nag again for 6 hours.
+  const snoozeCheckIn = () => {
+    snoozeUntil.current = Date.now() + SNOOZE_MS;
+    AsyncStorage.setItem(SNOOZE_KEY, String(snoozeUntil.current)).catch(() => {});
+    setShowCheckIn(false);
+  };
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
@@ -152,11 +163,11 @@ export function AttendanceManager({ attendance, reload, gymName }: { attendance:
       </Card>
 
       {/* Check-in prompt on app open */}
-      <Sheet visible={showCheckIn} onClose={() => setShowCheckIn(false)}>
+      <Sheet visible={showCheckIn} onClose={snoozeCheckIn}>
         <Txt size={font.h3} weight="800" style={{ textAlign: 'center' }}>Welcome to {gymName || 'the gym'} 💪</Txt>
         <Txt dim style={{ textAlign: 'center', marginTop: 8, marginBottom: spacing(2) }}>Check in to start your session and track your attendance.</Txt>
         <Button title="✅ Check in now" onPress={doCheckIn} />
-        <Button title="Maybe later" variant="ghost" onPress={() => setShowCheckIn(false)} style={{ marginTop: spacing(1) }} />
+        <Button title="Maybe later" variant="ghost" onPress={snoozeCheckIn} style={{ marginTop: spacing(1) }} />
       </Sheet>
 
       {/* Duration picker */}

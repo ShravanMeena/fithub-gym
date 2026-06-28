@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
 import { Card, Txt, Button, Field } from '../components/UI';
 import { FoodAPI, apiError } from '../api/client';
-import { scanOrUpload } from '../utils/imagePicker';
+import { captureImage } from '../utils/imagePicker';
 import { useBilling } from '../context/BillingContext';
 import { FOODS, Food } from '../data/foods';
 import { colors, font, radius, spacing } from '../theme';
@@ -14,7 +14,8 @@ const toast = (msg: string) =>
 
 export default function FoodScanScreen({ navigation }: any) {
   const { aiActive, showPaywall } = useBilling();
-  const [mode, setMode] = useState<'quick' | 'ai'>('quick');
+  // Default to the camera "Scan" (it's what the center button implies); Quick add is the free fallback.
+  const [mode, setMode] = useState<'quick' | 'ai'>('ai');
 
   // Quick-add (free)
   const [search, setSearch] = useState('');
@@ -45,9 +46,11 @@ export default function FoodScanScreen({ navigation }: any) {
     : FOODS;
 
   // ---- AI scan ----
-  const addPhoto = () => {
+  const pickAndAnalyze = (from: 'camera' | 'library') => {
     if (!aiActive) { showPaywall('AI food scanning'); return; }
-    scanOrUpload((a) => { setAsset(a); setEstimate(null); setSource('photo'); analyze(a); });
+    captureImage(from).then((a) => {
+      if (a?.base64) { setAsset(a); setEstimate(null); setSource('photo'); analyze(a); }
+    });
   };
   const analyze = async (a: Asset) => {
     setAnalyzing(true);
@@ -77,13 +80,13 @@ export default function FoodScanScreen({ navigation }: any) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }} keyboardShouldPersistTaps="handled">
       <Txt size={font.h2} weight="800">Log a Meal</Txt>
-      <Txt dim style={{ marginBottom: spacing(1.5) }}>Quick-add from the list, or scan a photo with AI.</Txt>
+      <Txt dim style={{ marginBottom: spacing(1.5) }}>Snap a photo for instant calories, or quick-add from the list.</Txt>
 
       {/* Mode switch */}
       <View style={{ flexDirection: 'row', backgroundColor: colors.cardAlt, borderRadius: radius.pill, padding: 4, marginBottom: spacing(2) }}>
-        {([['quick', '🔍 Quick add'], ['ai', '📷 Scan (AI)']] as const).map(([m, label]) => (
+        {([['ai', '📷 Scan photo'], ['quick', '🔍 Quick add · Free']] as const).map(([m, label]) => (
           <TouchableOpacity key={m} onPress={() => setMode(m)} style={{ flex: 1, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: mode === m ? colors.primary : 'transparent', alignItems: 'center' }}>
-            <Txt weight="800" size={font.small} style={{ color: mode === m ? '#fff' : colors.textDim }}>{label}{m === 'quick' ? '  ·  Free' : ''}</Txt>
+            <Txt weight="800" size={font.small} style={{ color: mode === m ? '#fff' : colors.textDim }}>{label}</Txt>
           </TouchableOpacity>
         ))}
       </View>
@@ -124,18 +127,23 @@ export default function FoodScanScreen({ navigation }: any) {
         </>
       ) : (
         <>
-          {!aiActive && (
-            <Card style={{ borderColor: colors.primary, backgroundColor: colors.primary + '12' }}>
-              <Txt weight="800">✨ AI Scan is a premium feature</Txt>
-              <Txt dim size={font.small} style={{ marginTop: 2 }}>Snap any meal and get instant calories & macros. Quick add stays free.</Txt>
-            </Card>
-          )}
-          <Button title="📷 Scan or Upload Meal" onPress={addPhoto} />
-          <Txt dim size={font.tiny} style={{ textAlign: 'center', marginTop: 6 }}>Take a photo or pick from your gallery</Txt>
+          <Card style={{ borderColor: colors.primary }}>
+            <Txt weight="800" size={font.h3}>📸 Point your camera at your food</Txt>
+            <Txt dim size={font.small} style={{ marginTop: 4, marginBottom: spacing(1.5) }}>
+              AI instantly reads the calories, protein, carbs & fat — no weighing or guessing.
+            </Txt>
+            <View style={{ flexDirection: 'row', gap: spacing(1.5) }}>
+              <Button title="📷 Take Photo" onPress={() => pickAndAnalyze('camera')} style={{ flex: 1 }} />
+              <Button title="🖼 Gallery" variant="ghost" onPress={() => pickAndAnalyze('library')} style={{ flex: 1 }} />
+            </View>
+            {!aiActive && (
+              <Txt size={font.tiny} style={{ marginTop: 10, color: colors.primary, fontWeight: '700' }}>✨ Premium feature — Quick add stays free.</Txt>
+            )}
+          </Card>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing(2) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing(1.5) }}>
             <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-            <Txt dim size={font.small} style={{ marginHorizontal: spacing(1.5) }}>OR type it</Txt>
+            <Txt dim size={font.small} style={{ marginHorizontal: spacing(1.5) }}>or just type it</Txt>
             <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
           </View>
 

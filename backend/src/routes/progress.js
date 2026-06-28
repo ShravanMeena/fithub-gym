@@ -12,6 +12,9 @@ router.use(authRequired);
 const entrySchema = z.object({
   weight_kg: z.number().min(25).max(300).optional(),
   body_fat: z.number().min(2).max(70).optional(),
+  waist_cm: z.number().min(30).max(250).optional(),
+  chest_cm: z.number().min(30).max(250).optional(),
+  arms_cm: z.number().min(10).max(100).optional(),
   note: z.string().max(300).optional(),
 });
 
@@ -21,8 +24,9 @@ router.post('/', async (req, res, next) => {
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
     const d = parsed.data;
     const row = await one(
-      'INSERT INTO progress_logs (user_id, weight_kg, body_fat, note) VALUES ($1,$2,$3,$4) RETURNING id',
-      [req.user.id, d.weight_kg ?? null, d.body_fat ?? null, d.note ?? null]
+      `INSERT INTO progress_logs (user_id, weight_kg, body_fat, waist_cm, chest_cm, arms_cm, note)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [req.user.id, d.weight_kg ?? null, d.body_fat ?? null, d.waist_cm ?? null, d.chest_cm ?? null, d.arms_cm ?? null, d.note ?? null]
     );
     res.json({ id: row.id });
   } catch (e) { next(e); }

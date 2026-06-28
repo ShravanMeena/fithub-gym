@@ -229,6 +229,11 @@ ALTER TABLE post_likes ADD COLUMN IF NOT EXISTS reaction TEXT NOT NULL DEFAULT '
 -- Track the highest streak milestone we've auto-celebrated, to avoid repeats.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_milestone INTEGER NOT NULL DEFAULT 0;
 
+-- Body measurements alongside weight (the scale lies, inches don't).
+ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS waist_cm REAL;
+ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS chest_cm REAL;
+ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS arms_cm REAL;
+
 -- App update gating (force/soft), one row per platform, managed by superadmin.
 CREATE TABLE IF NOT EXISTS app_update (
   platform TEXT PRIMARY KEY,                    -- 'ios' | 'android'
