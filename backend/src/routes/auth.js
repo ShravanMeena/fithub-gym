@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { q, one, exec } from '../db/index.js';
 import { signToken, authRequired } from '../middleware/auth.js';
+import { applyReferral, ensureReferralCode } from '../services/referral.js';
 
 const router = Router();
 
@@ -10,6 +11,8 @@ const signupSchema = z.object({
   name: z.string().min(1).max(80),
   email: z.string().email(),
   password: z.string().min(6).max(100),
+  phone: z.string().max(20).optional(),
+  referral_code: z.string().max(20).optional(),
   org_id: z.number().int().optional(),
   org_slug: z.string().optional(),
 });
@@ -52,7 +55,7 @@ router.post('/signup', async (req, res, next) => {
   try {
     const parsed = signupSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
-    const { name, email, password } = parsed.data;
+    const { name, email, password, phone, referral_code } = parsed.data;
     const orgId = await resolveOrgId(parsed.data);
     if (!orgId) return res.status(400).json({ error: 'Select your gym first' });
     if (await one('SELECT 1 FROM users WHERE email = $1', [email.toLowerCase()])) {
@@ -60,10 +63,12 @@ router.post('/signup', async (req, res, next) => {
     }
     const hash = bcrypt.hashSync(password, 10);
     const ins = await one(
-      `INSERT INTO users (email, name, password_hash, org_id) VALUES ($1,$2,$3,$4) RETURNING ${USER_COLS}`,
-      [email.toLowerCase(), name, hash, orgId]
+      `INSERT INTO users (email, name, password_hash, org_id, phone) VALUES ($1,$2,$3,$4,$5) RETURNING ${USER_COLS}`,
+      [email.toLowerCase(), name, hash, orgId, phone || null]
     );
     await exec('INSERT INTO profiles (user_id) VALUES ($1) ON CONFLICT DO NOTHING', [ins.id]);
+    await ensureReferralCode(ins.id);
+    if (referral_code) await applyReferral(ins.id, referral_code).catch(() => {});
     res.json({ token: signToken(ins), user: await publicUser(ins) });
   } catch (e) { next(e); }
 });

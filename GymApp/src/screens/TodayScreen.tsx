@@ -60,7 +60,8 @@ export default function TodayScreen({ navigation }: any) {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
             <Txt size={font.tiny} weight="800" style={{ color: colors.primary, letterSpacing: 1 }}>{(org?.name || user?.org?.name || 'YOUR GYM').toUpperCase()}</Txt>
-            <Txt size={font.h1} weight="900" style={{ marginTop: 4 }}>{greet()},{'\n'}{user?.name?.split(' ')[0]} 👋</Txt>
+            <Txt size={font.small} dim weight="700" style={{ marginTop: 6 }}>{greet()},</Txt>
+            <Txt size={font.h2} weight="900" numberOfLines={1}>{user?.name?.split(' ')[0]} 👋</Txt>
             <Txt dim size={font.small} style={{ marginTop: 6 }}>Show up · eat right · stay connected</Txt>
           </View>
           <View style={{ flexDirection: 'row' }}>
@@ -127,6 +128,17 @@ export default function TodayScreen({ navigation }: any) {
           <View style={{ flex: 1 }}>
             <Txt weight="800">💬 {org?.name || 'Gym'} Community</Txt>
             <Txt dim size={font.small} style={{ marginTop: 2 }}>See updates & share your wins →</Txt>
+          </View>
+          <Txt size={22}>›</Txt>
+        </View>
+      </Card>
+
+      {/* Share & Earn */}
+      <Card onPress={() => navigation.navigate('Referral')} style={{ borderColor: colors.primary }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <Txt weight="800">🎁 Invite friends, get Premium free</Txt>
+            <Txt dim size={font.small} style={{ marginTop: 2 }}>Share your code & earn coins →</Txt>
           </View>
           <Txt size={22}>›</Txt>
         </View>

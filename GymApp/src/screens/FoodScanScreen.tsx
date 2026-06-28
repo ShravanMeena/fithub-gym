@@ -78,7 +78,9 @@ export default function FoodScanScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">Log a Meal</Txt>
       <Txt dim style={{ marginBottom: spacing(1.5) }}>Snap a photo for instant calories, or quick-add from the list.</Txt>
 

@@ -16,7 +16,7 @@ type User = {
 type AuthState = {
   user: User | null;
   loading: boolean;
-  signup: (name: string, email: string, password: string, orgId?: number) => Promise<void>;
+  signup: (name: string, email: string, password: string, orgId?: number, phone?: string, referralCode?: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -51,8 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     registerForPush(data.user.org?.id).catch(() => {});
   };
 
-  const signup = useCallback(async (name: string, email: string, password: string, orgId?: number) => {
-    persist(await AuthAPI.signup(name, email, password, orgId));
+  const signup = useCallback(async (name: string, email: string, password: string, orgId?: number, phone?: string, referralCode?: string) => {
+    persist(await AuthAPI.signup(name, email, password, orgId, phone, referralCode));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

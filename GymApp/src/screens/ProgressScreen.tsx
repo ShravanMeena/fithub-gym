@@ -120,7 +120,9 @@ export default function ProgressScreen() {
   const latest = entries[entries.length - 1] || {};
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <ScrollView
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">My Progress</Txt>
       <Txt dim style={{ marginBottom: spacing(2) }}>Track your transformation — weight, measurements & photos.</Txt>
 

@@ -91,7 +91,9 @@ export default function RemindersScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <ScrollView
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">Meal & Workout Reminders</Txt>
       <Txt dim style={{ marginBottom: spacing(2) }}>Daily alarms so you never miss a meal or session. They fire even when the app is closed.</Txt>
 

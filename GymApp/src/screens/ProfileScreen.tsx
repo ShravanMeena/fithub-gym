@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, Alert } from 'react-native';
-import { Screen, Card, Txt, Field, Button, Pill } from '../components/UI';
+import { ScrollView, View, Alert, TouchableOpacity } from 'react-native';
+import { Card, Txt, Field, Button, Pill } from '../components/UI';
+import { Avatar } from '../components/Avatar';
 import { ProfileAPI, apiError } from '../api/client';
+import { scanOrUpload } from '../utils/imagePicker';
+import { useAuth } from '../context/AuthContext';
 import { colors, font, spacing } from '../theme';
 
 const GOALS = [
@@ -29,23 +32,36 @@ const cmToFtIn = (cm: number) => {
 const ftInToCm = (ft: number, inch: number) => Math.round((ft * 12 + inch) * 2.54);
 
 export default function ProfileScreen() {
+  const { user } = useAuth();
   const [p, setP] = useState<any>({});
   const [targets, setTargets] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
   const [ft, setFt] = useState('');
   const [inch, setInch] = useState('');
+  const [hasAvatar, setHasAvatar] = useState(false);
+  const [avatarV, setAvatarV] = useState(0); // bump to force avatar reload after upload
 
   useEffect(() => {
-    ProfileAPI.get().then(({ profile, targets }) => {
+    ProfileAPI.get().then(({ profile, targets, avatar }) => {
       setP(profile || {});
       setTargets(targets);
+      setHasAvatar(!!avatar);
       if (profile?.height_cm) {
         const c = cmToFtIn(profile.height_cm);
         setFt(String(c.ft)); setInch(String(c.inch));
       }
     }).catch(() => {});
   }, []);
+
+  const changePhoto = () => {
+    scanOrUpload(async (a) => {
+      try {
+        await ProfileAPI.uploadAvatar(a.base64!, a.type || 'image/jpeg');
+        setHasAvatar(true); setAvatarV((v) => v + 1);
+      } catch (e) { Alert.alert('Upload failed', apiError(e)); }
+    });
+  };
 
   const set = (k: string, v: any) => setP((prev: any) => ({ ...prev, [k]: v }));
 
@@ -62,6 +78,7 @@ export default function ProfileScreen() {
       const patch: any = {
         gender: p.gender, goal: p.goal, activity_level: p.activity_level, diet_pref: p.diet_pref,
         allergies: p.allergies || undefined,
+        phone: p.phone || undefined,
         age: p.age ? Number(p.age) : undefined,
         height_cm: p.height_cm ? Number(p.height_cm) : undefined,
         weight_kg: p.weight_kg ? Number(p.weight_kg) : undefined,
@@ -87,7 +104,21 @@ export default function ProfileScreen() {
   );
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <ScrollView
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+      {/* Profile photo */}
+      <View style={{ alignItems: 'center', marginBottom: spacing(2) }}>
+        <TouchableOpacity onPress={changePhoto}>
+          <Avatar key={avatarV} userId={user?.id} name={user?.name} hasAvatar={hasAvatar} size={92} />
+          <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: colors.primary, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.bg }}>
+            <Txt size={15}>📷</Txt>
+          </View>
+        </TouchableOpacity>
+        <Txt weight="800" size={font.h3} style={{ marginTop: spacing(1) }}>{user?.name}</Txt>
+        <TouchableOpacity onPress={changePhoto}><Txt size={font.small} weight="700" style={{ color: colors.primary }}>Change photo</Txt></TouchableOpacity>
+      </View>
+
       {targets && (
         <Card style={{ borderColor: colors.primary }}>
           <Txt dim size={font.small} weight="700" style={{ textTransform: 'uppercase', letterSpacing: 1 }}>Your daily targets</Txt>
@@ -99,6 +130,8 @@ export default function ProfileScreen() {
           </View>
         </Card>
       )}
+
+      <Field label="Phone number" keyboardType="phone-pad" value={p.phone || ''} onChangeText={(v) => set('phone', v)} placeholder="9876543210" />
 
       <Txt weight="700" style={{ marginBottom: 6 }}>Gender</Txt>
       <PillRow options={GENDER} value={p.gender} onSelect={(v: string) => set('gender', v)} />

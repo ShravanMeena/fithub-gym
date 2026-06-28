@@ -99,6 +99,8 @@ export default function WorkoutScreen() {
 
   return (
     <ScrollView
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ padding: spacing(2) }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>

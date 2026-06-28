@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { Txt, Field } from './UI';
+import { Avatar } from './Avatar';
 import { FeedAPI } from '../api/client';
 import { colors, font } from '../theme';
 
@@ -56,8 +57,11 @@ export function PostInteractions({ post }: { post: any }) {
       {open && (
         <View style={{ marginTop: 8 }}>
           {comments.map((c) => (
-            <View key={c.id} style={{ marginBottom: 6 }}>
-              <Txt size={font.small}><Txt weight="800" size={font.small}>{c.author} </Txt>{c.body}</Txt>
+            <View key={c.id} style={{ flexDirection: 'row', marginBottom: 8 }}>
+              <Avatar userId={c.author_id} name={c.author} hasAvatar={c.author_avatar} size={26} />
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <Txt size={font.small}><Txt weight="800" size={font.small}>{c.author} </Txt>{c.body}</Txt>
+              </View>
             </View>
           ))}
           {comments.length === 0 && <Txt dim size={font.tiny} style={{ marginBottom: 6 }}>Be the first to comment 👇</Txt>}

@@ -3,9 +3,36 @@ import { z } from 'zod';
 import { one, exec } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
 import { computeTargets } from '../services/nutrition.js';
+import { saveFile, streamFile, fileExists } from '../services/storage.js';
 
 const router = Router();
+
+// Serve a user's avatar (any logged-in member can view avatars).
+router.get('/avatar/:userId', authRequired, async (req, res, next) => {
+  try {
+    const u = await one('SELECT avatar_path FROM users WHERE id = $1', [req.params.userId]);
+    if (!u?.avatar_path || !(await fileExists(u.avatar_path))) return res.status(404).end();
+    res.set('Content-Type', u.avatar_path.endsWith('.png') ? 'image/png' : 'image/jpeg');
+    res.set('Cache-Control', 'private, max-age=60');
+    streamFile(u.avatar_path).on('error', () => res.end()).pipe(res);
+  } catch (e) { next(e); }
+});
+
 router.use(authRequired);
+
+// Upload / replace the current user's avatar.
+const avatarSchema = z.object({ imageBase64: z.string().min(10), mediaType: z.string().optional() });
+router.post('/avatar', async (req, res, next) => {
+  try {
+    const parsed = avatarSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Invalid image' });
+    const mt = parsed.data.mediaType || 'image/jpeg';
+    const key = `avatars/${req.user.id}.${mt === 'image/png' ? 'png' : 'jpg'}`;
+    await saveFile(key, Buffer.from(parsed.data.imageBase64, 'base64'), mt);
+    await exec('UPDATE users SET avatar_path = $1 WHERE id = $2', [key, req.user.id]);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
 
 const profileSchema = z.object({
   gender: z.enum(['male', 'female', 'other']).optional(),
@@ -21,12 +48,14 @@ const profileSchema = z.object({
   sleep_time: z.string().max(5).optional(),
   gym_time: z.string().max(20).optional(),
   meals_per_day: z.number().int().min(3).max(6).optional(),
+  phone: z.string().max(20).optional(),
 });
 
 router.get('/', async (req, res, next) => {
   try {
     const profile = (await one('SELECT * FROM profiles WHERE user_id = $1', [req.user.id])) || {};
-    res.json({ profile, targets: computeTargets(profile) });
+    const u = await one('SELECT avatar_path, phone FROM users WHERE id = $1', [req.user.id]);
+    res.json({ profile: { ...profile, phone: u?.phone || null }, targets: computeTargets(profile), avatar: !!u?.avatar_path });
   } catch (e) { next(e); }
 });
 
@@ -34,7 +63,8 @@ router.put('/', async (req, res, next) => {
   try {
     const parsed = profileSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
-    const fields = parsed.data;
+    const { phone, ...fields } = parsed.data; // phone lives on users, not profiles
+    if (phone !== undefined) await exec('UPDATE users SET phone = $1 WHERE id = $2', [phone || null, req.user.id]);
     const keys = Object.keys(fields);
     await exec('INSERT INTO profiles (user_id) VALUES ($1) ON CONFLICT DO NOTHING', [req.user.id]);
     if (keys.length) {
@@ -43,7 +73,8 @@ router.put('/', async (req, res, next) => {
       await exec(`UPDATE profiles SET ${set}, updated_at = now() WHERE user_id = $${keys.length + 1}`, [...vals, req.user.id]);
     }
     const profile = await one('SELECT * FROM profiles WHERE user_id = $1', [req.user.id]);
-    res.json({ profile, targets: computeTargets(profile) });
+    const u = await one('SELECT phone FROM users WHERE id = $1', [req.user.id]);
+    res.json({ profile: { ...profile, phone: u?.phone || null }, targets: computeTargets(profile) });
   } catch (e) { next(e); }
 });
 

@@ -60,7 +60,9 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2.5), paddingTop: spacing(6) }}>
+    <ScrollView
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2.5), paddingTop: spacing(6) }}>
       {/* progress dots */}
       <View style={{ flexDirection: 'row', marginBottom: spacing(2) }}>
         {steps.map((_, i) => (

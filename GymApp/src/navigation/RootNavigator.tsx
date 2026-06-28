@@ -28,6 +28,7 @@ import RemindersScreen from '../screens/RemindersScreen';
 import WorkoutScreen from '../screens/WorkoutScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
 import ChallengesScreen from '../screens/ChallengesScreen';
+import ReferralScreen from '../screens/ReferralScreen';
 
 const navTheme = {
   ...DefaultTheme,
@@ -144,6 +145,7 @@ export default function RootNavigator() {
               <Stack.Screen name="Reminders" component={RemindersScreen} options={{ title: 'Reminders' }} />
               <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile & Goals' }} />
               <Stack.Screen name="Challenges" component={ChallengesScreen} options={{ title: 'Leaderboard' }} />
+              <Stack.Screen name="Referral" component={ReferralScreen} options={{ title: 'Share & Earn' }} />
             </>
           ) : !org ? (
             <Stack.Screen name="OrgSelect" component={OrgSelectScreen} options={{ headerShown: false }} />

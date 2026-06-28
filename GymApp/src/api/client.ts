@@ -41,11 +41,15 @@ export function apiError(err: any): string {
 
 // ---- Typed endpoint helpers ------------------------------------------------
 export const AuthAPI = {
-  signup: (name: string, email: string, password: string, org_id?: number) =>
-    api.post('/auth/signup', { name, email, password, org_id }).then((r) => r.data),
+  signup: (name: string, email: string, password: string, org_id?: number, phone?: string, referral_code?: string) =>
+    api.post('/auth/signup', { name, email, password, org_id, phone, referral_code }).then((r) => r.data),
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }).then((r) => r.data),
   me: () => api.get('/auth/me').then((r) => r.data),
+};
+
+export const ReferralAPI = {
+  get: () => api.get('/referral').then((r) => r.data),
 };
 
 export const OrgAPI = {
@@ -107,7 +111,12 @@ export const FeedAPI = {
 export const ProfileAPI = {
   get: () => api.get('/profile').then((r) => r.data),
   update: (patch: Record<string, any>) => api.put('/profile', patch).then((r) => r.data),
+  uploadAvatar: (imageBase64: string, mediaType?: string) =>
+    api.post('/profile/avatar', { imageBase64, mediaType }).then((r) => r.data),
 };
+
+// <Image> source for any user's avatar (sends the JWT as a header).
+export const avatarSource = (userId: number) => authedImageSource(`/profile/avatar/${userId}`);
 
 export const DietAPI = {
   generate: () => api.post('/diet/generate').then((r) => r.data),

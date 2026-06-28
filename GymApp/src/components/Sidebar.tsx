@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, View, TouchableOpacity, TouchableWithoutFeedback, Image, ScrollView, Dimensions, Platform } from 'react-native';
+import { Animated, View, TouchableOpacity, TouchableWithoutFeedback, ScrollView, Dimensions, Platform } from 'react-native';
 import { Txt } from './UI';
+import { Avatar } from './Avatar';
 import { Icon, IconName } from './Icon';
 import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +12,7 @@ import { colors, font, spacing } from '../theme';
 const W = Math.min(300, Dimensions.get('window').width * 0.82);
 
 const ITEMS: { label: string; icon: IconName; screen: string }[] = [
+  { label: 'Share & Earn 🎁', icon: 'profile', screen: 'Referral' },
   { label: 'AI Coach ✨', icon: 'coach', screen: 'Coach' },
   { label: 'Leaderboard', icon: 'attendance', screen: 'Challenges' },
   { label: 'Attendance history', icon: 'attendance', screen: 'Attendance' },
@@ -45,12 +47,14 @@ export function Sidebar() {
       </TouchableWithoutFeedback>
 
       <Animated.View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: W, backgroundColor: colors.card, transform: [{ translateX: tx }], paddingTop: Platform.OS === 'ios' ? 58 : 28, borderRightWidth: 1, borderRightColor: colors.border }}>
-        {/* Brand header */}
-        <View style={{ paddingHorizontal: spacing(2), paddingBottom: spacing(2), borderBottomWidth: 1, borderBottomColor: colors.border }}>
-          <Image source={require('../assets/mark.png')} style={{ width: 40, height: 25, tintColor: brand, resizeMode: 'contain' }} />
-          <Txt size={font.h3} weight="800" style={{ marginTop: 8 }}>{org?.name || 'Gym'}</Txt>
-          <Txt dim size={font.small}>{user.name}{user.role === 'admin' ? ' · admin' : ''}</Txt>
-        </View>
+        {/* Profile header */}
+        <TouchableOpacity onPress={() => go('Profile')} style={{ paddingHorizontal: spacing(2), paddingBottom: spacing(2), borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center' }}>
+          <Avatar userId={(user as any).id} name={user.name} hasAvatar size={52} />
+          <View style={{ marginLeft: spacing(1.5), flex: 1 }}>
+            <Txt size={font.h3} weight="800" numberOfLines={1}>{user.name}</Txt>
+            <Txt dim size={font.small} numberOfLines={1}>{org?.name || 'Gym'}{user.role === 'admin' ? ' · admin' : ''}</Txt>
+          </View>
+        </TouchableOpacity>
 
         <ScrollView style={{ flex: 1 }}>
           {ITEMS.map((it) => (

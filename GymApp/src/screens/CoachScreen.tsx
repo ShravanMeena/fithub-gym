@@ -26,7 +26,9 @@ export default function CoachScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <ScrollView
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled" style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">AI Coach 🤖</Txt>
       <Txt dim style={{ marginBottom: spacing(2) }}>
         Personalized advice from your profile, progress and recent meals.

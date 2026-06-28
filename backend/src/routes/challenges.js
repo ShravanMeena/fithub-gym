@@ -20,10 +20,10 @@ router.get('/leaderboard', async (req, res, next) => {
         : "date_trunc('month', a.checked_in_at) = date_trunc('month', current_date)";
 
     const rows = await q(
-      `SELECT u.id, u.name, COUNT(DISTINCT a.checked_in_at::date) AS value
+      `SELECT u.id, u.name, (u.avatar_path IS NOT NULL) AS has_avatar, COUNT(DISTINCT a.checked_in_at::date) AS value
        FROM users u JOIN attendance a ON a.user_id = u.id
        WHERE u.org_id = $1 AND ${windowSql}
-       GROUP BY u.id, u.name
+       GROUP BY u.id, u.name, u.avatar_path
        HAVING COUNT(DISTINCT a.checked_in_at::date) > 0
        ORDER BY value DESC, u.name ASC
        LIMIT 50`,
@@ -32,7 +32,9 @@ router.get('/leaderboard', async (req, res, next) => {
 
     const leaderboard = rows.map((r, i) => ({
       rank: i + 1,
+      id: r.id,
       name: r.name,
+      hasAvatar: !!r.has_avatar,
       value: r.value,
       isMe: r.id === req.user.id,
     }));

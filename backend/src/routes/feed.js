@@ -44,13 +44,14 @@ router.use(authRequired);
 function likeInfo(row, userId) {
   return { id: row.id, type: row.type, content: row.content,
     media_url: row.media_path ? `/api/feed/${row.id}/media` : null,
-    author: row.author_name, gym: row.gym_name || null, created_at: row.created_at,
+    author: row.author_name, authorId: row.user_id, authorAvatar: !!row.author_avatar,
+    gym: row.gym_name || null, created_at: row.created_at,
     is_announcement: !!row.is_announcement, is_public: !!row.is_public,
     likes: Number(row.likes) || 0, liked: !!row.liked, myReaction: row.my_reaction || null,
     comments: Number(row.comments) || 0, mine: row.user_id === userId };
 }
 
-const SEL = `p.*, u.name AS author_name, o.name AS gym_name,
+const SEL = `p.*, u.name AS author_name, (u.avatar_path IS NOT NULL) AS author_avatar, o.name AS gym_name,
   (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
   (SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id) AS comments,
   (SELECT reaction FROM post_likes l WHERE l.post_id = p.id AND l.user_id = $1) AS my_reaction,
@@ -157,7 +158,8 @@ router.post('/:id/react', async (req, res, next) => {
 router.get('/:id/comments', async (req, res, next) => {
   try {
     const comments = await q(
-      `SELECT c.id, c.body, c.created_at, u.name AS author, (c.user_id = $2) AS mine
+      `SELECT c.id, c.body, c.created_at, u.name AS author, c.user_id AS author_id,
+              (u.avatar_path IS NOT NULL) AS author_avatar, (c.user_id = $2) AS mine
        FROM post_comments c JOIN users u ON u.id = c.user_id
        WHERE c.post_id = $1 ORDER BY c.id ASC`,
       [req.params.id, req.user.id]

@@ -10,8 +10,14 @@ import {
   TextInput,
   TextInputProps,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { colors, radius, spacing, font } from '../theme';
+
+// Android renders the same point size visibly larger, so trim it a touch. Also
+// ignore the OS font-scale setting so the layout stays consistent.
+const FS = Platform.OS === 'android' ? 0.92 : 1;
+const fs = (n: number) => Math.round(n * FS);
 
 export function Screen({ children, style }: ViewProps) {
   return <View style={[styles.screen, style]}>{children}</View>;
@@ -31,9 +37,10 @@ export function Card({ children, style, onPress }: ViewProps & { onPress?: () =>
 export function Txt({ style, dim, size, weight, ...p }: TextProps & { dim?: boolean; size?: number; weight?: any }) {
   return (
     <Text
+      allowFontScaling={false}
       {...p}
       style={[
-        { color: dim ? colors.textDim : colors.text, fontSize: size ?? font.body, fontWeight: weight },
+        { color: dim ? colors.textDim : colors.text, fontSize: fs(size ?? font.body), fontWeight: weight },
         style,
       ]}
     />
@@ -63,7 +70,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator color="#fff" />
       ) : (
-        <Text style={[styles.btnTxt, variant === 'ghost' && { color: colors.text }]}>{title}</Text>
+        <Text allowFontScaling={false} style={[styles.btnTxt, variant === 'ghost' && { color: colors.text }]}>{title}</Text>
       )}
     </TouchableOpacity>
   );
@@ -74,6 +81,7 @@ export function Field({ label, style, ...p }: TextInputProps & { label?: string 
     <View style={{ marginBottom: spacing(1.5) }}>
       {label ? <Txt dim size={font.small} style={{ marginBottom: 6 }}>{label}</Txt> : null}
       <TextInput
+        allowFontScaling={false}
         placeholderTextColor={colors.textDim}
         {...p}
         style={[styles.input, style]}
@@ -116,7 +124,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing(2),
   },
-  btnTxt: { color: '#fff', fontWeight: '700', fontSize: font.body },
+  btnTxt: { color: '#fff', fontWeight: '700', fontSize: fs(font.body) },
   input: {
     backgroundColor: colors.cardAlt,
     borderRadius: radius.sm,
@@ -125,7 +133,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingHorizontal: spacing(1.5),
     height: 48,
-    fontSize: font.body,
+    fontSize: fs(font.body),
   },
   pill: {
     paddingHorizontal: spacing(1.5),

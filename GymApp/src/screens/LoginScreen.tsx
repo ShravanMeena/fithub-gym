@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, KeyboardAvoidingView, Platform, Alert, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { Txt, Field, Button } from '../components/UI';
 import { BrandMark } from '../components/BrandMark';
 import { useAuth } from '../context/AuthContext';
@@ -34,8 +34,11 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: spacing(2.5), paddingTop: spacing(7), paddingBottom: spacing(4) }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={{ padding: spacing(2.5), paddingTop: spacing(7), paddingBottom: spacing(4) }}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
+          showsVerticalScrollIndicator={false}>
           <View style={{ alignItems: 'center', marginBottom: spacing(3) }}>
             <BrandMark name={org?.name || 'Your Gym'} tagline={org?.tagline} color={org?.primary_color} />
             <TouchableOpacity onPress={clearOrg} style={{ marginTop: spacing(1) }}>
@@ -72,7 +75,6 @@ export default function LoginScreen({ navigation }: any) {
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
     </View>
   );
 }

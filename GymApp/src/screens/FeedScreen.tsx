@@ -5,6 +5,7 @@ import { Asset } from 'react-native-image-picker';
 import Video from 'react-native-video';
 import VideoTrim, { showEditor } from 'react-native-video-trim';
 import { Card, Txt, Button, Field } from '../components/UI';
+import { Avatar } from '../components/Avatar';
 import { PostInteractions } from '../components/PostInteractions';
 import { FeedAPI, authedImageSource, authedVideoSource, apiError } from '../api/client';
 import { useOrg } from '../context/OrgContext';
@@ -118,6 +119,8 @@ export default function FeedScreen() {
 
   return (
     <ScrollView
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ padding: spacing(2) }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(tab); setRefreshing(false); }} tintColor={colors.primary} />}>
@@ -173,7 +176,7 @@ export default function FeedScreen() {
             ) : null}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: colors.primary + '33', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}><Txt weight="800" style={{ color: colors.primary }}>{(p.author || '?')[0]?.toUpperCase()}</Txt></View>
+                <View style={{ marginRight: 8 }}><Avatar userId={p.authorId} name={p.author} hasAvatar={p.authorAvatar} size={38} /></View>
                 <View>
                   <Txt weight="700">{p.author}{tab === 'public' && p.gym ? <Txt dim size={font.tiny}>  ·  {p.gym}</Txt> : null}</Txt>
                   <Txt dim size={font.tiny}>{p.created_at?.slice(0, 16).replace('T', ' ')}</Txt>

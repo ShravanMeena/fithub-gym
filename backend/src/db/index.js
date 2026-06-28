@@ -229,6 +229,15 @@ ALTER TABLE post_likes ADD COLUMN IF NOT EXISTS reaction TEXT NOT NULL DEFAULT '
 -- Track the highest streak milestone we've auto-celebrated, to avoid repeats.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_streak_milestone INTEGER NOT NULL DEFAULT 0;
 
+-- Profile photo (avatar) per user.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_path TEXT;
+
+-- Share & earn (referrals).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS coins INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by INTEGER REFERENCES users(id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code) WHERE referral_code IS NOT NULL;
+
 -- Body measurements alongside weight (the scale lies, inches don't).
 ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS waist_cm REAL;
 ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS chest_cm REAL;
@@ -250,9 +259,8 @@ CREATE TABLE IF NOT EXISTS app_update (
 `;
 
 const SEED_ORGS = [
-  { slug: 'x-gym', name: 'X Gym', tagline: 'Push your limits.', color: '#FF5A1F' },
-  { slug: 'iron-paradise', name: 'Iron Paradise', tagline: 'Where legends are forged.', color: '#22D3EE' },
-  { slug: 'fithub', name: 'FitHub Demo', tagline: 'Train. Eat. Track.', color: '#23D18B' },
+  { slug: 'a-gym', name: 'A Gym', tagline: 'Where it all begins.', color: '#FF5A1F' },
+  { slug: 'z-gym', name: 'Z Gym', tagline: 'The final form.', color: '#7C5CFF' },
 ];
 
 // Create schema + seed. Call once at startup before serving.
