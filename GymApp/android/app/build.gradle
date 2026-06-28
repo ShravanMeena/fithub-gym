@@ -74,6 +74,16 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+// Auto version code: read from android/version.properties so every release
+// build gets a unique, increasing versionCode (Play rejects duplicates).
+def versionPropsFile = file("$rootDir/version.properties")
+def autoVersionCode = 7
+if (versionPropsFile.exists()) {
+    def vp = new Properties()
+    versionPropsFile.withInputStream { vp.load(it) }
+    autoVersionCode = (vp['VERSION_CODE'] ?: '7').toString().trim().toInteger()
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -84,8 +94,8 @@ android {
         applicationId "com.fithub.gym"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "1.4"
+        versionCode autoVersionCode
+        versionName "1.5"
     }
     signingConfigs {
         debug {
@@ -124,5 +134,17 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+
+// After a release build, write the NEXT versionCode so the following build is unique.
+tasks.matching { it.name == 'bundleRelease' || it.name == 'assembleRelease' }.configureEach { t ->
+    t.doLast {
+        def vp = new Properties()
+        if (versionPropsFile.exists()) versionPropsFile.withInputStream { vp.load(it) }
+        def next = autoVersionCode + 1
+        vp['VERSION_CODE'] = next.toString()
+        versionPropsFile.withOutputStream { vp.store(it, "Auto-incremented after release build") }
+        println "✅ Built versionCode ${autoVersionCode}. Next release build will be ${next}."
     }
 }

@@ -93,6 +93,8 @@ export async function sendToTokens(tokens, { title, body, data = {} } = {}) {
 
   let sent = 0;
   const invalid = [];
+  const errors = {}; // error code -> count
+  let sampleError = null;
   // sendEachForMulticast handles up to 500 tokens per call.
   for (let i = 0; i < list.length; i += 500) {
     const batch = list.slice(i, i + 500);
@@ -100,7 +102,10 @@ export async function sendToTokens(tokens, { title, body, data = {} } = {}) {
       const res = await fcm.sendEachForMulticast({ ...message, tokens: batch });
       sent += res.successCount;
       res.responses.forEach((r, idx) => {
-        const code = r.error?.code || '';
+        if (!r.error) return;
+        const code = r.error.code || 'unknown';
+        errors[code] = (errors[code] || 0) + 1;
+        if (!sampleError) { sampleError = `${code}: ${r.error.message}`; console.log('[push] send failed —', code, '—', r.error.message); }
         if (
           code === 'messaging/registration-token-not-registered' ||
           code === 'messaging/invalid-registration-token' ||
@@ -110,6 +115,7 @@ export async function sendToTokens(tokens, { title, body, data = {} } = {}) {
         }
       });
     } catch (e) {
+      sampleError = e.message;
       console.log('[push] send error —', e.message);
     }
   }
@@ -119,7 +125,8 @@ export async function sendToTokens(tokens, { title, body, data = {} } = {}) {
       await exec(`DELETE FROM device_tokens WHERE token = ANY($1)`, [invalid]);
     } catch { /* ignore cleanup failures */ }
   }
-  return { sent, pruned: invalid.length };
+  if (sent === 0 && list.length) console.log('[push] 0 sent of', list.length, '— errors:', JSON.stringify(errors));
+  return { sent, pruned: invalid.length, errors, sampleError };
 }
 
 // Send to everyone in an organization (optionally excluding one user, e.g. the

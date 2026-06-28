@@ -118,7 +118,7 @@ router.post('/notify', async (req, res, next) => {
     const result = await sendToTokens(rows.map((r) => r.token), {
       title: `🔔 ${title}`, body: body || '', data: { type: 'alert', screen: 'Home' },
     });
-    res.json({ sent: result.sent || 0, targeted: rows.length });
+    res.json({ sent: result.sent || 0, targeted: rows.length, error: result.sampleError || null, errors: result.errors || {} });
   } catch (e) { next(e); }
 });
 

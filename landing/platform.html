@@ -173,7 +173,8 @@
     if(!title){ $('npMsg').style.color='var(--danger)'; $('npMsg').textContent='Add a title.'; return; }
     $('npBtn').disabled=true; $('npBtn').textContent='Sending…'; $('npMsg').textContent='';
     try{ const d=await api('/super/notify',{method:'POST',body:JSON.stringify({title,body,audience})});
-      $('npMsg').style.color='var(--accent)'; $('npMsg').textContent=`✅ Sent to ${d.sent} of ${d.targeted} device(s)`;
+      if(d.sent===0 && d.targeted>0){ $('npMsg').style.color='var(--danger)'; $('npMsg').textContent=`⚠️ 0 of ${d.targeted} sent — ${d.error||'check server logs'}`; }
+      else { $('npMsg').style.color='var(--accent)'; $('npMsg').textContent=`✅ Sent to ${d.sent} of ${d.targeted} device(s)`; }
     }catch(e){ $('npMsg').style.color='var(--danger)'; $('npMsg').textContent=e.message; }
     finally{ $('npBtn').disabled=false; $('npBtn').textContent='🔔 Send notification'; }
   }
