@@ -81,6 +81,8 @@ export const AppAPI = {
 export const WaterAPI = {
   today: () => api.get('/water').then((r) => r.data),
   add: (delta: 1 | -1 = 1) => api.post('/water/add', { delta }).then((r) => r.data),
+  setGoal: (goal: number) => api.put('/water/goal', { goal }).then((r) => r.data),
+  setReminders: (reminders: boolean) => api.put('/water/reminders', { reminders }).then((r) => r.data),
 };
 
 export const ChallengeAPI = {

@@ -45,12 +45,36 @@ async function streakSaver(utcMin) {
   }
 }
 
+// Hydration reminders at a few set hours (local) for users who opted in.
+const WATER_LOCAL_MINS = [10 * 60, 13 * 60, 16 * 60, 19 * 60]; // 10am, 1pm, 4pm, 7pm
+async function waterReminders(utcMin) {
+  const tzRows = await q('SELECT DISTINCT tz_offset FROM device_tokens');
+  for (const { tz_offset: tz } of tzRows) {
+    const localMin = (((utcMin + tz) % 1440) + 1440) % 1440;
+    if (!WATER_LOCAL_MINS.includes(localMin)) continue;
+    const rows = await q(
+      `SELECT DISTINCT dt.token FROM device_tokens dt JOIN users u ON u.id = dt.user_id
+       WHERE dt.tz_offset = $1 AND u.water_reminders = 1`,
+      [tz]
+    );
+    if (rows.length) {
+      await sendToTokens(rows.map((r) => r.token), {
+        title: '💧 Hydration check',
+        body: 'Time to drink a glass of water — tap to log it!',
+        data: { type: 'water', screen: 'Today' },
+      });
+      console.log(`[reminders] water reminder pushed to ${rows.length} device(s) (tz ${tz})`);
+    }
+  }
+}
+
 async function tick() {
   if (!pushEnabled()) return; // skip the DB scan entirely when push is off
   try {
     const now = new Date();
     const utcMin = now.getUTCHours() * 60 + now.getUTCMinutes();
     streakSaver(utcMin).catch((e) => console.log('[reminders] streak-saver error —', e.message));
+    waterReminders(utcMin).catch((e) => console.log('[reminders] water reminder error —', e.message));
 
     // Due = local minute-of-day equals the reminder's hour*60+minute, enabled,
     // and not already pushed in the last 90s.

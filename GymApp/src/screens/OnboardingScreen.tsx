@@ -138,6 +138,7 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
           <Card style={{ backgroundColor: colors.cardAlt, marginTop: spacing(1) }}>
             <Txt weight="700">You're all set 🎉</Txt>
             <Txt dim size={font.small} style={{ marginTop: 4 }}>We'll calculate your daily calories & macros and build your Today plan.</Txt>
+            <Txt size={font.small} weight="800" style={{ marginTop: 8, color: colors.accent }}>🎁 Your free Premium trial is active — enjoy AI scan, plans & coach!</Txt>
           </Card>
         </>
       )}

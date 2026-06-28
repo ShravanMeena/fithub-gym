@@ -44,6 +44,8 @@ async function main() {
     );
     const uid = row.id;
     await ensureReferralCode(uid);
+    // Give each seed user an active 7-day Premium trial (so AI works for testing).
+    await exec("UPDATE users SET ai_until = now() + interval '7 days' WHERE id = $1", [uid]);
 
     // Profile
     await exec(

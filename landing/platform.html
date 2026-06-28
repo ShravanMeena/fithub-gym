@@ -72,6 +72,7 @@
       <div class="tab" data-tab="gyms" onclick="switchTab('gyms')">Gyms</div>
       <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Push</div>
       <div class="tab" data-tab="appupdate" onclick="switchTab('appupdate')">📲 App Update</div>
+      <div class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</div>
     </div>
 
     <div id="tab_users" class="card">
@@ -85,6 +86,15 @@
     <div id="tab_gyms" class="card" style="display:none">
       <h3>All gyms</h3>
       <div style="overflow-x:auto"><table id="gymsTable"></table></div>
+    </div>
+
+    <div id="tab_settings" class="card" style="display:none">
+      <h3>Free trial</h3>
+      <p class="muted" style="font-size:14px;margin-bottom:12px">New members automatically get this many days of free Premium (AI) when they sign up. After it ends, they're asked to pay.</p>
+      <div class="field" style="max-width:240px"><label>Free trial length (days)</label><input id="set_trial" type="number" min="0" max="3650" placeholder="7"></div>
+      <button class="btn" onclick="saveSettings()">Save</button>
+      <span class="msg" id="setMsg" style="color:var(--accent);margin-left:10px"></span>
+      <p class="muted" style="font-size:13px;margin-top:14px">To extend a specific user's trial, go to <b>Users &amp; AI access</b> and grant them more days.</p>
     </div>
 
     <div id="tab_push" style="display:none">
@@ -135,7 +145,18 @@
     finally{ $('loginBtn').disabled=false; $('loginBtn').textContent='Log in'; }
   }
   function logout(){ localStorage.removeItem(TOKEN_KEY); token=null; location.reload(); }
-  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms','push','appupdate'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); }
+  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms','push','appupdate','settings'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); if(t==='settings') loadSettings(); }
+
+  // ---- Platform settings (free trial) ----
+  async function loadSettings(){
+    try{ const s=await api('/super/settings'); $('set_trial').value = s.trial_days; }catch(e){}
+  }
+  async function saveSettings(){
+    const d=parseInt($('set_trial').value,10);
+    try{ await api('/super/settings',{method:'PUT',body:JSON.stringify({trial_days:d})});
+      $('setMsg').style.color='var(--accent)'; $('setMsg').textContent='✅ Saved';
+    }catch(e){ $('setMsg').style.color='var(--danger)'; $('setMsg').textContent=e.message; }
+  }
 
   // ---- Push notifications ----
   async function loadPush(){

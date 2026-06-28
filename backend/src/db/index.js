@@ -208,6 +208,16 @@ CREATE TABLE IF NOT EXISTS water_intake (
   PRIMARY KEY (user_id, day)
 );
 
+-- Per-user water goal + hydration reminders.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS water_goal INTEGER NOT NULL DEFAULT 8;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS water_reminders INTEGER NOT NULL DEFAULT 0;
+
+-- Platform-wide key/value settings (e.g. free-trial length), set by superadmin.
+CREATE TABLE IF NOT EXISTS platform_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+
 -- Planned rest days that protect a check-in streak.
 CREATE TABLE IF NOT EXISTS rest_days (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -287,6 +297,9 @@ export async function initDb() {
   for (const p of ['ios', 'android']) {
     await pool.query('INSERT INTO app_update (platform) VALUES ($1) ON CONFLICT (platform) DO NOTHING', [p]);
   }
+
+  // Default free-trial length (days of Premium/AI new members get on signup).
+  await pool.query("INSERT INTO platform_settings (key, value) VALUES ('trial_days', '7') ON CONFLICT (key) DO NOTHING");
 
   // Platform super-admin
   const superEmail = (process.env.SUPERADMIN_EMAIL || 'platform@fithub.app').toLowerCase();

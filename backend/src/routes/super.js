@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
 import { sendToTokens, pushEnabled } from '../services/push.js';
+import { getTrialDays, setSetting } from '../services/settings.js';
 
 const router = Router();
 router.use(authRequired);
@@ -71,6 +72,22 @@ router.post('/users/:id/ai-access', async (req, res, next) => {
     }
     const row = await one("SELECT ai_until, (ai_until IS NOT NULL AND ai_until > now()) AS ai_active FROM users WHERE id = $1", [u.id]);
     res.json({ ai_until: row.ai_until, ai_active: !!row.ai_active });
+  } catch (e) { next(e); }
+});
+
+// ---- Platform settings (free trial, etc.) ----
+router.get('/settings', async (req, res, next) => {
+  try {
+    res.json({ trial_days: await getTrialDays() });
+  } catch (e) { next(e); }
+});
+
+router.put('/settings', async (req, res, next) => {
+  try {
+    const d = Number(req.body?.trial_days);
+    if (!Number.isInteger(d) || d < 0 || d > 3650) return res.status(400).json({ error: 'trial_days must be 0–3650' });
+    await setSetting('trial_days', d);
+    res.json({ trial_days: d });
   } catch (e) { next(e); }
 });
 

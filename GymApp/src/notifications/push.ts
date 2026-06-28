@@ -36,12 +36,15 @@ let unsubRefresh: (() => void) | null = null;
 let handlersReady = false;
 
 // Route a tapped push to the right screen based on its data payload.
+// (Tab routes are Today / Diet / Community / Progress.)
 function routeFromData(data?: Record<string, any>) {
   if (!data) return;
-  if (data.type === 'announcement') navTo('Feed');
-  else if (data.type === 'notice' || data.type === 'alert') navTo('Home');
+  if (data.type === 'announcement') navTo('Community');
+  else if (data.type === 'notice' || data.type === 'alert' || data.type === 'water') navTo('Today');
   else if (data.type === 'reminder') navTo('Reminders');
   else if (data.type === 'pr') navTo('Workout');
+  else if (data.screen === 'Home') navTo('Today');
+  else if (data.screen === 'Feed') navTo('Community');
   else if (data.screen) navTo(String(data.screen));
 }
 

@@ -8,6 +8,7 @@ import { CalorieSummary, MacroBars } from '../components/Macros';
 import { AttendanceManager } from '../components/AttendanceManager';
 import { StreakCard } from '../components/StreakCard';
 import { WaterCard } from '../components/WaterCard';
+import { TrialBanner } from '../components/TrialBanner';
 import { NoticeBanner } from '../components/NoticeBanner';
 import { ProfileAPI, FoodAPI, ReminderAPI, AttendanceAPI, apiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -79,6 +80,9 @@ export default function TodayScreen({ navigation }: any) {
           <Button title="Complete setup" onPress={() => navigation.navigate('Profile')} />
         </Card>
       )}
+
+      {/* Trial / Premium status */}
+      <TrialBanner />
 
       <NoticeBanner />
 

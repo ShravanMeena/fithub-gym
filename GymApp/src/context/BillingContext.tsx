@@ -22,6 +22,8 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   const [selected, setSelected] = useState<Plan | null>(null);
 
   const aiActive = !!user?.ai_active;
+  // Trial ended = they had AI access (ai_until set) but it's now in the past.
+  const trialEnded = !aiActive && !!user?.ai_until && new Date(user.ai_until).getTime() < Date.now();
   const showPaywall = useCallback((f?: string) => { setFeature(f || 'AI features'); setSelected(null); setVisible(true); }, []);
 
   const payUpi = (plan: Plan) => {
@@ -47,11 +49,13 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
           <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing(2.5), maxHeight: '90%' }}>
             <View style={{ alignItems: 'center', marginBottom: spacing(1) }}>
               <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, marginBottom: spacing(1.5) }} />
-              <Txt size={font.h2} weight="800">Unlock AI ✨</Txt>
+              <Txt size={font.h2} weight="800">{trialEnded ? 'Your free trial ended 🎁' : 'Unlock Premium ✨'}</Txt>
               <Txt dim style={{ textAlign: 'center', marginTop: 6 }}>
-                {feature} uses AI. Subscribe to unlock AI diet plans, food scanning, photo analysis & the AI coach.
+                {trialEnded
+                  ? 'Hope you loved Premium! Keep AI diet plans, food scanning, photo analysis & the AI coach going.'
+                  : `${feature} uses AI. Subscribe to unlock AI diet plans, food scanning, photo analysis & the AI coach.`}
               </Txt>
-              <Txt dim size={font.tiny} style={{ marginTop: 4 }}>Free ready-made diet plans always stay free.</Txt>
+              <Txt dim size={font.tiny} style={{ marginTop: 4 }}>Quick-add food & ready-made diet plans always stay free.</Txt>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>

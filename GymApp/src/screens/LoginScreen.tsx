@@ -47,8 +47,11 @@ export default function LoginScreen({ navigation }: any) {
 
           {/* What this app is */}
           <Txt size={font.h2} weight="900" style={{ textAlign: 'center' }}>Your membership, leveled up</Txt>
-          <Txt dim style={{ textAlign: 'center', marginTop: 6, marginBottom: spacing(2.5) }}>
+          <Txt dim style={{ textAlign: 'center', marginTop: 6 }}>
             Stay regular, eat right, and stay connected with your gym.
+          </Txt>
+          <Txt size={font.tiny} weight="800" style={{ textAlign: 'center', color: colors.accent, marginTop: 8, marginBottom: spacing(2.5) }}>
+            🎁 New members get free Premium to start
           </Txt>
 
           <View style={[{ backgroundColor: colors.card, borderRadius: radius.xl, padding: spacing(2), marginBottom: spacing(3) }, shadow]}>

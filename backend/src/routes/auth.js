@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { q, one, exec } from '../db/index.js';
 import { signToken, authRequired } from '../middleware/auth.js';
 import { applyReferral, ensureReferralCode } from '../services/referral.js';
+import { getTrialDays } from '../services/settings.js';
 
 const router = Router();
 
@@ -63,13 +64,19 @@ router.post('/signup', async (req, res, next) => {
     }
     const hash = bcrypt.hashSync(password, 10);
     const ins = await one(
-      `INSERT INTO users (email, name, password_hash, org_id, phone) VALUES ($1,$2,$3,$4,$5) RETURNING ${USER_COLS}`,
+      `INSERT INTO users (email, name, password_hash, org_id, phone) VALUES ($1,$2,$3,$4,$5) RETURNING id, email`,
       [email.toLowerCase(), name, hash, orgId, phone || null]
     );
+    // Grant the free Premium trial (configurable by superadmin).
+    const trialDays = await getTrialDays();
+    if (trialDays > 0) {
+      await exec('UPDATE users SET ai_until = now() + make_interval(days => $1) WHERE id = $2', [trialDays, ins.id]);
+    }
     await exec('INSERT INTO profiles (user_id) VALUES ($1) ON CONFLICT DO NOTHING', [ins.id]);
     await ensureReferralCode(ins.id);
     if (referral_code) await applyReferral(ins.id, referral_code).catch(() => {});
-    res.json({ token: signToken(ins), user: await publicUser(ins) });
+    const pub = await one(`SELECT ${USER_COLS} FROM users WHERE id = $1`, [ins.id]);
+    res.json({ token: signToken(ins), user: await publicUser(pub) });
   } catch (e) { next(e); }
 });
 
