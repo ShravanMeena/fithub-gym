@@ -1,14 +1,18 @@
-// Home card: check-in streak (rest-day protected), milestones, calendar, gym rank.
-// Pure motivation, built from attendance data (no AI).
-import React, { useCallback, useState } from 'react';
-import { View, TouchableOpacity, Alert } from 'react-native';
+// Home card: check-in streak (rest-day protected), milestones, a full-width
+// scrollable date calendar, and gym rank. Pure motivation from attendance data.
+import React, { useCallback, useRef, useState } from 'react';
+import { View, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt } from './UI';
-import { ContributionGrid } from './Charts';
 import { AttendanceAPI, apiError } from '../api/client';
 import { colors, font, radius, spacing } from '../theme';
 
 const MILESTONE_LABEL: Record<number, string> = { 7: '🔥', 14: '⚡', 30: '🏅', 50: '💎', 100: '👑', 200: '🦾', 365: '🐐' };
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const pad = (n: number) => String(n).padStart(2, '0');
+const isoLocal = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const DAYS_SHOWN = 35;
 
 type Stats = {
   streak: number; longest: number; days: string[]; restDays: string[];
@@ -16,6 +20,56 @@ type Stats = {
   milestones: number[]; nextMilestone: number | null;
   monthVisits: number; rank: number | null; rankedMembers: number;
 };
+
+// Horizontal strip of the last DAYS_SHOWN days with real dates. Check-ins filled,
+// rest days frozen, today ringed — auto-scrolled to today.
+function StreakCalendar({ days, restDays }: { days: string[]; restDays: string[] }) {
+  const ref = useRef<ScrollView>(null);
+  const daySet = new Set(days);
+  const restSet = new Set(restDays);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const todayIso = isoLocal(today);
+
+  const cells = [];
+  for (let i = DAYS_SHOWN - 1; i >= 0; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const iso = isoLocal(d);
+    const checked = daySet.has(iso);
+    const rest = restSet.has(iso);
+    const isToday = iso === todayIso;
+    const firstOfMonth = d.getDate() === 1 || i === DAYS_SHOWN - 1;
+
+    const bg = checked ? colors.primary : rest ? colors.accent + '26' : colors.cardAlt;
+    const numColor = checked ? '#fff' : rest ? colors.accent : colors.text;
+
+    cells.push(
+      <View key={iso} style={{ alignItems: 'center', width: 40 }}>
+        <Txt size={9} weight="800" style={{ color: colors.textDim, height: 12 }}>{firstOfMonth ? MONTHS[d.getMonth()] : ''}</Txt>
+        <Txt size={font.tiny} style={{ color: isToday ? colors.primary : colors.textDim, marginBottom: 4 }} weight={isToday ? '800' : '400'}>{DOW[d.getDay()]}</Txt>
+        <View style={{
+          width: 34, height: 40, borderRadius: 10, backgroundColor: bg,
+          alignItems: 'center', justifyContent: 'center',
+          borderWidth: isToday ? 2 : checked ? 0 : 1,
+          borderColor: isToday ? colors.primary : colors.border,
+        }}>
+          <Txt size={font.small} weight="800" style={{ color: numColor }}>{d.getDate()}</Txt>
+          {rest ? <Txt size={8}>❄️</Txt> : null}
+        </View>
+      </View>,
+    );
+  }
+
+  return (
+    <ScrollView
+      ref={ref}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      onContentSizeChange={() => ref.current?.scrollToEnd({ animated: false })}
+      contentContainerStyle={{ paddingVertical: 2 }}>
+      {cells}
+    </ScrollView>
+  );
+}
 
 export function StreakCard({ onLeaderboard }: { onLeaderboard?: () => void }) {
   const [s, setS] = useState<Stats | null>(null);
@@ -28,7 +82,6 @@ export function StreakCard({ onLeaderboard }: { onLeaderboard?: () => void }) {
   };
 
   if (!s) return null;
-  // Defensive defaults so an older backend (missing new fields) never crashes.
   const days = s.days || [];
   const restDays = s.restDays || [];
   const milestones = s.milestones || [];
@@ -71,7 +124,7 @@ export function StreakCard({ onLeaderboard }: { onLeaderboard?: () => void }) {
       )}
 
       {hasData ? (
-        <ContributionGrid days={days} />
+        <StreakCalendar days={days} restDays={restDays} />
       ) : (
         <Txt dim size={font.small}>Check in at the gym to start your streak 💪</Txt>
       )}

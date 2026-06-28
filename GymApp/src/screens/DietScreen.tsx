@@ -139,8 +139,8 @@ export default function DietScreen({ navigation }: any) {
       contentContainerStyle={{ padding: spacing(2) }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
 
-      <Txt size={font.h2} weight="800">Your Diet Plans</Txt>
-      <Txt dim style={{ marginBottom: spacing(2) }}>Tell us your routine — we'll fit meals around it.</Txt>
+      <Txt size={font.h2} weight="800">Your Diet Plan</Txt>
+      <Txt dim style={{ marginBottom: spacing(2) }}>A full day of meals with calories & macros for your goal — fitted around your routine.</Txt>
 
       {/* Schedule questionnaire */}
       <Card>

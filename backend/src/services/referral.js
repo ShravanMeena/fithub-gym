@@ -3,12 +3,22 @@
 import { q, one, exec } from '../db/index.js';
 
 export const COINS_PER_REFERRAL = 50;
-// referrals reached -> free AI days granted (cumulative milestones)
+// Reward ladder: when the referrer reaches `count` invited friends, they get
+// `days` of free Premium (granted once). Early tiers reward every share; the
+// jumps at 5/10/25 are the big nudges.
 export const MILESTONES = [
-  { count: 3, days: 30, label: '1 month Premium' },
-  { count: 5, days: 90, label: '3 months Premium' },
-  { count: 10, days: 365, label: '1 year Premium' },
+  { count: 1, days: 1 },
+  { count: 2, days: 2 },
+  { count: 3, days: 3 },
+  { count: 5, days: 10 },
+  { count: 10, days: 30 },
+  { count: 25, days: 90 },
 ];
+
+// Total free Premium days earned for a given number of referrals.
+export function daysEarnedFor(referrals) {
+  return MILESTONES.filter((m) => referrals >= m.count).reduce((s, m) => s + m.days, 0);
+}
 
 const rand = () => Math.random().toString(36).slice(2, 6).toUpperCase();
 
@@ -60,7 +70,8 @@ export async function getReferralInfo(userId) {
     coins: u?.coins || 0,
     referrals: count,
     coinsPerReferral: COINS_PER_REFERRAL,
-    milestones: MILESTONES,
-    next,
+    daysEarned: daysEarnedFor(count),
+    milestones: MILESTONES.map((m) => ({ ...m, reached: count >= m.count })),
+    next: next ? { ...next, friendsAway: next.count - count } : null,
   };
 }

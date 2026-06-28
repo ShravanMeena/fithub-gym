@@ -1,4 +1,5 @@
-// Share & Earn — invite friends with your code, earn coins, unlock free Premium.
+// Share & Earn — invite friends with your code, earn FREE Premium days. The more
+// friends join, the more days you get (1→1, 2→2, 3→3, 5→10, 10→30, 25→90).
 import React, { useCallback, useState } from 'react';
 import { ScrollView, View, Share, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,8 +18,9 @@ export default function ReferralScreen() {
 
   const share = () => {
     if (!d?.code) return;
+    const reward = d.next ? ` Every friend who joins gets me free Premium days!` : '';
     Share.share({
-      message: `Join me on FitHub 💪 Use my code ${d.code} when you sign up and let's stay consistent together!\n\nDownload: ${APP_LINK}`,
+      message: `Join me on FitHub 💪 Use my code ${d.code} when you sign up and let's stay consistent together!${reward}\n\nDownload: ${APP_LINK}`,
     }).catch(() => {});
   };
 
@@ -29,12 +31,13 @@ export default function ReferralScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="900">Share & Earn 🎁</Txt>
-      <Txt dim style={{ marginBottom: spacing(2) }}>Invite friends, earn coins, and unlock free Premium.</Txt>
+      <Txt dim style={{ marginBottom: spacing(2) }}>Invite friends — earn <Txt weight="800" style={{ color: colors.primary }}>free Premium days</Txt>. The more who join, the more you get.</Txt>
 
-      {/* Coins + code hero */}
+      {/* Premium-days earned + code hero */}
       <View style={[{ backgroundColor: colors.primary, borderRadius: radius.xl, padding: spacing(2.5), marginBottom: spacing(2) }, shadow]}>
-        <Txt size={font.small} weight="800" style={{ color: '#fff', opacity: 0.9 }}>YOUR COINS</Txt>
-        <Txt size={font.h1} weight="900" style={{ color: '#fff' }}>🪙 {d.coins}</Txt>
+        <Txt size={font.small} weight="800" style={{ color: '#fff', opacity: 0.9 }}>FREE PREMIUM EARNED</Txt>
+        <Txt size={font.h1} weight="900" style={{ color: '#fff' }}>🎁 {d.daysEarned || 0} day{d.daysEarned === 1 ? '' : 's'}</Txt>
+        <Txt size={font.tiny} weight="700" style={{ color: '#fff', opacity: 0.9 }}>{d.referrals} friend{d.referrals === 1 ? '' : 's'} joined</Txt>
         <View style={{ backgroundColor: '#ffffff22', borderRadius: radius.md, padding: spacing(1.5), marginTop: spacing(1.5), alignItems: 'center' }}>
           <Txt size={font.tiny} weight="700" style={{ color: '#fff', opacity: 0.9 }}>YOUR REFERRAL CODE</Txt>
           <Txt size={font.h2} weight="900" style={{ color: '#fff', letterSpacing: 3, marginTop: 2 }}>{d.code}</Txt>
@@ -43,32 +46,40 @@ export default function ReferralScreen() {
 
       <Button title="📲 Share my code" onPress={share} />
 
-      {/* Progress to next reward */}
-      <Card style={{ marginTop: spacing(2) }}>
-        <Txt weight="800">{d.referrals} friend{d.referrals === 1 ? '' : 's'} joined 🎉</Txt>
-        {next ? (
-          <>
-            <Txt dim size={font.small} style={{ marginTop: 2 }}>
-              {next.count - d.referrals} more to unlock <Txt weight="800" style={{ color: colors.primary }}>{next.label}</Txt> free
-            </Txt>
-            <View style={{ height: 12, borderRadius: 6, backgroundColor: colors.cardAlt, marginTop: spacing(1.5), overflow: 'hidden' }}>
-              <View style={{ width: `${Math.round(progress * 100)}%`, height: '100%', backgroundColor: colors.primary }} />
-            </View>
-          </>
-        ) : (
-          <Txt size={font.small} style={{ color: colors.accent, marginTop: 4 }}>🏆 You've unlocked every reward — amazing!</Txt>
-        )}
-      </Card>
+      {/* The nudge: next reward */}
+      {next ? (
+        <Card style={{ marginTop: spacing(2), borderColor: colors.primary }}>
+          <Txt size={font.h3} weight="900" style={{ color: colors.primary }}>
+            {next.friendsAway === 1 ? 'Just 1 more friend' : `${next.friendsAway} more friends`} → +{next.days} day{next.days === 1 ? '' : 's'} free! 🔥
+          </Txt>
+          <Txt dim size={font.small} style={{ marginTop: 2 }}>Invite {next.friendsAway} more to unlock your next reward.</Txt>
+          <View style={{ height: 12, borderRadius: 6, backgroundColor: colors.cardAlt, marginTop: spacing(1.5), overflow: 'hidden' }}>
+            <View style={{ width: `${Math.round(progress * 100)}%`, height: '100%', backgroundColor: colors.primary }} />
+          </View>
+          <Txt dim size={font.tiny} style={{ marginTop: 6 }}>{d.referrals} / {next.count} friends</Txt>
+        </Card>
+      ) : (
+        <Card style={{ marginTop: spacing(2), borderColor: colors.accent }}>
+          <Txt weight="800" style={{ color: colors.accent }}>🏆 You've unlocked every reward — legend!</Txt>
+          <Txt dim size={font.small} style={{ marginTop: 2 }}>Keep sharing to help your gym grow.</Txt>
+        </Card>
+      )}
 
-      {/* Rewards list */}
-      <Txt weight="800" style={{ marginTop: spacing(2), marginBottom: spacing(1) }}>Rewards</Txt>
+      {/* Reward ladder */}
+      <Txt weight="800" style={{ marginTop: spacing(2), marginBottom: spacing(1) }}>Reward ladder</Txt>
       {(d.milestones || []).map((m: any) => {
-        const done = d.referrals >= m.count;
+        const done = m.reached;
+        const isNext = next && m.count === next.count;
         return (
-          <Card key={m.count} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderColor: done ? colors.accent : colors.border }}>
-            <View style={{ flex: 1 }}>
-              <Txt weight="800">{m.label}</Txt>
-              <Txt dim size={font.small}>Refer {m.count} friends</Txt>
+          <Card key={m.count} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderColor: done ? colors.accent : isNext ? colors.primary : colors.border }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: done ? colors.accent : isNext ? colors.primary : colors.cardAlt, alignItems: 'center', justifyContent: 'center', marginRight: spacing(1.5) }}>
+                <Txt weight="900" style={{ color: done || isNext ? '#fff' : colors.textDim }}>{m.count}</Txt>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt weight="800">{m.days} day{m.days === 1 ? '' : 's'} free Premium</Txt>
+                <Txt dim size={font.small}>Refer {m.count} friend{m.count === 1 ? '' : 's'}{isNext ? '  · next up!' : ''}</Txt>
+              </View>
             </View>
             <Txt size={20}>{done ? '✅' : '🔒'}</Txt>
           </Card>
@@ -80,7 +91,7 @@ export default function ReferralScreen() {
         <Txt dim size={font.small} style={{ marginTop: 6, lineHeight: 20 }}>
           1. Share your code with friends.{'\n'}
           2. They enter it when creating their account.{'\n'}
-          3. You earn {d.coinsPerReferral} coins per friend — and free Premium at each milestone. 🎉
+          3. Each friend who joins moves you up the ladder — and free Premium days land on your account automatically. 🎉
         </Txt>
       </Card>
       <View style={{ height: spacing(4) }} />

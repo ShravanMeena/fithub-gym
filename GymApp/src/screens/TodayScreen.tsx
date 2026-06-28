@@ -72,12 +72,12 @@ export default function TodayScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Finish-setup nudge */}
+      {/* Finish-setup nudge — clear about what the "plan" is */}
       {!targets && (
         <Card style={{ borderColor: colors.primary }}>
-          <Txt weight="800">Set up your plan</Txt>
-          <Txt dim size={font.small} style={{ marginVertical: 8 }}>Add your goal & stats so we can build your daily diet targets.</Txt>
-          <Button title="Complete setup" onPress={() => navigation.navigate('Profile')} />
+          <Txt weight="800">🥗 Get your personalised diet plan</Txt>
+          <Txt dim size={font.small} style={{ marginVertical: 8 }}>Tell us your goal & body stats — we'll set your daily calories, protein target and a meal plan built just for you.</Txt>
+          <Button title="Set up my plan" onPress={() => navigation.navigate('Profile')} />
         </Card>
       )}
 
@@ -98,12 +98,13 @@ export default function TodayScreen({ navigation }: any) {
           <Txt dim size={font.small} weight="800" style={{ letterSpacing: 1 }}>TODAY'S DIET</Txt>
           {kcalLeft != null && <Txt size={font.small} weight="800" style={{ color: colors.primary }}>{kcalLeft} kcal left</Txt>}
         </View>
-        <CalorieSummary consumed={totals.calories} target={targets?.calories} />
+        <Txt dim size={font.tiny} style={{ marginTop: 2 }}>Add everything you eat to hit your daily goal.</Txt>
+        <View style={{ marginTop: spacing(1) }}><CalorieSummary consumed={totals.calories} target={targets?.calories} /></View>
         <View style={{ height: 1, backgroundColor: colors.border, marginVertical: spacing(1.5) }} />
         <MacroBars protein={totals.protein_g} carbs={totals.carbs_g} fat={totals.fat_g} targets={targets} />
         <View style={{ flexDirection: 'row', gap: spacing(1.5), marginTop: spacing(1.5) }}>
-          <Button title="＋ Log meal" onPress={() => navigation.navigate('Scan')} style={{ flex: 1 }} />
-          <Button title="🥗 My plan" variant="ghost" onPress={() => navigation.navigate('Diet')} style={{ flex: 1 }} />
+          <Button title="📷 Add food" onPress={() => navigation.navigate('Scan')} style={{ flex: 1 }} />
+          <Button title="🥗 My diet plan" variant="ghost" onPress={() => navigation.navigate('Diet')} style={{ flex: 1 }} />
         </View>
       </Card>
 
