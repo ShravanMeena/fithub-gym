@@ -26,8 +26,10 @@
     "react-native-image-picker": "^8.2.1",
     "react-native-safe-area-context": "^5.8.0",
     "react-native-screens": "^4.25.2",
+    "react-native-share": "^12.3.1",
     "react-native-video": "^6.19.2",
-    "react-native-video-trim": "^8.1.8"
+    "react-native-video-trim": "^8.1.8",
+    "react-native-view-shot": "^5.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
