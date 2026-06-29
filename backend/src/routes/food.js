@@ -12,7 +12,7 @@ router.post('/estimate', aiRequired, async (req, res) => {
   const { imageBase64, mediaType, note } = req.body || {};
   if (!imageBase64 || typeof imageBase64 !== 'string') return res.status(400).json({ error: 'imageBase64 is required' });
   try {
-    const result = await estimateFoodFromImage({ imageBase64, mediaType, note });
+    const result = await estimateFoodFromImage({ imageBase64, mediaType, note, ctx: { userId: req.user?.id } });
     res.json({ estimate: result });
   } catch (err) {
     console.error('food/estimate error:', err);
@@ -24,7 +24,7 @@ router.post('/estimate-text', aiRequired, async (req, res) => {
   const text = (req.body?.text || '').toString().trim();
   if (text.length < 2) return res.status(400).json({ error: 'Describe your meal, e.g. "2 eggs and butter roti"' });
   try {
-    const result = await estimateFoodFromText({ description: text });
+    const result = await estimateFoodFromText({ description: text, ctx: { userId: req.user?.id } });
     res.json({ estimate: result });
   } catch (err) {
     console.error('food/estimate-text error:', err);

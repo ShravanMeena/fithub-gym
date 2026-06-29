@@ -31,7 +31,7 @@ router.post('/generate', aiRequired, async (req, res, next) => {
       return res.status(400).json({ error: 'Complete your profile (age, height, weight) first.' });
     }
     const targets = computeTargets(profile);
-    const plan = await generateDietPlan({ profile, targets });
+    const plan = await generateDietPlan({ profile, targets, ctx: { userId: req.user.id } });
     const row = await one('INSERT INTO diet_plans (user_id, plan_json) VALUES ($1,$2) RETURNING id', [req.user.id, JSON.stringify(plan)]);
     res.json({ id: row.id, plan, targets });
   } catch (err) {

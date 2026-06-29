@@ -105,7 +105,7 @@ router.post('/analyze', authRequired, aiRequired, async (req, res) => {
 
     const profile = (await one('SELECT * FROM profiles WHERE user_id = $1', [req.user.id])) || {};
     const progress = await q('SELECT weight_kg, logged_at FROM progress_logs WHERE user_id = $1 ORDER BY logged_at ASC', [req.user.id]);
-    const analysis = await analyzeProgressPhotos({ images, profile, progress, targets: computeTargets(profile) });
+    const analysis = await analyzeProgressPhotos({ images, profile, progress, targets: computeTargets(profile), ctx: { userId: req.user.id } });
     res.json({ analysis, comparedPhotos: chosen.length });
   } catch (err) {
     console.error('photos/analyze error:', err);

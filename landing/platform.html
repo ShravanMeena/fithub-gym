@@ -72,6 +72,7 @@
       <div class="tab" data-tab="gyms" onclick="switchTab('gyms')">Gyms</div>
       <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Push</div>
       <div class="tab" data-tab="appupdate" onclick="switchTab('appupdate')">📲 App Update</div>
+      <div class="tab" data-tab="aiusage" onclick="switchTab('aiusage')">🤖 AI Usage</div>
       <div class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</div>
     </div>
 
@@ -86,6 +87,22 @@
     <div id="tab_gyms" class="card" style="display:none">
       <h3>All gyms</h3>
       <div style="overflow-x:auto"><table id="gymsTable"></table></div>
+    </div>
+
+    <div id="tab_aiusage" style="display:none">
+      <div class="card">
+        <h3>AI usage & cost</h3>
+        <p class="muted" style="font-size:13px;margin-bottom:12px">Token usage and estimated USD cost across all AI features (food scan, diet plans, coach, progress review).</p>
+        <div id="aiTotals" style="display:flex;flex-wrap:wrap;gap:14px"></div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px">By feature</h3>
+        <div id="aiByFeature"></div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px">Top users</h3>
+        <div id="aiByUser"></div>
+      </div>
     </div>
 
     <div id="tab_settings" class="card" style="display:none">
@@ -145,7 +162,21 @@
     finally{ $('loginBtn').disabled=false; $('loginBtn').textContent='Log in'; }
   }
   function logout(){ localStorage.removeItem(TOKEN_KEY); token=null; location.reload(); }
-  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms','push','appupdate','settings'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); if(t==='settings') loadSettings(); }
+  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms','push','appupdate','aiusage','settings'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); if(t==='settings') loadSettings(); if(t==='aiusage') loadAiUsage(); }
+
+  // ---- AI usage ----
+  function fmtTokens(n){ n=Number(n)||0; return n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(1)+'k':String(n); }
+  function usd(n){ return '$'+(Number(n)||0).toFixed(4); }
+  async function loadAiUsage(){
+    try{
+      const d=await api('/super/ai-usage');
+      const t=d.totals||{};
+      const box=(label,val)=>'<div style="flex:1;min-width:120px;background:var(--bg);border-radius:10px;padding:12px"><div style="font-size:12px;color:var(--muted)">'+label+'</div><div style="font-size:20px;font-weight:800">'+val+'</div></div>';
+      $('aiTotals').innerHTML = box('Calls', t.calls||0)+box('Input tokens', fmtTokens(t.input_tokens))+box('Output tokens', fmtTokens(t.output_tokens))+box('Total tokens', fmtTokens(t.total_tokens))+box('Est. cost', usd(t.cost_usd));
+      $('aiByFeature').innerHTML = (d.byFeature||[]).map(f=>'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span>'+f.feature+'</span><span class="muted">'+f.calls+' calls · '+fmtTokens(f.total_tokens)+' tok · '+usd(f.cost_usd)+'</span></div>').join('') || '<p class="muted">No AI usage yet.</p>';
+      $('aiByUser').innerHTML = (d.byUser||[]).map(u=>'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span>'+(u.name||u.email)+'<span class="muted" style="font-size:12px"> · '+(u.gym||'—')+'</span></span><span class="muted">'+u.calls+' · '+fmtTokens(u.total_tokens)+' tok · '+usd(u.cost_usd)+'</span></div>').join('') || '<p class="muted">No AI usage yet.</p>';
+    }catch(e){ $('aiTotals').innerHTML='<p class="muted">'+e.message+'</p>'; }
+  }
 
   // ---- Platform settings (free trial) ----
   async function loadSettings(){

@@ -10,6 +10,7 @@ import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from '@aws-sdk/client-bedrock-runtime';
+import { recordAiUsage } from './aiUsage.js';
 
 const MODEL_ID = process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-sonnet-4-6-20250514-v1:0';
 const REGION = process.env.AWS_REGION || 'us-east-1';
@@ -29,7 +30,8 @@ function client() {
 }
 
 // Low-level helper: send messages to Claude on Bedrock, return the text.
-async function invokeClaude({ system, messages, maxTokens = 1500 }) {
+// `feature` labels the call and `ctx` ({ userId, orgId }) attributes token usage.
+async function invokeClaude({ system, messages, maxTokens = 1500, feature = 'ai', ctx = null }) {
   const body = {
     anthropic_version: 'bedrock-2023-05-31',
     max_tokens: maxTokens,
@@ -44,6 +46,17 @@ async function invokeClaude({ system, messages, maxTokens = 1500 }) {
   });
   const resp = await client().send(cmd);
   const decoded = JSON.parse(new TextDecoder().decode(resp.body));
+  // Log token usage against the user (best-effort, fire-and-forget).
+  if (ctx?.userId && decoded?.usage) {
+    recordAiUsage({
+      userId: ctx.userId,
+      orgId: ctx.orgId,
+      feature,
+      model: MODEL_ID,
+      inputTokens: decoded.usage.input_tokens || 0,
+      outputTokens: decoded.usage.output_tokens || 0,
+    });
+  }
   return decoded.content?.map((c) => c.text).join('') ?? '';
 }
 
@@ -104,7 +117,7 @@ function deriveWarnings(est) {
 // ---------------------------------------------------------------------------
 // 1) Food photo -> calories + macros
 // ---------------------------------------------------------------------------
-export async function estimateFoodFromImage({ imageBase64, mediaType = 'image/jpeg', note }) {
+export async function estimateFoodFromImage({ imageBase64, mediaType = 'image/jpeg', note, ctx }) {
   if (mockEnabled()) {
     const est = {
       name: 'Grilled chicken with rice & salad',
@@ -152,6 +165,8 @@ export async function estimateFoodFromImage({ imageBase64, mediaType = 'image/jp
     system,
     messages: [{ role: 'user', content }],
     maxTokens: 1200,
+    feature: 'food_photo',
+    ctx,
   });
   const est = parseJsonLoose(text);
   est.warnings = deriveWarnings(est);
@@ -161,7 +176,7 @@ export async function estimateFoodFromImage({ imageBase64, mediaType = 'image/jp
 // ---------------------------------------------------------------------------
 // 1b) Text description -> calories + macros (for when there's no photo)
 // ---------------------------------------------------------------------------
-export async function estimateFoodFromText({ description }) {
+export async function estimateFoodFromText({ description, ctx }) {
   if (mockEnabled()) {
     const est = {
       name: description.length > 40 ? description.slice(0, 40) + '…' : description,
@@ -196,6 +211,8 @@ export async function estimateFoodFromText({ description }) {
     system,
     messages: [{ role: 'user', content: `Meal description: "${description}". Estimate its nutrition.` }],
     maxTokens: 1000,
+    feature: 'food_text',
+    ctx,
   });
   const est = parseJsonLoose(text);
   est.warnings = deriveWarnings(est);
@@ -241,7 +258,7 @@ function mockPlan(title, cal, targets, veg, costStars) {
   };
 }
 
-export async function generateDietPlan({ profile, targets }) {
+export async function generateDietPlan({ profile, targets, ctx }) {
   const cal = targets?.calories ?? 2200;
   const isVeg = ['veg', 'vegan'].includes(profile.diet_pref);
 
@@ -296,6 +313,8 @@ export async function generateDietPlan({ profile, targets }) {
     system,
     messages: [{ role: 'user', content: userMsg }],
     maxTokens: 4000,
+    feature: 'diet_plan',
+    ctx,
   });
   const parsed = parseJsonLoose(text);
   // Be tolerant if the model returns a single plan instead of {plans:[...]}.
@@ -306,7 +325,7 @@ export async function generateDietPlan({ profile, targets }) {
 // ---------------------------------------------------------------------------
 // 3) Progress + logs -> coaching advice
 // ---------------------------------------------------------------------------
-export async function coachAdvice({ profile, targets, progress, recentNutrition, question }) {
+export async function coachAdvice({ profile, targets, progress, recentNutrition, question, ctx }) {
   if (mockEnabled()) {
     return {
       message:
@@ -341,6 +360,8 @@ export async function coachAdvice({ profile, targets, progress, recentNutrition,
     system,
     messages: [{ role: 'user', content: userMsg }],
     maxTokens: 800,
+    feature: 'coach',
+    ctx,
   });
   return parseJsonLoose(text);
 }
@@ -349,7 +370,7 @@ export async function coachAdvice({ profile, targets, progress, recentNutrition,
 // 4) Progress photos -> AI assessment of whether progress is happening
 // images: [{ base64, mediaType }] (oldest first, newest last; 1 or 2 photos)
 // ---------------------------------------------------------------------------
-export async function analyzeProgressPhotos({ images, profile, progress }) {
+export async function analyzeProgressPhotos({ images, profile, progress, ctx }) {
   if (mockEnabled()) {
     return {
       verdict: 'on_track',
@@ -401,6 +422,8 @@ export async function analyzeProgressPhotos({ images, profile, progress }) {
     system,
     messages: [{ role: 'user', content }],
     maxTokens: 1000,
+    feature: 'progress_review',
+    ctx,
   });
   return parseJsonLoose(text);
 }

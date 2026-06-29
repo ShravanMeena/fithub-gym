@@ -218,6 +218,22 @@ CREATE TABLE IF NOT EXISTS platform_settings (
   value TEXT
 );
 
+-- Per-call AI usage log: tokens + computed cost, attributed to a user.
+CREATE TABLE IF NOT EXISTS ai_usage (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  org_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL,
+  feature TEXT NOT NULL,
+  model TEXT,
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  total_tokens INTEGER NOT NULL DEFAULT 0,
+  cost_usd NUMERIC(12,6) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_user ON ai_usage(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage(created_at);
+
 -- Planned rest days that protect a check-in streak.
 CREATE TABLE IF NOT EXISTS rest_days (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

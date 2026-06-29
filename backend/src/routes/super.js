@@ -4,6 +4,7 @@ import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
 import { sendToTokens, pushEnabled } from '../services/push.js';
 import { getTrialDays, setSetting } from '../services/settings.js';
+import { globalUsage } from '../services/aiUsage.js';
 
 const router = Router();
 router.use(authRequired);
@@ -72,6 +73,13 @@ router.post('/users/:id/ai-access', async (req, res, next) => {
     }
     const row = await one("SELECT ai_until, (ai_until IS NOT NULL AND ai_until > now()) AS ai_active FROM users WHERE id = $1", [u.id]);
     res.json({ ai_until: row.ai_until, ai_active: !!row.ai_active });
+  } catch (e) { next(e); }
+});
+
+// ---- AI usage (tokens + cost), platform-wide ----
+router.get('/ai-usage', async (req, res, next) => {
+  try {
+    res.json(await globalUsage());
   } catch (e) { next(e); }
 });
 

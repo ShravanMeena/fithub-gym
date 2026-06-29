@@ -48,7 +48,7 @@ router.post('/coach', aiRequired, async (req, res) => {
       'SELECT name, calories, protein_g, carbs_g, fat_g, eaten_at FROM food_logs WHERE user_id = $1 ORDER BY eaten_at DESC LIMIT 12',
       [req.user.id]
     );
-    const advice = await coachAdvice({ profile, targets, progress, recentNutrition, question: req.body?.question });
+    const advice = await coachAdvice({ profile, targets, progress, recentNutrition, question: req.body?.question, ctx: { userId: req.user.id } });
     res.json({ advice });
   } catch (err) {
     console.error('progress/coach error:', err);
