@@ -18,7 +18,8 @@ export default function SignupScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
 
   const onSignup = async () => {
-    if (!name || !email || !password) return Alert.alert('Missing info', 'Fill name, email and password.');
+    if (!name || !password) return Alert.alert('Missing info', 'Fill your name and password.');
+    if (!email.trim() && !phone.trim()) return Alert.alert('Missing info', 'Enter an email or a phone number.');
     if (password.length < 6) return Alert.alert('Weak password', 'Use at least 6 characters.');
     setLoading(true);
     try {
@@ -41,8 +42,9 @@ export default function SignupScreen({ navigation }: any) {
         </Txt>
 
         <Field label="Name" value={name} onChangeText={setName} placeholder="Your name" />
+        <Txt dim size={font.small} style={{ marginBottom: spacing(1) }}>Sign up with your email or phone — either works.</Txt>
         <Field label="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} placeholder="you@example.com" />
-        <Field label="Phone (optional)" keyboardType="phone-pad" value={phone} onChangeText={setPhone} placeholder="9876543210" />
+        <Field label="Phone" keyboardType="phone-pad" value={phone} onChangeText={setPhone} placeholder="9876543210" />
         <Field label="Password" secureTextEntry value={password} onChangeText={setPassword} placeholder="At least 6 characters" />
         <Field label="Referral code (optional)" autoCapitalize="characters" value={referral} onChangeText={setReferral} placeholder="Got a friend's code? Enter it" />
 

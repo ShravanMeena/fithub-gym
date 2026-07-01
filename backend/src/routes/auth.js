@@ -10,7 +10,7 @@ const router = Router();
 
 const signupSchema = z.object({
   name: z.string().min(1).max(80),
-  email: z.string().email(),
+  email: z.string().max(120).optional(),
   password: z.string().min(6).max(100),
   phone: z.string().max(20).optional(),
   referral_code: z.string().max(20).optional(),
@@ -18,8 +18,11 @@ const signupSchema = z.object({
   org_slug: z.string().optional(),
 });
 
+// Login by email OR phone (whichever the user typed) + password.
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().min(1).optional(),
+  phone: z.string().min(1).optional(),
+  identifier: z.string().min(1).optional(),
   password: z.string().min(1),
 });
 
@@ -56,16 +59,22 @@ router.post('/signup', async (req, res, next) => {
   try {
     const parsed = signupSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
-    const { name, email, password, phone, referral_code } = parsed.data;
+    const { name, password, referral_code } = parsed.data;
+    const email = (parsed.data.email || '').trim().toLowerCase() || null;
+    const phone = (parsed.data.phone || '').trim() || null;
+    if (!email && !phone) return res.status(400).json({ error: 'Enter an email or phone number' });
     const orgId = await resolveOrgId(parsed.data);
     if (!orgId) return res.status(400).json({ error: 'Select your gym first' });
-    if (await one('SELECT 1 FROM users WHERE email = $1', [email.toLowerCase()])) {
+    if (email && await one('SELECT 1 FROM users WHERE lower(email) = $1', [email])) {
       return res.status(409).json({ error: 'Email already registered' });
+    }
+    if (phone && await one('SELECT 1 FROM users WHERE phone = $1', [phone])) {
+      return res.status(409).json({ error: 'Phone number already registered' });
     }
     const hash = bcrypt.hashSync(password, 10);
     const ins = await one(
       `INSERT INTO users (email, name, password_hash, org_id, phone) VALUES ($1,$2,$3,$4,$5) RETURNING id, email`,
-      [email.toLowerCase(), name, hash, orgId, phone || null]
+      [email, name, hash, orgId, phone]
     );
     // Grant the free Premium trial (configurable by superadmin).
     const trialDays = await getTrialDays();
@@ -84,10 +93,12 @@ router.post('/login', async (req, res, next) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
-    const { email, password } = parsed.data;
-    const user = await one('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
+    const { password } = parsed.data;
+    const idf = (parsed.data.identifier || parsed.data.email || parsed.data.phone || '').trim();
+    if (!idf) return res.status(400).json({ error: 'Enter your email or phone number' });
+    const user = await one('SELECT * FROM users WHERE lower(email) = lower($1) OR phone = $1', [idf]);
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid login or password' });
     }
     const pub = await one(`SELECT ${USER_COLS} FROM users WHERE id = $1`, [user.id]);
     res.json({ token: signToken(user), user: await publicUser(pub) });

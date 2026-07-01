@@ -22,7 +22,7 @@ export default function LoginScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
 
   const onLogin = async () => {
-    if (!email || !password) return Alert.alert('Missing info', 'Enter email and password.');
+    if (!email || !password) return Alert.alert('Missing info', 'Enter your email or phone, and password.');
     setLoading(true);
     try {
       await login(email.trim(), password);
@@ -54,7 +54,7 @@ export default function LoginScreen({ navigation }: any) {
             🎁 New members get free Premium to start
           </Txt>
 
-          <Field label="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} placeholder="you@example.com" />
+          <Field label="Email or phone" autoCapitalize="none" value={email} onChangeText={setEmail} placeholder="you@example.com or 9876543210" />
           <Field label="Password" secureTextEntry value={password} onChangeText={setPassword} placeholder="••••••••" />
           <Button title="Log In" loading={loading} onPress={onLogin} style={{ marginTop: spacing(1) }} />
 

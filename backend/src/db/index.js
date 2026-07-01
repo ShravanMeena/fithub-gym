@@ -218,6 +218,9 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS water_goal_ml INTEGER NOT NULL DEFAUL
 -- What muscle groups the member trained in a session (comma-separated).
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS focus TEXT;
 
+-- Allow phone-only accounts (login by phone OR email, no OTP).
+ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
+
 -- Platform-wide key/value settings (e.g. free-trial length), set by superadmin.
 CREATE TABLE IF NOT EXISTS platform_settings (
   key TEXT PRIMARY KEY,
