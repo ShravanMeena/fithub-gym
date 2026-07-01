@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FitHub — Privacy Policy</title>
+  <style>
+    :root { --ink:#1a1a1a; --muted:#555; --accent:#FF5A1F; --border:#e6e6e6; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink); line-height: 1.65; margin: 0; background: #fafafa; }
+    .wrap { max-width: 820px; margin: 0 auto; padding: 40px 22px 80px; }
+    header { border-bottom: 3px solid var(--accent); padding-bottom: 18px; margin-bottom: 8px; }
+    h1 { margin: 0 0 4px; font-size: 30px; }
+    h2 { font-size: 20px; margin: 34px 0 10px; }
+    h3 { font-size: 16px; margin: 20px 0 6px; }
+    p, li { color: #333; font-size: 15.5px; }
+    .muted { color: var(--muted); font-size: 14px; }
+    a { color: var(--accent); }
+    ul { padding-left: 22px; }
+    code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+    .box { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin: 16px 0; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { text-align: left; border-bottom: 1px solid var(--border); padding: 9px 8px; font-size: 14.5px; vertical-align: top; }
+    th { color: var(--muted); font-weight: 700; }
+    footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>FitHub — Privacy Policy</h1>
+      <p class="muted">Last updated: 1 July 2026 &nbsp;·&nbsp; Effective: 1 July 2026</p>
+    </header>
+
+    <p>FitHub ("FitHub", "we", "us", or "our") provides a gym membership and fitness app that helps members
+    stay consistent with check-ins, diet, and community features. This Privacy Policy explains what personal
+    information we collect, how we use and share it, and the choices you have. It applies to the FitHub mobile
+    app (package <code>com.fithub.gym</code>) and our related web panels.</p>
+
+    <p>By creating an account or using FitHub, you agree to this Privacy Policy. If you do not agree, please do
+    not use the app.</p>
+
+    <h2>1. Information we collect</h2>
+
+    <h3>Information you provide</h3>
+    <table>
+      <tr><th>Category</th><th>Examples</th></tr>
+      <tr><td>Account</td><td>Name, email address, phone number, and a password (stored only as a secure hash).</td></tr>
+      <tr><td>Fitness &amp; health profile</td><td>Age, gender, height, weight, body measurements (waist, chest, arms), body-fat estimate, fitness goal, activity level, dietary preference and allergies, and your daily routine (wake/sleep/gym times, meals per day).</td></tr>
+      <tr><td>Photos</td><td>Meal photos you take or upload for nutrition analysis, and optional body/progress photos you add to track your transformation (kept private unless you choose to make them public).</td></tr>
+      <tr><td>Activity data</td><td>Gym check-ins/attendance, streaks, rest days, water intake, workouts, reminders and diet logs you create.</td></tr>
+      <tr><td>Community content</td><td>Posts, comments, reactions, and any text, images or videos you choose to share in the community feed.</td></tr>
+      <tr><td>Referrals</td><td>Your referral code and which accounts you referred (to grant referral rewards).</td></tr>
+    </table>
+
+    <h3>Information collected automatically</h3>
+    <ul>
+      <li><b>Device push token</b> (Firebase Cloud Messaging) so we can send you notifications.</li>
+      <li><b>Device time zone</b> so reminders and streak logic fire at your local time.</li>
+      <li><b>App version and basic technical/log data</b> used to operate and troubleshoot the service.</li>
+    </ul>
+
+    <h2>2. Permissions we request</h2>
+    <ul>
+      <li><b>Camera &amp; Photos</b> — to take or select meal and progress photos, and to post to the community. Used only when you choose to add a photo.</li>
+      <li><b>Notifications</b> — to send reminders, streak nudges, and messages from your gym.</li>
+      <li><b>Calendar</b> — optional; to add your gym timings to your device calendar so you get reminded. Calendar events are created on your device.</li>
+      <li><b>Alarms (Set alarm)</b> — optional; to create a repeating alarm in your phone's Clock app for your gym time.</li>
+    </ul>
+    <p class="muted">You can revoke any of these permissions at any time in your device settings; some features will stop working without them.</p>
+
+    <h2>3. How we use your information</h2>
+    <ul>
+      <li>Provide core features: attendance/streaks, diet tracking, reminders, progress tracking, and community.</li>
+      <li>Calculate your daily calorie and macro targets and generate diet plans.</li>
+      <li>Analyze meal photos/descriptions and progress photos to estimate nutrition and give feedback (see AI section).</li>
+      <li>Send notifications you've enabled and messages from your gym.</li>
+      <li>Operate referrals and any free-trial or Premium access.</li>
+      <li>Maintain security, prevent abuse, and improve the app.</li>
+    </ul>
+
+    <h2>4. AI processing</h2>
+    <p>Some optional features ("Premium/AI") use a third-party AI provider (<b>Amazon Web Services – Bedrock</b>,
+    running Anthropic Claude models) to process content you submit — for example, a meal photo or description, or
+    your progress photos and fitness numbers — in order to return nutrition estimates, diet plans, or coaching
+    feedback. Only the content needed for that request is sent. We record usage metrics (such as token counts) to
+    operate and bill the service. We do not use your content to train third-party AI models.</p>
+
+    <h2>5. How we share information</h2>
+    <p>We do <b>not</b> sell your personal information. We share it only as follows:</p>
+    <ul>
+      <li><b>Service providers</b> that host and run the app on our behalf: Google Cloud Platform (servers, database, file storage), Google Firebase (push notifications), and Amazon Web Services (AI processing). They may process data only to provide their services to us.</li>
+      <li><b>Your gym</b>: gym administrators can see your membership details, attendance, and fee/membership status to manage your membership, and can send you notifications.</li>
+      <li><b>Other members</b>: content you choose to post publicly (community posts, public progress photos, leaderboard name) is visible to other users.</li>
+      <li><b>Legal</b>: where required by law or to protect rights, safety, and the integrity of the service.</li>
+    </ul>
+
+    <h2>6. Data retention</h2>
+    <p>We keep your information for as long as your account is active or as needed to provide the service. When you
+    delete your account, we delete your personal data and associated content (profile, photos, logs, posts) from our
+    active systems, except where we must retain limited records to comply with legal obligations or resolve disputes.
+    Backups are purged on a rolling schedule.</p>
+
+    <h2>7. Data security</h2>
+    <p>We protect your data with industry-standard measures: encrypted connections (HTTPS/TLS), hashed passwords,
+    access controls, and reputable cloud infrastructure. No method of transmission or storage is 100% secure, but we
+    work to protect your information.</p>
+
+    <h2>8. Your rights &amp; choices</h2>
+    <ul>
+      <li><b>Access &amp; update</b> — view and edit your profile and content in the app.</li>
+      <li><b>Delete content</b> — remove your posts, photos, reminders, and other content at any time.</li>
+      <li><b>Notifications</b> — turn off notifications in the app or your device settings.</li>
+      <li><b>Delete your account &amp; data</b> — see the next section.</li>
+    </ul>
+
+    <h2 id="delete">9. How to delete your account and data</h2>
+    <div class="box">
+      <p>You can request deletion of your FitHub account and all associated personal data at any time:</p>
+      <ul>
+        <li><b>In the app:</b> open the menu → <b>Profile</b> → contact us to request deletion, or</li>
+        <li><b>By email:</b> send a request from your registered email to
+          <a href="mailto:devpunyahome@gmail.com">devpunyahome@gmail.com</a> with the subject "Delete my account".</li>
+      </ul>
+      <p>We will delete your account, profile, photos, logs, posts, and other personal data within 30 days, except for
+      limited information we are legally required to retain.</p>
+    </div>
+
+    <h2>10. Children's privacy</h2>
+    <p>FitHub is not directed to children under 13 (or the minimum age required in your country). We do not knowingly
+    collect personal information from children. If you believe a child has provided us data, contact us and we will
+    delete it.</p>
+
+    <h2>11. International data transfers</h2>
+    <p>We operate using cloud infrastructure that may process and store data in data centres located outside your
+    country. Where required, we use appropriate safeguards for such transfers.</p>
+
+    <h2>12. Changes to this policy</h2>
+    <p>We may update this Privacy Policy from time to time. Material changes will be reflected by updating the "Last
+    updated" date above and, where appropriate, by an in-app notice. Continued use of FitHub after changes means you
+    accept the updated policy.</p>
+
+    <h2>13. Contact us</h2>
+    <p>Questions or requests about this policy or your data:</p>
+    <p><b>FitHub</b><br />Email: <a href="mailto:devpunyahome@gmail.com">devpunyahome@gmail.com</a></p>
+
+    <footer>
+      © 2026 FitHub. This Privacy Policy is provided for the FitHub mobile application (com.fithub.gym) and related services.
+    </footer>
+  </div>
+</body>
+</html>

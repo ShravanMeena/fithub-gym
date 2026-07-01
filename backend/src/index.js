@@ -67,7 +67,8 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATIC_DIR = process.env.STATIC_DIR || join(__dirname, '..', '..', 'landing');
 if (existsSync(STATIC_DIR)) {
-  app.use(express.static(STATIC_DIR));
+  // extensions:['html'] lets /privacy resolve to privacy.html (clean URLs).
+  app.use(express.static(STATIC_DIR, { extensions: ['html'] }));
   app.get('/', (req, res) => res.sendFile(join(STATIC_DIR, 'index.html')));
 }
 
