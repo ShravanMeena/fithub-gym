@@ -36,6 +36,9 @@ export function Sidebar() {
     ]).start();
   }, [sidebarOpen, tx, fade]);
 
+  // Always land on Home with the sidebar closed after login/signup/logout.
+  useEffect(() => { closeSidebar(); }, [user?.id, closeSidebar]);
+
   if (!user) return null;
 
   const go = (screen: string) => { closeSidebar(); setTimeout(() => navTo(screen), 180); };
