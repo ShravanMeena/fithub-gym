@@ -13,6 +13,7 @@ export function AutoImage({ source, style }: { source: any; style?: any }) {
         const s = e?.nativeEvent?.source as any;
         if (s?.width && s?.height) setRatio(s.width / s.height);
       }}
+      fadeDuration={180}
       resizeMode="cover"
       style={[{ width: '100%', aspectRatio: ratio || 1.25, borderRadius: radius.sm, backgroundColor: colors.cardAlt }, style]}
     />

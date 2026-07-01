@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import sharp from 'sharp';
 import { q, one } from '../db/index.js';
 import { authRequired, verifyToken } from '../middleware/auth.js';
-import { saveFile, streamFile, deleteFile, fileExists, fileSize } from '../services/storage.js';
+import { saveFile, streamFile, deleteFile, fileExists, fileSize, readBuffer } from '../services/storage.js';
+import { optimizeVideo } from '../services/video.js';
 
 const router = Router();
 
@@ -19,6 +21,23 @@ router.get('/:id/media', async (req, res, next) => {
     const row = await one('SELECT * FROM posts WHERE id = $1', [req.params.id]);
     if (!row || !row.media_path || !(await fileExists(row.media_path))) return res.status(404).end();
     if (!row.is_public && row.org_id !== (await orgId(user.id))) return res.status(403).end();
+
+    // Posts never change → let the client cache media aggressively (fast re-loads).
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+
+    // Thumbnail: ?w=<px> returns a small, compressed JPEG for images (feed lists load
+    // fast, Instagram-style). Falls back to the original stream if resize fails.
+    const wReq = parseInt(req.query.w, 10);
+    const isImage = (row.media_type || '').startsWith('image/');
+    if (isImage && Number.isFinite(wReq) && wReq >= 40 && wReq <= 2000) {
+      try {
+        const buf = await readBuffer(row.media_path);
+        const out = await sharp(buf).rotate().resize({ width: wReq, withoutEnlargement: true }).jpeg({ quality: 72 }).toBuffer();
+        res.set('Content-Type', 'image/jpeg');
+        res.set('Content-Length', out.length);
+        return res.end(out);
+      } catch (e) { /* fall through to original */ }
+    }
 
     const size = await fileSize(row.media_path);
     res.set('Content-Type', row.media_type || 'application/octet-stream');
@@ -47,23 +66,8 @@ function likeInfo(row, userId) {
     author: row.author_name, authorId: row.user_id, authorAvatar: !!row.author_avatar,
     gym: row.gym_name || null, created_at: row.created_at,
     is_announcement: !!row.is_announcement, is_public: !!row.is_public,
-    tags: row.tags ? row.tags.split(',').filter(Boolean) : [],
     likes: Number(row.likes) || 0, liked: !!row.liked, myReaction: row.my_reaction || null,
     comments: Number(row.comments) || 0, mine: row.user_id === userId };
-}
-
-// Normalize hashtags: from an explicit list + any #tags in the content. Returns
-// a comma-separated lowercase string (no #), max 8 tags, or null.
-function normalizeTags(list, content) {
-  const out = new Set();
-  for (const t of Array.isArray(list) ? list : []) {
-    const c = String(t).toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (c) out.add(c.slice(0, 24));
-  }
-  for (const m of String(content || '').matchAll(/#([a-zA-Z0-9_]+)/g)) {
-    out.add(m[1].toLowerCase().replace(/_/g, '').slice(0, 24));
-  }
-  return out.size ? [...out].slice(0, 8).join(',') : null;
 }
 
 const SEL = `p.*, u.name AS author_name, (u.avatar_path IS NOT NULL) AS author_avatar, o.name AS gym_name,
@@ -80,7 +84,6 @@ const createSchema = z.object({
   mediaBase64: z.string().optional(),
   mediaType: z.string().optional(),
   is_public: z.boolean().default(true),
-  tags: z.array(z.string()).optional(),
 });
 
 router.post('/', async (req, res, next) => {
@@ -96,8 +99,17 @@ router.post('/', async (req, res, next) => {
       [req.user.id, await orgId(req.user.id), d.type, d.content?.trim() || null, d.mediaType || null, d.is_public ? 1 : 0]
     );
     if (d.mediaBase64) {
-      const key = `feed/${ins.id}.${extFor(d.mediaType)}`;
-      await saveFile(key, Buffer.from(d.mediaBase64, 'base64'), d.mediaType || 'application/octet-stream');
+      let buf = Buffer.from(d.mediaBase64, 'base64');
+      let mt = d.mediaType || 'application/octet-stream';
+      let ext = extFor(mt);
+      // Videos: transcode to a web-optimized, fast-starting MP4 so they play instantly.
+      if (d.type === 'video') {
+        const opt = await optimizeVideo(buf, mt);
+        buf = opt.buffer; mt = opt.contentType; ext = opt.ext;
+        await one('UPDATE posts SET media_type = $1 WHERE id = $2 RETURNING id', [mt, ins.id]);
+      }
+      const key = `feed/${ins.id}.${ext}`;
+      await saveFile(key, buf, mt);
       await one('UPDATE posts SET media_path = $1 WHERE id = $2 RETURNING id', [key, ins.id]);
     }
     const row = await one(`SELECT ${SEL} FROM posts p JOIN users u ON u.id=p.user_id LEFT JOIN organizations o ON o.id=p.org_id WHERE p.id = $2`, [req.user.id, ins.id]);

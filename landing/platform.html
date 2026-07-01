@@ -109,8 +109,18 @@
       <h3>Free trial</h3>
       <p class="muted" style="font-size:14px;margin-bottom:12px">New members automatically get this many days of free Premium (AI) when they sign up. After it ends, they're asked to pay.</p>
       <div class="field" style="max-width:240px"><label>Free trial length (days)</label><input id="set_trial" type="number" min="0" max="3650" placeholder="7"></div>
+      <label style="display:flex;align-items:center;gap:8px;margin:14px 0;font-size:14px"><input type="checkbox" id="set_daily"> Send daily AI good-morning (6am) / evening (6pm) / good-night (9pm) messages to all users</label>
       <button class="btn" onclick="saveSettings()">Save</button>
       <span class="msg" id="setMsg" style="color:var(--accent);margin-left:10px"></span>
+
+      <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+        <p class="muted" style="font-size:13px;margin-bottom:8px">🧪 Test the daily AI message now (don't wait for the schedule):</p>
+        <button class="btn" onclick="testDaily('morning')">☀️ Morning</button>
+        <button class="btn" onclick="testDaily('evening')">🔥 Evening</button>
+        <button class="btn" onclick="testDaily('night')">🌙 Night</button>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px"><input type="checkbox" id="daily_send"> Also send it to all devices (real push)</label>
+        <div id="dailyPreview" style="margin-top:10px;font-size:14px;background:var(--bg);border-radius:10px;padding:12px;min-height:20px"></div>
+      </div>
       <p class="muted" style="font-size:13px;margin-top:14px">To extend a specific user's trial, go to <b>Users &amp; AI access</b> and grant them more days.</p>
     </div>
 
@@ -180,13 +190,23 @@
 
   // ---- Platform settings (free trial) ----
   async function loadSettings(){
-    try{ const s=await api('/super/settings'); $('set_trial').value = s.trial_days; }catch(e){}
+    try{ const s=await api('/super/settings'); $('set_trial').value = s.trial_days; $('set_daily').checked = !!s.daily_messages; }catch(e){}
   }
   async function saveSettings(){
     const d=parseInt($('set_trial').value,10);
-    try{ await api('/super/settings',{method:'PUT',body:JSON.stringify({trial_days:d})});
+    try{ await api('/super/settings',{method:'PUT',body:JSON.stringify({trial_days:d, daily_messages:$('set_daily').checked})});
       $('setMsg').style.color='var(--accent)'; $('setMsg').textContent='✅ Saved';
     }catch(e){ $('setMsg').style.color='var(--danger)'; $('setMsg').textContent=e.message; }
+  }
+  async function testDaily(slot){
+    const send = $('daily_send').checked;
+    $('dailyPreview').textContent = 'Generating…';
+    try{
+      const d = await api('/super/daily-test',{method:'POST',body:JSON.stringify({slot,send})});
+      $('dailyPreview').innerHTML = '<b>'+d.message.title+'</b><br>'+d.message.body+
+        '<br><span class="muted" style="font-size:12px">'+(d.ai?'🤖 AI-generated':'📝 fallback (AI off/failed)')+
+        (send?(' · sent to '+d.sent+'/'+d.targeted+' devices'):'')+'</span>';
+    }catch(e){ $('dailyPreview').textContent = e.message; }
   }
 
   // ---- Push notifications ----

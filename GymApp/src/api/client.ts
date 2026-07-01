@@ -105,7 +105,7 @@ export const WorkoutAPI = {
 export const FeedAPI = {
   list: (before?: number) => api.get('/feed', { params: before ? { before } : {} }).then((r) => r.data),
   publicFeed: (before?: number) => api.get('/feed/public', { params: before ? { before } : {} }).then((r) => r.data),
-  create: (body: Record<string, any>) => api.post('/feed', body).then((r) => r.data),
+  create: (body: Record<string, any>) => api.post('/feed', body, { timeout: 180000 }).then((r) => r.data),
   like: (id: number) => api.post(`/feed/${id}/like`).then((r) => r.data),
   unlike: (id: number) => api.delete(`/feed/${id}/like`).then((r) => r.data),
   react: (id: number, reaction: string) => api.post(`/feed/${id}/react`, { reaction }).then((r) => r.data),

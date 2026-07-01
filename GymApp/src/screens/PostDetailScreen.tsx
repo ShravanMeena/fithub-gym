@@ -13,6 +13,7 @@ import { colors, font, radius, spacing } from '../theme';
 export default function PostDetailScreen({ route }: any) {
   const post = route.params?.post;
   const [src, setSrc] = useState<any>(null);
+  const [vidRatio, setVidRatio] = useState<number | null>(null);
 
   useFocusEffect(useCallback(() => {
     let alive = true;
@@ -40,7 +41,20 @@ export default function PostDetailScreen({ route }: any) {
 
         {post.type === 'image' && src ? <AutoImage source={src} /> : null}
         {post.type === 'video' && src ? (
-          <Video source={src} style={{ width: '100%', height: 320, borderRadius: radius.sm, backgroundColor: '#000' }} controls resizeMode="contain" />
+          <Video
+            source={src}
+            style={{ width: '100%', aspectRatio: vidRatio || 0.75, borderRadius: radius.sm, backgroundColor: '#000' }}
+            controls
+            resizeMode="contain"
+            onLoad={(d: any) => {
+              const ns = d?.naturalSize;
+              if (ns?.width && ns?.height) {
+                let r = ns.width / ns.height;
+                if (ns.orientation === 'portrait' && r > 1) r = 1 / r;
+                setVidRatio(Math.max(0.5, Math.min(2, r)));
+              }
+            }}
+          />
         ) : null}
 
         <View style={{ marginTop: spacing(1.5) }}>

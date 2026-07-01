@@ -5,7 +5,8 @@ import React, { useCallback, useState } from 'react';
 import { View, TouchableOpacity, Alert, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { Card, Txt, Field, Button } from '../components/UI';
+import { Card, Txt, Button } from '../components/UI';
+import { TimeField } from '../components/TimeField';
 import { ensureCalendarPermission, addGymSchedule, removeGymSchedule, canSetAlarm, setGymAlarm } from '../utils/calendar';
 import { colors, font, radius, spacing } from '../theme';
 
@@ -134,7 +135,7 @@ export default function GymScheduleScreen() {
         </View>
 
         <View style={{ height: spacing(2) }} />
-        <Field label="Your gym time (24h, e.g. 06:00)" value={time} onChangeText={setTime} placeholder="06:00" keyboardType="numbers-and-punctuation" />
+        <TimeField label="Your gym time" value={time} onChange={setTime} />
 
         <Txt dim size={font.small} weight="700" style={{ marginBottom: 8 }}>Remind me</Txt>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(1) }}>

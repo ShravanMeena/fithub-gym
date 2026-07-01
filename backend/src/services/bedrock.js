@@ -428,6 +428,33 @@ export async function analyzeProgressPhotos({ images, profile, progress, ctx }) 
   return parseJsonLoose(text);
 }
 
+// A fresh daily push message (good morning / evening / good night). Returns
+// { title, body } or null (caller falls back to a static message).
+export async function generateDailyMessage(slot) {
+  if (mockEnabled()) return null;
+  const brief = {
+    morning: 'a punchy GOOD MORNING message that gets a gym member excited to train and eat well today',
+    evening: 'a motivating EVENING message nudging a gym member to move today or plan tomorrow — a quick session still counts',
+    night: 'a warm GOOD NIGHT message reminding a gym member that rest and sleep are when muscles grow',
+  }[slot] || 'a short motivating message for a gym member';
+  const system =
+    'You write very short, punchy push notifications for a gym app. Vary the wording, be specific and human ' +
+    '(a little hype + one emoji is good). Respond with ONLY a JSON object: ' +
+    '{"title": string (max 38 chars, include one emoji), "body": string (max 110 chars, motivating, no hashtags)}.';
+  try {
+    const text = await invokeClaude({
+      system,
+      messages: [{ role: 'user', content: `Write ${brief}. Make it fresh — not a generic template.` }],
+      maxTokens: 180,
+      feature: 'daily_message',
+    });
+    const m = parseJsonLoose(text);
+    return m?.title && m?.body ? { title: String(m.title).slice(0, 60), body: String(m.body).slice(0, 160) } : null;
+  } catch {
+    return null;
+  }
+}
+
 export function aiMode() {
   return mockEnabled() ? 'mock' : 'bedrock';
 }

@@ -3,8 +3,15 @@ import { z } from 'zod';
 import { q, one } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
 import { sendToTokens, pushEnabled } from '../services/push.js';
-import { getTrialDays, setSetting } from '../services/settings.js';
+import { getTrialDays, getSetting, setSetting } from '../services/settings.js';
 import { globalUsage } from '../services/aiUsage.js';
+import { generateDailyMessage } from '../services/bedrock.js';
+
+const DAILY_FALLBACK = {
+  morning: { title: '☀️ Good morning!', body: 'New day, new gains. Plan your gym session and crush it today 💪' },
+  evening: { title: '🔥 Evening check-in', body: 'Did you move today? Even a quick session counts — let’s go!' },
+  night: { title: '🌙 Good night', body: 'Rest well — your muscles grow while you sleep. See you tomorrow 💪' },
+};
 
 const router = Router();
 router.use(authRequired);
@@ -83,19 +90,48 @@ router.get('/ai-usage', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Test a daily AI message now: generate it and (optionally) send to all devices.
+router.post('/daily-test', async (req, res, next) => {
+  try {
+    const slot = ['morning', 'evening', 'night'].includes(req.body?.slot) ? req.body.slot : 'morning';
+    const msg = (await generateDailyMessage(slot).catch(() => null)) || DAILY_FALLBACK[slot];
+    let sent = 0, targeted = 0;
+    if (req.body?.send) {
+      const rows = await q('SELECT DISTINCT token FROM device_tokens');
+      targeted = rows.length;
+      if (rows.length) {
+        const r = await sendToTokens(rows.map((x) => x.token), { title: msg.title, body: msg.body, data: { type: 'daily', screen: 'Today' } });
+        sent = r.sent;
+      }
+    }
+    res.json({ slot, message: msg, ai: msg !== DAILY_FALLBACK[slot], sent, targeted });
+  } catch (e) { next(e); }
+});
+
 // ---- Platform settings (free trial, etc.) ----
 router.get('/settings', async (req, res, next) => {
   try {
-    res.json({ trial_days: await getTrialDays() });
+    res.json({
+      trial_days: await getTrialDays(),
+      daily_messages: (await getSetting('daily_messages', 'on')) !== 'off',
+    });
   } catch (e) { next(e); }
 });
 
 router.put('/settings', async (req, res, next) => {
   try {
-    const d = Number(req.body?.trial_days);
-    if (!Number.isInteger(d) || d < 0 || d > 3650) return res.status(400).json({ error: 'trial_days must be 0–3650' });
-    await setSetting('trial_days', d);
-    res.json({ trial_days: d });
+    if (req.body?.trial_days !== undefined) {
+      const d = Number(req.body.trial_days);
+      if (!Number.isInteger(d) || d < 0 || d > 3650) return res.status(400).json({ error: 'trial_days must be 0–3650' });
+      await setSetting('trial_days', d);
+    }
+    if (req.body?.daily_messages !== undefined) {
+      await setSetting('daily_messages', req.body.daily_messages ? 'on' : 'off');
+    }
+    res.json({
+      trial_days: await getTrialDays(),
+      daily_messages: (await getSetting('daily_messages', 'on')) !== 'off',
+    });
   } catch (e) { next(e); }
 });
 

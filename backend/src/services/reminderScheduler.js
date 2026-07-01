@@ -7,8 +7,44 @@
 // so a reminder fires at most once per minute even if the tick drifts.
 import { q, exec } from '../db/index.js';
 import { pushEnabled, sendToUser, sendToTokens } from './push.js';
+import { generateDailyMessage } from './bedrock.js';
+import { getSetting } from './settings.js';
 
 let timer = null;
+
+// Daily AI good-morning / evening / good-night broadcasts.
+const DAILY_SLOTS = [
+  { slot: 'morning', localMin: 6 * 60, fallback: { title: '☀️ Good morning!', body: 'New day, new gains. Plan your gym session and crush it today 💪' } },
+  { slot: 'evening', localMin: 18 * 60, fallback: { title: '🔥 Evening check-in', body: 'Did you move today? Even a quick session counts — let’s go!' } },
+  { slot: 'night', localMin: 21 * 60, fallback: { title: '🌙 Good night', body: 'Rest well — your muscles grow while you sleep. See you tomorrow 💪' } },
+];
+const dailyCache = new Map(); // `${date}:${slot}` -> { title, body }
+
+async function getDailyMessage(slot, fallback) {
+  const date = new Date().toISOString().slice(0, 10);
+  const key = `${date}:${slot}`;
+  if (dailyCache.has(key)) return dailyCache.get(key);
+  const msg = (await generateDailyMessage(slot).catch(() => null)) || fallback;
+  dailyCache.set(key, msg);
+  if (dailyCache.size > 12) for (const k of dailyCache.keys()) if (!k.startsWith(date)) dailyCache.delete(k);
+  return msg;
+}
+
+// At 6am / 6pm / 9pm local (per timezone), send the day's AI message to everyone.
+async function dailyMessages(utcMin) {
+  if ((await getSetting('daily_messages', 'on')) === 'off') return;
+  const tzRows = await q('SELECT DISTINCT tz_offset FROM device_tokens');
+  for (const { tz_offset: tz } of tzRows) {
+    const localMin = (((utcMin + tz) % 1440) + 1440) % 1440;
+    const slot = DAILY_SLOTS.find((s) => s.localMin === localMin);
+    if (!slot) continue;
+    const rows = await q('SELECT DISTINCT token FROM device_tokens WHERE tz_offset = $1', [tz]);
+    if (!rows.length) continue;
+    const msg = await getDailyMessage(slot.slot, slot.fallback);
+    await sendToTokens(rows.map((r) => r.token), { title: msg.title, body: msg.body, data: { type: 'daily', screen: 'Today' } });
+    console.log(`[reminders] daily ${slot.slot} message pushed to ${rows.length} device(s) (tz ${tz})`);
+  }
+}
 
 const STREAK_SAVER_LOCAL_MIN = 19 * 60; // 7:00 PM local time
 
@@ -80,6 +116,7 @@ async function tick() {
     const utcMin = now.getUTCHours() * 60 + now.getUTCMinutes();
     streakSaver(utcMin).catch((e) => console.log('[reminders] streak-saver error —', e.message));
     dietNudge(utcMin).catch((e) => console.log('[reminders] diet nudge error —', e.message));
+    dailyMessages(utcMin).catch((e) => console.log('[reminders] daily message error —', e.message));
 
     // Due = local minute-of-day equals the reminder's hour*60+minute, enabled,
     // and not already pushed in the last 90s.

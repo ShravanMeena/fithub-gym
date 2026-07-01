@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import sharp from 'sharp';
 import { one, exec } from '../db/index.js';
 import { authRequired } from '../middleware/auth.js';
 import { computeTargets } from '../services/nutrition.js';
@@ -26,9 +27,15 @@ router.post('/avatar', async (req, res, next) => {
   try {
     const parsed = avatarSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error: 'Invalid image' });
-    const mt = parsed.data.mediaType || 'image/jpeg';
-    const key = `avatars/${req.user.id}.${mt === 'image/png' ? 'png' : 'jpg'}`;
-    await saveFile(key, Buffer.from(parsed.data.imageBase64, 'base64'), mt);
+    const raw = Buffer.from(parsed.data.imageBase64, 'base64');
+    // Normalize to a small square JPEG (fast to load, valid image, consistent).
+    let out = raw, contentType = parsed.data.mediaType || 'image/jpeg';
+    try {
+      out = await sharp(raw).rotate().resize({ width: 512, height: 512, fit: 'cover' }).jpeg({ quality: 82 }).toBuffer();
+      contentType = 'image/jpeg';
+    } catch { /* keep raw if it can't be processed */ }
+    const key = `avatars/${req.user.id}.jpg`;
+    await saveFile(key, out, contentType);
     await exec('UPDATE users SET avatar_path = $1 WHERE id = $2', [key, req.user.id]);
     res.json({ ok: true });
   } catch (e) { next(e); }

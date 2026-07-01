@@ -1,6 +1,9 @@
 # FitHub backend — serves the API + the web panels (landing/admin/platform).
-# Pure-JS deps now (Postgres + GCS), so no native build tools needed.
 FROM node:20-bookworm-slim
+
+# ffmpeg: transcode uploaded videos to web-optimized MP4 (faststart) so they
+# stream/play instantly on all devices.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

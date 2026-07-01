@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Switch, Alert, TouchableOpacity } from 'react-native';
 import { Card, Txt, Field, Button } from '../components/UI';
+import { TimeField } from '../components/TimeField';
 import { KeyboardScroll } from '../components/KeyboardScroll';
 import { ReminderAPI, apiError } from '../api/client';
 import { scheduleReminder, cancelReminder, ensureNotifPermission, sendNow } from '../notifications';
@@ -21,8 +22,7 @@ export default function RemindersScreen() {
   const [reminders, setReminders] = useState<any[]>([]);
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
-  const [hour, setHour] = useState('08');
-  const [minute, setMinute] = useState('00');
+  const [time, setTime] = useState('08:00');
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -37,11 +37,10 @@ export default function RemindersScreen() {
   useEffect(() => { ensureNotifPermission(); load(); }, []);
 
   const add = async () => {
-    const h = Number(hour), m = Number(minute);
+    const mt = /^(\d{1,2}):(\d{2})$/.exec(time);
+    const h = mt ? Number(mt[1]) : -1, m = mt ? Number(mt[2]) : -1;
     if (!title) return Alert.alert('Missing', 'Give the reminder a title.');
-    if (isNaN(h) || h < 0 || h > 23 || isNaN(m) || m < 0 || m > 59) {
-      return Alert.alert('Invalid time', 'Use 0-23 hour and 0-59 minute.');
-    }
+    if (h < 0 || h > 23 || m < 0 || m > 59) return Alert.alert('Invalid time', 'Pick a valid time.');
     const granted = await ensureNotifPermission();
     if (!granted) {
       Alert.alert('Notifications off', 'Enable notifications for IronFuel in Settings to get reminders.');
@@ -88,7 +87,7 @@ export default function RemindersScreen() {
   };
 
   const quickAdd = (label: string, msg: string, h: number, m: number) => {
-    setTitle(label); setMessage(msg); setHour(pad(h)); setMinute(pad(m));
+    setTitle(label); setMessage(msg); setTime(`${pad(h)}:${pad(m)}`);
   };
 
   return (
@@ -104,10 +103,7 @@ export default function RemindersScreen() {
           onChangeText={setMessage}
           placeholder="e.g. Please eat something now 🍽️"
         />
-        <View style={{ flexDirection: 'row', gap: spacing(1.5) }}>
-          <View style={{ flex: 1 }}><Field label="Hour (0-23)" keyboardType="numeric" value={hour} onChangeText={setHour} /></View>
-          <View style={{ flex: 1 }}><Field label="Minute" keyboardType="numeric" value={minute} onChangeText={setMinute} /></View>
-        </View>
+        <TimeField label="Time" value={time} onChange={setTime} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing(1) }}>
           {QUICK.map(([label, msg, h, m]) => (
             <TouchableOpacity

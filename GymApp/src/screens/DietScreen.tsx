@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { ScrollView, View, Alert, RefreshControl, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Button, Field, Pill } from '../components/UI';
+import { TimeField } from '../components/TimeField';
 import { KeyboardScroll } from '../components/KeyboardScroll';
 import { DietAPI, ProfileAPI, ReminderAPI, apiError } from '../api/client';
 import { scheduleReminder, ensureNotifPermission } from '../notifications';
@@ -146,8 +147,8 @@ export default function DietScreen({ navigation }: any) {
       <Card>
         <Txt weight="700" style={{ marginBottom: spacing(1) }}>Your daily routine ⏰</Txt>
         <View style={{ flexDirection: 'row', gap: spacing(1.5) }}>
-          <View style={{ flex: 1 }}><Field label="Wake up" value={wake} onChangeText={setWake} placeholder="07:00" /></View>
-          <View style={{ flex: 1 }}><Field label="Sleep" value={sleep} onChangeText={setSleep} placeholder="23:00" /></View>
+          <View style={{ flex: 1 }}><TimeField label="Wake up" value={wake || '07:00'} onChange={setWake} /></View>
+          <View style={{ flex: 1 }}><TimeField label="Sleep" value={sleep || '23:00'} onChange={setSleep} /></View>
         </View>
 
         <Txt dim size={font.small} style={{ marginBottom: 6 }}>Gym time</Txt>
