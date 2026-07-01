@@ -10,7 +10,7 @@ import { AutoImage } from '../components/AutoImage';
 import { PostInteractions } from '../components/PostInteractions';
 import { FeedAPI, authedImageSource, authedVideoSource, apiError } from '../api/client';
 import { useOrg } from '../context/OrgContext';
-import { scanOrUpload, pickVideo, uriToBase64 } from '../utils/imagePicker';
+import { scanOrUpload, pickVideo } from '../utils/imagePicker';
 import { colors, font, radius, spacing } from '../theme';
 
 const fileUri = (p: string) => (p.startsWith('file://') || p.startsWith('http') ? p : `file://${p}`);
@@ -46,8 +46,7 @@ const Composer = React.memo(function Composer({ onPosted }: { onPosted: () => vo
     try {
       const base = { content: text.trim() || undefined, is_public: isPublic };
       if (video?.uri) {
-        const b64 = await uriToBase64(video.uri);
-        await FeedAPI.create({ ...base, type: 'video', mediaBase64: b64, mediaType: video.type || 'video/mp4' });
+        await FeedAPI.createVideo(video.uri, video.type || 'video/mp4', text.trim() || undefined, isPublic);
       } else if (photo?.base64) {
         await FeedAPI.create({ ...base, type: 'image', mediaBase64: photo.base64, mediaType: photo.type || 'image/jpeg' });
       } else {

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
 import sharp from 'sharp';
 import { q, one } from '../db/index.js';
 import { authRequired, verifyToken } from '../middleware/auth.js';
@@ -112,6 +113,29 @@ router.post('/', async (req, res, next) => {
       await saveFile(key, buf, mt);
       await one('UPDATE posts SET media_path = $1 WHERE id = $2 RETURNING id', [key, ins.id]);
     }
+    const row = await one(`SELECT ${SEL} FROM posts p JOIN users u ON u.id=p.user_id LEFT JOIN organizations o ON o.id=p.org_id WHERE p.id = $2`, [req.user.id, ins.id]);
+    res.json({ post: likeInfo(row, req.user.id) });
+  } catch (e) { next(e); }
+});
+
+// Video upload as a streamed multipart file (reliable on Android, no base64/memory
+// blowup). Transcodes to fast-starting MP4, then creates the post.
+const videoUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
+router.post('/video', videoUpload.single('video'), async (req, res, next) => {
+  try {
+    if (!req.file?.buffer?.length) return res.status(400).json({ error: 'Attach a video.' });
+    const content = (req.body?.content || '').toString().trim().slice(0, 2000) || null;
+    const isPublic = req.body?.is_public === 'true' || req.body?.is_public === '1';
+
+    const ins = await one(
+      'INSERT INTO posts (user_id, org_id, type, content, is_public) VALUES ($1,$2,$3,$4,$5) RETURNING id',
+      [req.user.id, await orgId(req.user.id), 'video', content, isPublic ? 1 : 0]
+    );
+    const opt = await optimizeVideo(req.file.buffer, req.file.mimetype || 'video/mp4');
+    const key = `feed/${ins.id}.${opt.ext}`;
+    await saveFile(key, opt.buffer, opt.contentType);
+    await one('UPDATE posts SET media_path = $1, media_type = $2 WHERE id = $3 RETURNING id', [key, opt.contentType, ins.id]);
+
     const row = await one(`SELECT ${SEL} FROM posts p JOIN users u ON u.id=p.user_id LEFT JOIN organizations o ON o.id=p.org_id WHERE p.id = $2`, [req.user.id, ins.id]);
     res.json({ post: likeInfo(row, req.user.id) });
   } catch (e) { next(e); }

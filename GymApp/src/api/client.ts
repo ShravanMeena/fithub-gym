@@ -106,6 +106,14 @@ export const FeedAPI = {
   list: (before?: number) => api.get('/feed', { params: before ? { before } : {} }).then((r) => r.data),
   publicFeed: (before?: number) => api.get('/feed/public', { params: before ? { before } : {} }).then((r) => r.data),
   create: (body: Record<string, any>) => api.post('/feed', body, { timeout: 180000 }).then((r) => r.data),
+  // Video is uploaded as a streamed multipart file (reliable on Android, no base64).
+  createVideo: (uri: string, mediaType: string, content: string | undefined, isPublic: boolean) => {
+    const form = new FormData();
+    form.append('video', { uri, type: mediaType || 'video/mp4', name: 'upload.mp4' } as any);
+    if (content) form.append('content', content);
+    form.append('is_public', isPublic ? 'true' : 'false');
+    return api.post('/feed/video', form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 300000 }).then((r) => r.data);
+  },
   like: (id: number) => api.post(`/feed/${id}/like`).then((r) => r.data),
   unlike: (id: number) => api.delete(`/feed/${id}/like`).then((r) => r.data),
   react: (id: number, reaction: string) => api.post(`/feed/${id}/react`, { reaction }).then((r) => r.data),
