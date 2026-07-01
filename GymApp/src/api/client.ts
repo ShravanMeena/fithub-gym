@@ -106,13 +106,25 @@ export const FeedAPI = {
   list: (before?: number) => api.get('/feed', { params: before ? { before } : {} }).then((r) => r.data),
   publicFeed: (before?: number) => api.get('/feed/public', { params: before ? { before } : {} }).then((r) => r.data),
   create: (body: Record<string, any>) => api.post('/feed', body, { timeout: 180000 }).then((r) => r.data),
-  // Video is uploaded as a streamed multipart file (reliable on Android, no base64).
-  createVideo: (uri: string, mediaType: string, content: string | undefined, isPublic: boolean) => {
+  // Video is uploaded as a streamed multipart file via fetch (React Native sets
+  // the multipart boundary natively — reliable on iOS + Android, no base64).
+  createVideo: async (uri: string, mediaType: string, content: string | undefined, isPublic: boolean) => {
+    const token = await AsyncStorage.getItem(TOKEN_KEY);
     const form = new FormData();
     form.append('video', { uri, type: mediaType || 'video/mp4', name: 'upload.mp4' } as any);
     if (content) form.append('content', content);
     form.append('is_public', isPublic ? 'true' : 'false');
-    return api.post('/feed/video', form, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 300000 }).then((r) => r.data);
+    // NOTE: do NOT set Content-Type — RN adds "multipart/form-data; boundary=…" itself.
+    const resp = await fetch(`${API_BASE}/feed/video`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!resp.ok) {
+      const t = await resp.text().catch(() => '');
+      throw new Error(t || `Video upload failed (${resp.status})`);
+    }
+    return resp.json();
   },
   like: (id: number) => api.post(`/feed/${id}/like`).then((r) => r.data),
   unlike: (id: number) => api.delete(`/feed/${id}/like`).then((r) => r.data),
