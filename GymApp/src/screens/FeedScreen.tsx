@@ -226,7 +226,14 @@ export default function FeedScreen() {
   const remove = (p: any) => {
     Alert.alert('Delete post?', '', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => { await FeedAPI.remove(p.id); load(tab); } },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          setPosts((prev) => prev.filter((x) => x.id !== p.id)); // vanish immediately
+          try { await FeedAPI.remove(p.id); } catch {}
+          load(tab); // resync current tab; other tab reloads fresh on switch
+        },
+      },
     ]);
   };
 

@@ -13,10 +13,11 @@ import { Icon, IconName } from '../components/Icon';
 import { ProfileAPI } from '../api/client';
 import { colors, shadow } from '../theme';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import OrgSelectScreen from '../screens/OrgSelectScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
-import OnboardingScreen from '../screens/OnboardingScreen';
+import OnboardingScreen, { ONBOARDED_KEY } from '../screens/OnboardingScreen';
 import TodayScreen from '../screens/TodayScreen';
 import DietScreen from '../screens/DietScreen';
 import FoodScanScreen from '../screens/FoodScanScreen';
@@ -95,11 +96,12 @@ function MainTabs() {
 function AppGate() {
   const [state, setState] = useState<'loading' | 'onboard' | 'app'>('loading');
 
-  const check = useCallback(() => {
+  const check = useCallback(async () => {
+    const onboarded = await AsyncStorage.getItem(ONBOARDED_KEY).catch(() => null);
     ProfileAPI.get()
       .then(({ profile, targets }) => {
         const ready = !!targets && !!profile?.weight_kg && !!profile?.goal;
-        setState(ready ? 'app' : 'onboard');
+        setState(ready || onboarded ? 'app' : 'onboard');
       })
       .catch(() => setState('app')); // don't trap the user if the check fails
   }, []);

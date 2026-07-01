@@ -1,11 +1,14 @@
 // First-launch guided setup. Turns a blank app into a personal one: pick a
 // goal, enter basic stats, and we compute daily targets + unlock the plan.
 import React, { useState } from 'react';
-import { ScrollView, View, Alert } from 'react-native';
+import { ScrollView, View, Alert, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Card, Txt, Field, Button, Pill } from '../components/UI';
 import { ProfileAPI, apiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { colors, font, radius, spacing } from '../theme';
+
+export const ONBOARDED_KEY = 'gym.onboarded';
 
 const GOALS: [string, string, string][] = [
   ['lose_fat', '🔥 Lose fat', 'Lean out, drop weight'],
@@ -36,11 +39,7 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
 
   const steps = ['Goal', 'About you', 'Lifestyle'];
 
-  const canNext = () => {
-    if (step === 0) return !!p.goal;
-    if (step === 1) return p.age && (p.height_cm || (ft && unit === 'ft')) && p.weight_kg;
-    return true;
-  };
+  const skip = async () => { await AsyncStorage.setItem(ONBOARDED_KEY, '1').catch(() => {}); onDone(); };
 
   const finish = async () => {
     setSaving(true);
@@ -51,6 +50,7 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
         age: Number(p.age) || undefined, height_cm, weight_kg: Number(p.weight_kg) || undefined,
         target_weight_kg: p.target_weight_kg ? Number(p.target_weight_kg) : undefined,
       });
+      await AsyncStorage.setItem(ONBOARDED_KEY, '1').catch(() => {});
       onDone();
     } catch (e) {
       Alert.alert('Could not save', apiError(e));
@@ -146,11 +146,14 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
       <View style={{ flexDirection: 'row', gap: spacing(1.5), marginTop: spacing(2.5) }}>
         {step > 0 && <Button title="Back" variant="ghost" onPress={() => setStep((s) => s - 1)} style={{ flex: 1 }} />}
         {step < 2 ? (
-          <Button title="Continue" onPress={() => canNext() ? setStep((s) => s + 1) : Alert.alert('Fill the details', 'Please complete this step to continue.')} style={{ flex: 2 }} />
+          <Button title="Continue" onPress={() => setStep((s) => s + 1)} style={{ flex: 2 }} />
         ) : (
           <Button title="🚀 Finish & see my plan" loading={saving} onPress={finish} style={{ flex: 2 }} />
         )}
       </View>
+      <TouchableOpacity onPress={skip} style={{ alignItems: 'center', paddingVertical: spacing(1.5) }}>
+        <Txt weight="700" size={font.small} style={{ color: colors.textDim }}>Skip for now — I'll set this up later</Txt>
+      </TouchableOpacity>
       <View style={{ height: spacing(4) }} />
     </ScrollView>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, View, TouchableOpacity, TouchableWithoutFeedback, ScrollView, Dimensions, Platform } from 'react-native';
 import { Txt } from './UI';
 import { Avatar } from './Avatar';
@@ -28,18 +28,22 @@ export function Sidebar() {
   const { org, clearOrg } = useOrg();
   const tx = useRef(new Animated.Value(-W)).current;
   const fade = useRef(new Animated.Value(0)).current;
+  // Only keep the full-screen overlay mounted while open (or animating closed),
+  // so a closed sidebar can NEVER block/capture touches on the screen behind it.
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    if (sidebarOpen) setMounted(true);
     Animated.parallel([
       Animated.timing(tx, { toValue: sidebarOpen ? 0 : -W, duration: 220, useNativeDriver: true }),
       Animated.timing(fade, { toValue: sidebarOpen ? 1 : 0, duration: 220, useNativeDriver: true }),
-    ]).start();
+    ]).start(({ finished }) => { if (finished && !sidebarOpen) setMounted(false); });
   }, [sidebarOpen, tx, fade]);
 
   // Always land on Home with the sidebar closed after login/signup/logout.
   useEffect(() => { closeSidebar(); }, [user?.id, closeSidebar]);
 
-  if (!user) return null;
+  if (!user || !mounted) return null;
 
   const go = (screen: string) => { closeSidebar(); setTimeout(() => navTo(screen), 180); };
   const brand = org?.primary_color || colors.primary;
