@@ -211,6 +211,15 @@ CREATE TABLE IF NOT EXISTS water_intake (
 -- Per-user water goal + hydration reminders.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS water_goal INTEGER NOT NULL DEFAULT 8;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS water_reminders INTEGER NOT NULL DEFAULT 0;
+-- Water is now tracked in millilitres (goal default 3000ml = 3L).
+ALTER TABLE water_intake ADD COLUMN IF NOT EXISTS ml INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS water_goal_ml INTEGER NOT NULL DEFAULT 3000;
+
+-- What muscle groups the member trained in a session (comma-separated).
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS focus TEXT;
+
+-- Post hashtags (comma-separated, lowercase, no #) for interest-based feed.
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS tags TEXT;
 
 -- Platform-wide key/value settings (e.g. free-trial length), set by superadmin.
 CREATE TABLE IF NOT EXISTS platform_settings (

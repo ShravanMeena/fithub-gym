@@ -71,6 +71,7 @@ export const AttendanceAPI = {
   checkin: () => api.post('/attendance/checkin').then((r) => r.data),
   checkout: (reason?: string) => api.post('/attendance/checkout', { reason }).then((r) => r.data),
   setReason: (id: number, reason: string) => api.put(`/attendance/${id}/reason`, { reason }).then((r) => r.data),
+  setFocus: (id: number, focus: string[]) => api.put(`/attendance/${id}/focus`, { focus }).then((r) => r.data),
 };
 
 export const AppAPI = {
@@ -78,11 +79,14 @@ export const AppAPI = {
     api.get('/app/update', { params: { platform: Platform.OS, version: APP_VERSION } }).then((r) => r.data),
 };
 
+export const MeAPI = {
+  week: () => api.get('/me/week').then((r) => r.data),
+};
+
 export const WaterAPI = {
   today: () => api.get('/water').then((r) => r.data),
-  add: (delta: 1 | -1 = 1) => api.post('/water/add', { delta }).then((r) => r.data),
-  setGoal: (goal: number) => api.put('/water/goal', { goal }).then((r) => r.data),
-  setReminders: (reminders: boolean) => api.put('/water/reminders', { reminders }).then((r) => r.data),
+  add: (ml: number) => api.post('/water/add', { ml }).then((r) => r.data),
+  setGoal: (goalMl: number) => api.put('/water/goal', { goalMl }).then((r) => r.data),
 };
 
 export const ChallengeAPI = {
@@ -118,7 +122,9 @@ export const ProfileAPI = {
 };
 
 // <Image> source for any user's avatar (sends the JWT as a header).
-export const avatarSource = (userId: number) => authedImageSource(`/profile/avatar/${userId}`);
+// `v` busts the image cache after a re-upload (same URL would show the old pic).
+export const avatarSource = (userId: number, v?: number) =>
+  authedImageSource(`/profile/avatar/${userId}${v ? `?v=${v}` : ''}`);
 
 export const DietAPI = {
   generate: () => api.post('/diet/generate').then((r) => r.data),

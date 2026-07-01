@@ -47,8 +47,23 @@ function likeInfo(row, userId) {
     author: row.author_name, authorId: row.user_id, authorAvatar: !!row.author_avatar,
     gym: row.gym_name || null, created_at: row.created_at,
     is_announcement: !!row.is_announcement, is_public: !!row.is_public,
+    tags: row.tags ? row.tags.split(',').filter(Boolean) : [],
     likes: Number(row.likes) || 0, liked: !!row.liked, myReaction: row.my_reaction || null,
     comments: Number(row.comments) || 0, mine: row.user_id === userId };
+}
+
+// Normalize hashtags: from an explicit list + any #tags in the content. Returns
+// a comma-separated lowercase string (no #), max 8 tags, or null.
+function normalizeTags(list, content) {
+  const out = new Set();
+  for (const t of Array.isArray(list) ? list : []) {
+    const c = String(t).toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (c) out.add(c.slice(0, 24));
+  }
+  for (const m of String(content || '').matchAll(/#([a-zA-Z0-9_]+)/g)) {
+    out.add(m[1].toLowerCase().replace(/_/g, '').slice(0, 24));
+  }
+  return out.size ? [...out].slice(0, 8).join(',') : null;
 }
 
 const SEL = `p.*, u.name AS author_name, (u.avatar_path IS NOT NULL) AS author_avatar, o.name AS gym_name,
@@ -65,6 +80,7 @@ const createSchema = z.object({
   mediaBase64: z.string().optional(),
   mediaType: z.string().optional(),
   is_public: z.boolean().default(true),
+  tags: z.array(z.string()).optional(),
 });
 
 router.post('/', async (req, res, next) => {

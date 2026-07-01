@@ -127,46 +127,35 @@ export default function TodayScreen({ navigation }: any) {
         </>
       )}
 
-      {/* 4) Community teaser */}
-      <Card onPress={() => navigation.navigate('Community')} style={{ marginTop: spacing(1) }}>
+      {/* 4) Leaderboard — highlighted (competition = motivation) */}
+      <Card onPress={() => navigation.navigate('Challenges')} style={{ borderColor: colors.primary, backgroundColor: colors.primary + '10' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
-            <Txt weight="800">💬 {org?.name || 'Gym'} Community</Txt>
-            <Txt dim size={font.small} style={{ marginTop: 2 }}>See updates & share your wins →</Txt>
+            <Txt weight="800">🏆 {org?.name || 'Gym'} Leaderboard</Txt>
+            <Txt dim size={font.small} style={{ marginTop: 2 }}>See where you rank this month — keep showing up to climb →</Txt>
           </View>
           <Txt size={22}>›</Txt>
         </View>
       </Card>
 
-      {/* Share & Earn */}
-      <Card onPress={() => navigation.navigate('Referral')} style={{ borderColor: colors.primary }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View style={{ flex: 1 }}>
-            <Txt weight="800">🎁 Invite friends, get Premium free</Txt>
-            <Txt dim size={font.small} style={{ marginTop: 2 }}>Share your code & earn coins →</Txt>
-          </View>
-          <Txt size={22}>›</Txt>
-        </View>
-      </Card>
-
-      {/* Gym schedule → device calendar reminders */}
-      <Card onPress={() => navigation.navigate('GymSchedule')}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View style={{ flex: 1 }}>
-            <Txt weight="800">⏰ Set your gym timing alarm</Txt>
-            <Txt dim size={font.small} style={{ marginTop: 2 }}>Pick your time — we'll ring you to go →</Txt>
-          </View>
-          <Txt size={22}>›</Txt>
-        </View>
-      </Card>
-
-      {/* AI coach as an optional helper */}
-      <Card onPress={() => navigation.navigate('Coach')} style={{ backgroundColor: colors.cardAlt }}>
-        <Txt weight="800">✨ Ask the AI Coach</Txt>
-        <Txt dim size={font.small} style={{ marginTop: 2 }}>Diet doubts, plateaus or motivation? Get instant advice →</Txt>
-      </Card>
+      {/* Compact tiles for everything else (declutter) */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: spacing(1) }}>
+        <Tile emoji="💬" label="Community" onPress={() => navigation.navigate('Community')} />
+        <Tile emoji="🎁" label="Invite & earn" onPress={() => navigation.navigate('Referral')} />
+        <Tile emoji="⏰" label="Gym timing" onPress={() => navigation.navigate('GymSchedule')} />
+        <Tile emoji="✨" label="AI Coach" onPress={() => navigation.navigate('Coach')} />
+      </View>
 
       <View style={{ height: spacing(4) }} />
     </ScrollView>
+  );
+}
+
+function Tile({ emoji, label, onPress }: { emoji: string; label: string; onPress: () => void }) {
+  return (
+    <TouchableOpacity onPress={onPress} style={{ width: '48.5%', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: spacing(1.75), alignItems: 'center', marginBottom: spacing(1) }}>
+      <Txt size={24}>{emoji}</Txt>
+      <Txt weight="700" size={font.small} style={{ marginTop: 4 }}>{label}</Txt>
+    </TouchableOpacity>
   );
 }

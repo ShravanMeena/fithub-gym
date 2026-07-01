@@ -16,6 +16,7 @@ const DURATIONS = [
   { label: '1h 30m', min: 90 },
   { label: '2 hours', min: 120 },
 ];
+const MUSCLE_GROUPS = ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core', 'Cardio', 'Full body'];
 
 const fmtDur = (m: number | null) => {
   if (!m) return 'not set';
@@ -47,23 +48,30 @@ export function AttendanceManager({ attendance, reload, gymName }: { attendance:
   const promptedRef = useRef(false);
   const snoozeUntil = useRef(0);
 
+  // Muscle-group ("what did you train?") picker.
+  const [showFocus, setShowFocus] = useState(false);
+  const [focusSel, setFocusSel] = useState<string[]>([]);
+  const focusForId = useRef<number | null>(null);
+  const focusPhase = useRef<'checkin' | 'checkout'>('checkin');
+
   const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
   const closeDuration = () => { setShowDuration(false); setCustomMode(false); };
 
   const checkedIn = !!attendance?.checkedIn;
+  const doneToday = !!attendance?.checkedOutToday && !checkedIn;
 
   useEffect(() => {
     AsyncStorage.getItem(SESSION_KEY).then((v) => v && setSessionMin(Number(v)));
     AsyncStorage.getItem(SNOOZE_KEY).then((v) => { if (v) snoozeUntil.current = Number(v); });
   }, []);
 
-  // Prompt to check in when the app opens (unless snoozed via "Maybe later").
+  // Prompt to check in when the app opens — unless snoozed, or already trained today.
   useEffect(() => {
-    if (attendance && !checkedIn && !promptedRef.current && Date.now() > snoozeUntil.current) {
+    if (attendance && !checkedIn && !doneToday && !promptedRef.current && Date.now() > snoozeUntil.current) {
       promptedRef.current = true;
       setShowCheckIn(true);
     }
-  }, [attendance, checkedIn]);
+  }, [attendance, checkedIn, doneToday]);
 
   // "Maybe later" → don't nag again for 6 hours.
   const snoozeCheckIn = () => {
@@ -103,14 +111,37 @@ export function AttendanceManager({ attendance, reload, gymName }: { attendance:
     ]);
   };
 
+  // After the focus picker, continue the check-in flow (ask duration / set reminder).
+  const afterCheckInFlow = async () => {
+    if (sessionMin == null) { durationMode.current = 'first'; setShowDuration(true); }
+    else await scheduleCheckoutReminder(sessionMin, gymName);
+  };
+
   const doCheckIn = async () => {
     setShowCheckIn(false);
     try {
-      await AttendanceAPI.checkin();
+      const res = await AttendanceAPI.checkin();
       await reload();
-      if (sessionMin == null) { durationMode.current = 'first'; setShowDuration(true); }
-      else await scheduleCheckoutReminder(sessionMin, gymName);
+      // Ask what they're training today.
+      focusForId.current = res?.attendance?.id ?? null;
+      focusPhase.current = 'checkin';
+      setFocusSel([]);
+      setShowFocus(true);
     } catch (e) { Alert.alert('Error', apiError(e)); }
+  };
+
+  const saveFocus = async () => {
+    setShowFocus(false);
+    if (focusForId.current && focusSel.length) {
+      try { await AttendanceAPI.setFocus(focusForId.current, focusSel); } catch {}
+      await reload();
+    }
+    if (focusPhase.current === 'checkin') afterCheckInFlow();
+  };
+
+  const skipFocus = () => {
+    setShowFocus(false);
+    if (focusPhase.current === 'checkin') afterCheckInFlow();
   };
 
   const doCheckOut = async () => {
@@ -118,8 +149,18 @@ export function AttendanceManager({ attendance, reload, gymName }: { attendance:
     try {
       const res = await AttendanceAPI.checkout();
       await cancelCheckoutReminder();
+      // Don't re-nag "check in" right after leaving.
+      snoozeUntil.current = Date.now() + SNOOZE_MS;
+      AsyncStorage.setItem(SNOOZE_KEY, String(snoozeUntil.current)).catch(() => {});
       await reload();
       if (res.tooShort && res.attendance?.id) promptShortReason(res.attendance.id, res.durationMin ?? 0);
+      // If they never said what they trained, ask now (on the way out).
+      else if (res.attendance?.id && !res.attendance?.focus) {
+        focusForId.current = res.attendance.id;
+        focusPhase.current = 'checkout';
+        setFocusSel([]);
+        setShowFocus(true);
+      }
     } catch (e) { Alert.alert('Error', apiError(e)); }
   };
 
@@ -138,19 +179,27 @@ export function AttendanceManager({ attendance, reload, gymName }: { attendance:
 
   return (
     <>
-      <Card style={{ borderColor: checkedIn ? colors.accent : colors.border }}>
+      <Card style={{ borderColor: checkedIn ? colors.accent : doneToday ? colors.accent : colors.border }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flex: 1 }}>
-            <Txt weight="700">{checkedIn ? '🟢 You are in the gym' : '📍 Gym attendance'}</Txt>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Txt weight="700">{checkedIn ? '🟢 You are in the gym' : doneToday ? '✅ Trained today — great job!' : '📍 Gym attendance'}</Txt>
             <Txt dim size={font.small} style={{ marginTop: 2 }}>
               {attendance?.todayCount ?? 0} here today · trained {attendance?.daysThisWeek ?? 0}× this week
             </Txt>
           </View>
-          <TouchableOpacity
-            onPress={checkedIn ? () => setShowCheckout(true) : doCheckIn}
-            style={{ backgroundColor: checkedIn ? colors.danger : colors.accent, paddingHorizontal: spacing(2), paddingVertical: 10, borderRadius: radius.pill }}>
-            <Txt weight="800" style={{ color: '#fff' }}>{checkedIn ? 'Check out' : 'Check in'}</Txt>
-          </TouchableOpacity>
+          {checkedIn ? (
+            <TouchableOpacity onPress={() => setShowCheckout(true)} style={{ backgroundColor: colors.danger, paddingHorizontal: spacing(2), paddingVertical: 10, borderRadius: radius.pill }}>
+              <Txt weight="800" style={{ color: '#fff' }}>Check out</Txt>
+            </TouchableOpacity>
+          ) : doneToday ? (
+            <TouchableOpacity onPress={doCheckIn} style={{ backgroundColor: colors.cardAlt, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing(1.5), paddingVertical: 9, borderRadius: radius.pill }}>
+              <Txt weight="700" size={font.small} dim>Check in again</Txt>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={doCheckIn} style={{ backgroundColor: colors.accent, paddingHorizontal: spacing(2), paddingVertical: 10, borderRadius: radius.pill }}>
+              <Txt weight="800" style={{ color: '#fff' }}>Check in</Txt>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Reminder control */}
@@ -208,6 +257,25 @@ export function AttendanceManager({ attendance, reload, gymName }: { attendance:
         <Txt dim style={{ textAlign: 'center', marginTop: 8, marginBottom: spacing(2) }}>Check out to record your session time.</Txt>
         <Button title="🏁 Check out now" onPress={doCheckOut} />
         <Button title="Still training" variant="ghost" onPress={() => setShowCheckout(false)} style={{ marginTop: spacing(1) }} />
+      </Sheet>
+
+      {/* What did you train? (multi-select muscle groups) */}
+      <Sheet visible={showFocus} onClose={skipFocus}>
+        <Txt size={font.h3} weight="800" style={{ textAlign: 'center' }}>What are you training{focusPhase.current === 'checkout' ? ' today' : ''}? 💪</Txt>
+        <Txt dim style={{ textAlign: 'center', marginTop: 8, marginBottom: spacing(2) }}>Pick everything you're hitting — it's saved to your history.</Txt>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {MUSCLE_GROUPS.map((g) => {
+            const on = focusSel.includes(g);
+            return (
+              <TouchableOpacity key={g} onPress={() => setFocusSel((p) => on ? p.filter((x) => x !== g) : [...p, g])}
+                style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: radius.pill, margin: 5, backgroundColor: on ? colors.primary : colors.cardAlt, borderWidth: 1, borderColor: on ? colors.primary : colors.border }}>
+                <Txt weight="700" size={font.small} style={{ color: on ? '#fff' : colors.textDim }}>{g}</Txt>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <Button title={focusSel.length ? `Save (${focusSel.length})` : 'Save'} onPress={saveFocus} style={{ marginTop: spacing(2) }} />
+        <Button title="Skip" variant="ghost" onPress={skipFocus} style={{ marginTop: spacing(1) }} />
       </Sheet>
     </>
   );

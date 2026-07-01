@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View, Image, Alert, TouchableOpacity, RefreshControl } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
 import Video from 'react-native-video';
 import VideoTrim, { showEditor } from 'react-native-video-trim';
 import { Card, Txt, Button, Field } from '../components/UI';
 import { Avatar } from '../components/Avatar';
+import { AutoImage } from '../components/AutoImage';
 import { PostInteractions } from '../components/PostInteractions';
 import { FeedAPI, authedImageSource, authedVideoSource, apiError } from '../api/client';
 import { useOrg } from '../context/OrgContext';
@@ -16,6 +17,7 @@ const fileUri = (p: string) => (p.startsWith('file://') || p.startsWith('http') 
 
 export default function FeedScreen() {
   const { org } = useOrg();
+  const navigation = useNavigation<any>();
   const [tab, setTab] = useState<'community' | 'public'>('community');
   const [posts, setPosts] = useState<any[]>([]);
   const [sources, setSources] = useState<Record<number, any>>({});
@@ -185,10 +187,16 @@ export default function FeedScreen() {
               {p.mine ? <TouchableOpacity onPress={() => remove(p)}><Txt size={font.small} style={{ color: colors.danger }}>✕</Txt></TouchableOpacity> : null}
             </View>
 
-            {p.content ? <Txt style={{ marginBottom: p.media_url ? 8 : 0, lineHeight: 21 }}>{p.content}</Txt> : null}
+            {p.content ? (
+              <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('PostDetail', { post: p })}>
+                <Txt style={{ marginBottom: p.media_url ? 8 : 0, lineHeight: 21 }}>{p.content}</Txt>
+              </TouchableOpacity>
+            ) : null}
 
             {p.type === 'image' && sources[p.id] ? (
-              <Image source={sources[p.id]} style={{ width: '100%', height: 240, borderRadius: radius.sm, backgroundColor: colors.cardAlt }} />
+              <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('PostDetail', { post: p })}>
+                <AutoImage source={sources[p.id]} />
+              </TouchableOpacity>
             ) : null}
             {p.type === 'video' && sources[p.id] ? (
               <View>

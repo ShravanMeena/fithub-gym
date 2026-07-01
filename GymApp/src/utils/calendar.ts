@@ -50,14 +50,14 @@ async function writableCalendarId(): Promise<string | undefined> {
 }
 
 // Create one weekly-recurring "Gym time" event per selected day, with an alarm
-// `leadMinutes` before. Returns how many were added.
-export async function addGymSchedule(days: number[], hour: number, minute: number, leadMinutes = 30): Promise<number> {
+// `leadMinutes` before. Returns the created event IDs (so they can be removed later).
+export async function addGymSchedule(days: number[], hour: number, minute: number, leadMinutes = 30): Promise<string[]> {
   const calendarId = await writableCalendarId();
-  let count = 0;
+  const ids: string[] = [];
   for (const wd of days) {
     const start = nextForWeekday(wd, hour, minute);
     const end = new Date(start.getTime() + 60 * 60 * 1000);
-    await RNCalendarEvents.saveEvent('🏋️ Gym time', {
+    const id = await RNCalendarEvents.saveEvent('🏋️ Gym time', {
       ...(calendarId ? { calendarId } : {}),
       startDate: start.toISOString(),
       endDate: end.toISOString(),
@@ -65,7 +65,19 @@ export async function addGymSchedule(days: number[], hour: number, minute: numbe
       alarms: [{ date: -Math.abs(leadMinutes) }],
       recurrenceRule: { frequency: 'weekly', interval: 1 },
     } as any);
-    count++;
+    if (id) ids.push(id);
   }
-  return count;
+  return ids;
+}
+
+// Remove previously-added gym events (whole recurring series). Returns how many removed.
+export async function removeGymSchedule(ids: string[]): Promise<number> {
+  let removed = 0;
+  for (const id of ids) {
+    try {
+      await RNCalendarEvents.removeEvent(id, { futureEvents: true } as any);
+      removed++;
+    } catch { /* already gone */ }
+  }
+  return removed;
 }

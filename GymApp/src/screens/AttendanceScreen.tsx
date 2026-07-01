@@ -65,6 +65,7 @@ export default function AttendanceScreen() {
                 )}
               </View>
               {h.checked_out_at ? <Txt dim size={font.tiny}>out at {fmt(h.checked_out_at)}</Txt> : null}
+              {h.focus ? <Txt size={font.small} weight="700" style={{ color: colors.primary, marginTop: 4 }}>💪 {h.focus}</Txt> : null}
               {short && h.reason ? <Txt size={font.small} style={{ color: colors.danger, marginTop: 4 }}>Note: {h.reason}</Txt> : null}
             </Card>
           );

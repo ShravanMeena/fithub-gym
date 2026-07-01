@@ -55,10 +55,33 @@ export default function ChallengesScreen() {
         </View>
       )}
 
+      {/* Top-3 podium */}
+      {board.length >= 3 && (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', marginBottom: spacing(2) }}>
+          {[board[1], board[0], board[2]].map((r: any, i: number) => {
+            const isFirst = i === 1;
+            const h = isFirst ? 92 : 70;
+            return (
+              <View key={r.id ?? r.rank} style={{ alignItems: 'center', flex: 1, marginHorizontal: 4 }}>
+                <Txt size={isFirst ? 26 : 20}>{medal(r.rank)}</Txt>
+                <View style={{ marginVertical: 4 }}>
+                  <Avatar userId={r.id} name={r.name} hasAvatar={r.hasAvatar} size={isFirst ? 58 : 46} />
+                </View>
+                <Txt weight="800" size={font.small} numberOfLines={1} style={{ maxWidth: '100%' }}>{r.name?.split(' ')[0]}</Txt>
+                <View style={{ width: '100%', height: h, backgroundColor: isFirst ? colors.primary : colors.card, borderWidth: 1, borderColor: isFirst ? colors.primary : colors.border, borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, marginTop: 4, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 8 }}>
+                  <Txt weight="900" size={font.h3} style={{ color: isFirst ? '#fff' : colors.primary }}>{r.value}</Txt>
+                  <Txt size={font.tiny} style={{ color: isFirst ? '#fff' : colors.textDim }}>days</Txt>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
       {board.length === 0 ? (
         <Card><Txt dim>No check-ins yet this {period}. Be the first on the board! 💪</Txt></Card>
       ) : (
-        board.map((r: any) => {
+        (board.length >= 3 ? board.slice(3) : board).map((r: any) => {
           const top = r.rank <= 3;
           return (
             <View

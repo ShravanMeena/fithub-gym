@@ -30,6 +30,7 @@ import AttendanceScreen from '../screens/AttendanceScreen';
 import ChallengesScreen from '../screens/ChallengesScreen';
 import ReferralScreen from '../screens/ReferralScreen';
 import GymScheduleScreen from '../screens/GymScheduleScreen';
+import PostDetailScreen from '../screens/PostDetailScreen';
 
 const navTheme = {
   ...DefaultTheme,
@@ -148,6 +149,7 @@ export default function RootNavigator() {
               <Stack.Screen name="Challenges" component={ChallengesScreen} options={{ title: 'Leaderboard' }} />
               <Stack.Screen name="Referral" component={ReferralScreen} options={{ title: 'Share & Earn' }} />
               <Stack.Screen name="GymSchedule" component={GymScheduleScreen} options={{ title: 'Gym Timing' }} />
+              <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: 'Post' }} />
             </>
           ) : !org ? (
             <Stack.Screen name="OrgSelect" component={OrgSelectScreen} options={{ headerShown: false }} />

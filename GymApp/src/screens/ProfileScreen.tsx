@@ -110,7 +110,7 @@ export default function ProfileScreen() {
       {/* Profile photo */}
       <View style={{ alignItems: 'center', marginBottom: spacing(2) }}>
         <TouchableOpacity onPress={changePhoto}>
-          <Avatar key={avatarV} userId={user?.id} name={user?.name} hasAvatar={hasAvatar} size={92} />
+          <Avatar key={avatarV} version={avatarV} userId={user?.id} name={user?.name} hasAvatar={hasAvatar} size={92} />
           <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: colors.primary, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.bg }}>
             <Txt size={15}>📷</Txt>
           </View>

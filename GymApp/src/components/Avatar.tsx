@@ -14,17 +14,17 @@ const colorFor = (name?: string) => {
 };
 
 export function Avatar({
-  userId, name, hasAvatar = true, size = 40,
-}: { userId?: number; name?: string; hasAvatar?: boolean; size?: number }) {
+  userId, name, hasAvatar = true, size = 40, version,
+}: { userId?: number; name?: string; hasAvatar?: boolean; size?: number; version?: number }) {
   const [src, setSrc] = useState<any>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     setFailed(false); setSrc(null);
-    if (userId && hasAvatar) avatarSource(userId).then((s) => alive && setSrc(s)).catch(() => {});
+    if (userId && hasAvatar) avatarSource(userId, version).then((s) => alive && setSrc(s)).catch(() => {});
     return () => { alive = false; };
-  }, [userId, hasAvatar]);
+  }, [userId, hasAvatar, version]);
 
   const initial = (name || '?').trim()[0]?.toUpperCase() || '?';
   const showImg = src && !failed && hasAvatar;

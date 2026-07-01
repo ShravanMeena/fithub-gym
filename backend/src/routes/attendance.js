@@ -59,6 +59,16 @@ router.put('/:id/reason', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Save what the member trained this session (array of muscle groups).
+router.put('/:id/focus', async (req, res, next) => {
+  try {
+    const list = Array.isArray(req.body?.focus) ? req.body.focus : [];
+    const focus = list.map((s) => String(s).slice(0, 24)).filter(Boolean).slice(0, 10).join(', ') || null;
+    await one('UPDATE attendance SET focus = $1 WHERE id = $2 AND user_id = $3 RETURNING id', [focus, req.params.id, req.user.id]);
+    res.json({ ok: true, focus });
+  } catch (e) { next(e); }
+});
+
 router.get('/', async (req, res, next) => {
   try {
     const open = await one('SELECT * FROM attendance WHERE user_id = $1 AND checked_out_at IS NULL ORDER BY id DESC LIMIT 1', [req.user.id]);
@@ -78,7 +88,12 @@ router.get('/', async (req, res, next) => {
       `SELECT COUNT(DISTINCT checked_in_at::date) AS c FROM attendance WHERE user_id = $1 AND checked_in_at >= now() - interval '7 days'`,
       [req.user.id]
     ))?.c || 0;
-    res.json({ checkedIn: !!open, open, history, todayCount, myVisits, daysThisWeek });
+    // Completed at least one session today? Used to avoid re-prompting check-in.
+    const doneToday = await one(
+      `SELECT id FROM attendance WHERE user_id = $1 AND checked_out_at IS NOT NULL AND checked_in_at::date = current_date ORDER BY id DESC LIMIT 1`,
+      [req.user.id]
+    );
+    res.json({ checkedIn: !!open, open, history, todayCount, myVisits, daysThisWeek, checkedOutToday: !!doneToday });
   } catch (e) { next(e); }
 });
 
@@ -87,7 +102,7 @@ const REST_PER_MONTH = 4;
 
 // Compute current + longest streak, where a marked rest day bridges (protects)
 // the streak instead of breaking it. checkins/rests are Sets of 'YYYY-MM-DD'.
-function computeStreaks(checkins, rests) {
+export function computeStreaks(checkins, rests) {
   const iso = (dt) => dt.toISOString().slice(0, 10);
   // Current streak: walk back from today; today empty (not yet) is allowed.
   let streak = 0;

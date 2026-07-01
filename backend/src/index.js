@@ -25,6 +25,7 @@ import waterRoutes from './routes/water.js';
 import appRoutes from './routes/app.js';
 import referralRoutes from './routes/referral.js';
 import aiRoutes from './routes/ai.js';
+import meRoutes from './routes/me.js';
 import { initDb } from './db/index.js';
 import { aiMode } from './services/bedrock.js';
 import { storageMode } from './services/storage.js';
@@ -58,6 +59,7 @@ app.use('/api/water', waterRoutes);
 app.use('/api/app', appRoutes); // public — app update check
 app.use('/api/referral', referralRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/me', meRoutes);
 
 // Unknown /api routes -> JSON 404.
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));

@@ -4,7 +4,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { View, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt } from './UI';
-import { AttendanceAPI, apiError } from '../api/client';
+import { AttendanceAPI, MeAPI, apiError } from '../api/client';
 import { colors, font, radius, spacing } from '../theme';
 
 const MILESTONE_LABEL: Record<number, string> = { 7: '🔥', 14: '⚡', 30: '🏅', 50: '💎', 100: '👑', 200: '🦾', 365: '🐐' };
@@ -73,7 +73,11 @@ function StreakCalendar({ days, restDays }: { days: string[]; restDays: string[]
 
 export function StreakCard({ onLeaderboard }: { onLeaderboard?: () => void }) {
   const [s, setS] = useState<Stats | null>(null);
-  const load = useCallback(() => { AttendanceAPI.stats().then(setS).catch(() => {}); }, []);
+  const [week, setWeek] = useState<any>(null);
+  const load = useCallback(() => {
+    AttendanceAPI.stats().then(setS).catch(() => {});
+    MeAPI.week().then(setWeek).catch(() => {});
+  }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const takeRest = async () => {
@@ -85,30 +89,30 @@ export function StreakCard({ onLeaderboard }: { onLeaderboard?: () => void }) {
   const days = s.days || [];
   const restDays = s.restDays || [];
   const milestones = s.milestones || [];
-  const longest = s.longest || 0;
   const restRemaining = s.restRemaining ?? 0;
   const hasData = days.length > 0 || restDays.length > 0;
 
+  const sessions = week?.sessions ?? 0;
+  const target = week?.targetSessions ?? 4;
+  const onTrack = sessions >= target;
+  const wc = week?.weightChangeKg;
+
   return (
     <Card>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing(1.5) }}>
-        <View>
-          <Txt size={font.small} dim weight="800" style={{ letterSpacing: 1 }}>STREAK</Txt>
-          <Txt size={font.h1} weight="900" style={{ color: colors.primary }}>
-            {s.streak > 0 ? `🔥 ${s.streak}` : '0'}
-            <Txt size={font.body} weight="700" dim>  day{s.streak === 1 ? '' : 's'}</Txt>
+      {/* "This week" scorecard */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(1.25) }}>
+        <Txt size={font.tiny} dim weight="800" style={{ letterSpacing: 1 }}>THIS WEEK</Txt>
+        {week && (
+          <Txt size={font.tiny} weight="800" style={{ color: onTrack ? colors.accent : colors.primary }}>
+            {onTrack ? '✅ On track' : `${target - sessions} more to hit ${target}`}
           </Txt>
-          {longest > 0 && <Txt dim size={font.tiny}>Longest: {longest} days</Txt>}
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <Txt size={font.h2} weight="900">{s.monthVisits}</Txt>
-          <Txt size={font.tiny} dim>this month</Txt>
-          {s.rank != null && (
-            <View style={{ backgroundColor: colors.cardAlt, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, marginTop: 4 }}>
-              <Txt size={font.tiny} weight="800" style={{ color: colors.accent }}>🏆 #{s.rank}{s.rankedMembers ? `/${s.rankedMembers}` : ''}</Txt>
-            </View>
-          )}
-        </View>
+        )}
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing(1.5) }}>
+        <Metric value={`${sessions}/${target}`} label="Sessions" hero />
+        <Metric value={`🔥${s.streak || 0}`} label="Streak" />
+        <Metric value={`${week?.foodDays ?? 0}`} label="Days logged" />
+        <Metric value={wc != null ? `${wc > 0 ? '+' : ''}${wc.toFixed(1)}` : '—'} label="kg 30d" accent={wc != null && wc <= 0} />
       </View>
 
       {/* Milestone badges */}
@@ -149,5 +153,14 @@ export function StreakCard({ onLeaderboard }: { onLeaderboard?: () => void }) {
         )}
       </View>
     </Card>
+  );
+}
+
+function Metric({ value, label, hero, accent }: { value: string; label: string; hero?: boolean; accent?: boolean }) {
+  return (
+    <View style={{ alignItems: 'center', flex: 1 }}>
+      <Txt size={hero ? font.h2 : font.h3} weight="900" style={{ color: accent ? colors.accent : hero ? colors.primary : colors.text }}>{value}</Txt>
+      <Txt size={font.tiny} weight="700" dim style={{ marginTop: 2 }}>{label}</Txt>
+    </View>
   );
 }
