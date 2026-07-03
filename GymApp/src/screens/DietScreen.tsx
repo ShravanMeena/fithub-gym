@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Button, Field, Pill } from '../components/UI';
 import { TimeField } from '../components/TimeField';
 import { KeyboardScroll } from '../components/KeyboardScroll';
-import { DietAPI, ProfileAPI, ReminderAPI, apiError } from '../api/client';
+import { DietAPI, ProfileAPI, ReminderAPI, FoodAPI, apiError } from '../api/client';
 import { scheduleReminder, ensureNotifPermission } from '../notifications';
 import { useBilling } from '../context/BillingContext';
 import { colors, font, radius, spacing } from '../theme';
@@ -28,6 +28,12 @@ export default function DietScreen({ navigation }: any) {
   const [selected, setSelected] = useState(0);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showPlan, setShowPlan] = useState(false);
+
+  // today's food diary
+  const [logs, setLogs] = useState<any[]>([]);
+  const [totals, setTotals] = useState<any>({ calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
+  const [targets, setTargets] = useState<any>(null);
 
   // schedule preferences
   const [wake, setWake] = useState('07:00');
@@ -37,9 +43,17 @@ export default function DietScreen({ navigation }: any) {
 
   const load = useCallback(async () => {
     try {
-      const [{ plan }, { profile }] = await Promise.all([DietAPI.current(), ProfileAPI.get()]);
+      const [{ plan }, prof, today] = await Promise.all([
+        DietAPI.current(),
+        ProfileAPI.get(),
+        FoodAPI.today().catch(() => ({ logs: [], totals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 } })),
+      ]);
       setPlans(toPlans(plan));
-      setSelected(0);
+      if (toPlans(plan).length) setShowPlan(true);
+      setLogs(today.logs || []);
+      setTotals(today.totals || { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
+      setTargets(prof?.targets || null);
+      const profile = prof?.profile;
       if (profile?.wake_time) setWake(profile.wake_time);
       if (profile?.sleep_time) setSleep(profile.sleep_time);
       if (profile?.gym_time) setGym(profile.gym_time);
@@ -50,6 +64,17 @@ export default function DietScreen({ navigation }: any) {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const deleteFood = (item: any) => {
+    setLogs((prev) => prev.filter((x) => x.id !== item.id)); // instant
+    setTotals((t: any) => ({
+      calories: Math.max(0, t.calories - (item.calories || 0)),
+      protein_g: Math.max(0, t.protein_g - (item.protein_g || 0)),
+      carbs_g: Math.max(0, t.carbs_g - (item.carbs_g || 0)),
+      fat_g: Math.max(0, t.fat_g - (item.fat_g || 0)),
+    }));
+    FoodAPI.remove(item.id).catch(() => {});
+  };
 
   const savePrefs = () => ProfileAPI.update({ wake_time: wake, sleep_time: sleep, gym_time: gym, meals_per_day: meals });
 
@@ -133,6 +158,7 @@ export default function DietScreen({ navigation }: any) {
   };
 
   const plan = plans[selected];
+  const kcalLeft = targets ? Math.max(0, Math.round((targets.calories || 0) - totals.calories)) : 0;
 
   return (
     <KeyboardScroll
@@ -140,10 +166,55 @@ export default function DietScreen({ navigation }: any) {
       contentContainerStyle={{ padding: spacing(2) }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
 
-      <Txt size={font.h2} weight="800">Your Diet Plan</Txt>
-      <Txt dim style={{ marginBottom: spacing(2) }}>A full day of meals with calories & macros for your goal — fitted around your routine.</Txt>
+      <Txt size={font.h2} weight="800">Diet</Txt>
+      <Txt dim style={{ marginBottom: spacing(2) }}>Track what you eat and hit your daily target.</Txt>
 
-      {/* Schedule questionnaire */}
+      {/* Today's nutrition */}
+      <Card style={{ borderColor: colors.primary }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Txt dim size={font.small} weight="800" style={{ letterSpacing: 1 }}>TODAY</Txt>
+          {targets ? <Txt size={font.small} weight="800" style={{ color: kcalLeft <= 0 ? colors.accent : colors.primary }}>{kcalLeft <= 0 ? '🎯 Target hit' : `${kcalLeft} kcal left`}</Txt> : null}
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 6 }}>
+          <Txt size={font.h1} weight="900">{Math.round(totals.calories)}</Txt>
+          <Txt dim weight="700"> / {targets?.calories ?? '—'} kcal</Txt>
+        </View>
+        <Bar value={totals.calories} max={targets?.calories} color={colors.primary} />
+        <View style={{ flexDirection: 'row', gap: spacing(1.5), marginTop: spacing(1.5) }}>
+          <MiniMacro label="Protein" v={totals.protein_g} t={targets?.protein_g} color={colors.protein} />
+          <MiniMacro label="Carbs" v={totals.carbs_g} t={targets?.carbs_g} color={colors.carbs} />
+          <MiniMacro label="Fat" v={totals.fat_g} t={targets?.fat_g} color={colors.fat} />
+        </View>
+        <Button title="📷 Add food" onPress={() => navigation.navigate('Scan')} style={{ marginTop: spacing(1.5) }} />
+      </Card>
+
+      {/* Today's food diary — tap 🗑 to remove a wrong entry */}
+      <Txt size={font.h3} weight="800" style={{ marginTop: spacing(2), marginBottom: spacing(1) }}>Today's food</Txt>
+      {logs.length === 0 ? (
+        <Card><Txt dim size={font.small}>Nothing logged yet. Tap “Add food” to scan a meal or add one.</Txt></Card>
+      ) : logs.map((l) => (
+        <Card key={l.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Txt weight="700">{l.name}</Txt>
+            <Txt dim size={font.tiny}>P {Math.round(l.protein_g)}g · C {Math.round(l.carbs_g)}g · F {Math.round(l.fat_g)}g</Txt>
+          </View>
+          <Txt weight="800" style={{ color: colors.primary, marginRight: 6 }}>{Math.round(l.calories)}</Txt>
+          <TouchableOpacity onPress={() => deleteFood(l)} style={{ padding: 8 }}><Txt size={15} style={{ color: colors.danger }}>🗑</Txt></TouchableOpacity>
+        </Card>
+      ))}
+
+      {/* Meal plan — reference, collapsed by default */}
+      <Card onPress={() => setShowPlan((v) => !v)} style={{ marginTop: spacing(2) }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <Txt weight="800">🥗 Your meal plan</Txt>
+            <Txt dim size={font.small} style={{ marginTop: 2 }}>{plans.length ? 'What to eat, built for your goal' : 'Get a home-food plan for your goal'}</Txt>
+          </View>
+          <Txt size={font.h3} weight="800" dim>{showPlan ? '−' : '＋'}</Txt>
+        </View>
+      </Card>
+
+      {showPlan && (<>
       <Card>
         <Txt weight="700" style={{ marginBottom: spacing(1) }}>Your daily routine ⏰</Txt>
         <View style={{ flexDirection: 'row', gap: spacing(1.5) }}>
@@ -234,6 +305,8 @@ export default function DietScreen({ navigation }: any) {
           <Button title={`✅ Use "${plan.title}" & set reminders`} onPress={() => useThisPlan(plan)} style={{ marginTop: spacing(1) }} />
         </>
       )}
+      </>)}
+
       <View style={{ height: spacing(4) }} />
     </KeyboardScroll>
   );
@@ -244,6 +317,30 @@ function Macro({ label, value, color }: any) {
     <View style={{ alignItems: 'center' }}>
       <Txt weight="800" size={font.h3} style={{ color }}>{value}</Txt>
       <Txt dim size={font.tiny}>{label}</Txt>
+    </View>
+  );
+}
+
+function Bar({ value, max, color }: { value: number; max?: number; color: string }) {
+  const pct = max ? Math.max(0, Math.min(1, value / max)) : 0;
+  return (
+    <View style={{ height: 10, borderRadius: 5, backgroundColor: colors.cardAlt, marginTop: spacing(1), overflow: 'hidden' }}>
+      <View style={{ width: `${Math.round(pct * 100)}%`, height: '100%', backgroundColor: color }} />
+    </View>
+  );
+}
+
+function MiniMacro({ label, v, t, color }: { label: string; v: number; t?: number; color: string }) {
+  const pct = t ? Math.max(0, Math.min(1, v / t)) : 0;
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+        <Txt size={font.tiny} weight="700" dim>{label}</Txt>
+        <Txt size={font.tiny} weight="800">{Math.round(v)}{t ? `/${t}` : ''}g</Txt>
+      </View>
+      <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.cardAlt, overflow: 'hidden' }}>
+        <View style={{ width: `${Math.round(pct * 100)}%`, height: '100%', backgroundColor: color }} />
+      </View>
     </View>
   );
 }

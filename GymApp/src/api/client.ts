@@ -166,6 +166,8 @@ export const FoodAPI = {
 export const ProgressAPI = {
   list: () => api.get('/progress').then((r) => r.data),
   add: (entry: Record<string, any>) => api.post('/progress', entry).then((r) => r.data),
+  update: (id: number, entry: Record<string, any>) => api.put(`/progress/${id}`, entry).then((r) => r.data),
+  remove: (id: number) => api.delete(`/progress/${id}`).then((r) => r.data),
   coach: (question?: string) => api.post('/progress/coach', { question }).then((r) => r.data),
 };
 

@@ -39,6 +39,31 @@ router.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Edit an entry (fix a mistyped weight/measurement).
+router.put('/:id', async (req, res, next) => {
+  try {
+    const parsed = entrySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+    const d = parsed.data;
+    const row = await one(
+      `UPDATE progress_logs
+         SET weight_kg = $1, body_fat = $2, waist_cm = $3, chest_cm = $4, arms_cm = $5
+       WHERE id = $6 AND user_id = $7 RETURNING id`,
+      [d.weight_kg ?? null, d.body_fat ?? null, d.waist_cm ?? null, d.chest_cm ?? null, d.arms_cm ?? null, req.params.id, req.user.id]
+    );
+    if (!row) return res.status(404).json({ error: 'Entry not found' });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// Delete an entry (added by mistake).
+router.delete('/:id', async (req, res, next) => {
+  try {
+    await one('DELETE FROM progress_logs WHERE id = $1 AND user_id = $2 RETURNING id', [req.params.id, req.user.id]);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 router.post('/coach', aiRequired, async (req, res) => {
   try {
     const profile = (await one('SELECT * FROM profiles WHERE user_id = $1', [req.user.id])) || {};

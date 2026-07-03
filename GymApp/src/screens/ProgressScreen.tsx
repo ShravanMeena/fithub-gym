@@ -33,6 +33,7 @@ export default function ProgressScreen() {
   const [arms, setArms] = useState('');
   const [showMeasure, setShowMeasure] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null); // id of the weigh-in being edited
 
   const [photos, setPhotos] = useState<any[]>([]);
   const [sources, setSources] = useState<Record<number, any>>({});
@@ -68,22 +69,51 @@ export default function ProgressScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const clearForm = () => { setWeight(''); setBodyFat(''); setWaist(''); setChest(''); setArms(''); setEditingId(null); };
+
   const add = async () => {
     if (!weight && !bodyFat && !waist && !chest && !arms) return Alert.alert('Add your weight', 'Enter at least your weight.');
     setSaving(true);
     try {
-      await ProgressAPI.add({
+      const entry = {
         weight_kg: weight ? Number(weight) : undefined,
         body_fat: bodyFat ? Number(bodyFat) : undefined,
         waist_cm: waist ? Number(waist) : undefined,
         chest_cm: chest ? Number(chest) : undefined,
         arms_cm: arms ? Number(arms) : undefined,
-      });
-      setWeight(''); setBodyFat(''); setWaist(''); setChest(''); setArms('');
+      };
+      if (editingId) await ProgressAPI.update(editingId, entry);
+      else await ProgressAPI.add(entry);
+      clearForm();
       await load();
-      Alert.alert('Saved ✅', 'Nice — keep it up!');
     } catch (e) { Alert.alert('Error', apiError(e)); }
     finally { setSaving(false); }
+  };
+
+  // Load an existing entry into the form to fix it.
+  const startEdit = (e: any) => {
+    setEditingId(e.id);
+    setWeight(e.weight_kg != null ? String(e.weight_kg) : '');
+    setBodyFat(e.body_fat != null ? String(e.body_fat) : '');
+    setWaist(e.waist_cm != null ? String(e.waist_cm) : '');
+    setChest(e.chest_cm != null ? String(e.chest_cm) : '');
+    setArms(e.arms_cm != null ? String(e.arms_cm) : '');
+    if (e.waist_cm != null || e.chest_cm != null || e.arms_cm != null || e.body_fat != null) setShowMeasure(true);
+  };
+
+  const del = (e: any) => {
+    Alert.alert('Delete this entry?', 'Remove this weigh-in permanently?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          setEntries((prev) => prev.filter((x) => x.id !== e.id)); // instant
+          try { await ProgressAPI.remove(e.id); } catch {}
+          if (editingId === e.id) clearForm();
+          load();
+        },
+      },
+    ]);
   };
 
   const addPhoto = () => {
@@ -171,12 +201,15 @@ export default function ProgressScreen() {
           )}
         </Card>
 
-        {/* 2) Log weight — always easy */}
-        <Card>
-          <Txt weight="800" style={{ marginBottom: spacing(1) }}>⚖️ Log your weight</Txt>
+        {/* 2) Log weight — always easy (also edits when fixing an entry) */}
+        <Card style={editingId ? { borderColor: colors.primary } : undefined}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(1) }}>
+            <Txt weight="800">{editingId ? '✏️ Edit this weigh-in' : '⚖️ Log your weight'}</Txt>
+            {editingId ? <TouchableOpacity onPress={clearForm}><Txt size={font.small} weight="700" style={{ color: colors.textDim }}>Cancel</Txt></TouchableOpacity> : null}
+          </View>
           <View style={{ flexDirection: 'row', gap: spacing(1), alignItems: 'flex-end' }}>
             <View style={{ flex: 1 }}><Field label="Weight (kg)" keyboardType="numeric" value={weight} onChangeText={setWeight} placeholder="78" /></View>
-            <Button title="Log" loading={saving} onPress={add} style={{ paddingHorizontal: spacing(3), marginBottom: 2 }} />
+            <Button title={editingId ? 'Update' : 'Log'} loading={saving} onPress={add} style={{ paddingHorizontal: spacing(3), marginBottom: 2 }} />
           </View>
           <TouchableOpacity onPress={() => setShowMeasure((v) => !v)} style={{ paddingVertical: 4 }}>
             <Txt size={font.small} weight="700" style={{ color: colors.accent }}>{showMeasure ? '− Hide extras' : '＋ Body fat & measurements (waist, chest, arms)'}</Txt>
@@ -190,6 +223,27 @@ export default function ProgressScreen() {
             </View>
           )}
         </Card>
+
+        {/* Your weigh-ins — tap ✏️ to fix a wrong entry, 🗑 to remove */}
+        {entries.length > 0 && (
+          <Card>
+            <Txt weight="800" style={{ marginBottom: spacing(0.5) }}>📋 Your weigh-ins</Txt>
+            {[...entries].reverse().slice(0, 12).map((e) => (
+              <View key={e.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing(1), borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <View style={{ flex: 1 }}>
+                  <Txt weight="700">{e.weight_kg != null ? `${e.weight_kg} kg` : '—'}
+                    {(e.waist_cm != null || e.chest_cm != null || e.arms_cm != null) ? (
+                      <Txt dim size={font.tiny}>  ·  {[e.waist_cm && `W ${e.waist_cm}`, e.chest_cm && `C ${e.chest_cm}`, e.arms_cm && `A ${e.arms_cm}`].filter(Boolean).join(' · ')}</Txt>
+                    ) : null}
+                  </Txt>
+                  <Txt dim size={font.tiny}>{String(e.logged_at || '').slice(0, 10)}</Txt>
+                </View>
+                <TouchableOpacity onPress={() => startEdit(e)} style={{ padding: 8 }}><Txt size={16}>✏️</Txt></TouchableOpacity>
+                <TouchableOpacity onPress={() => del(e)} style={{ padding: 8 }}><Txt size={15} style={{ color: colors.danger }}>🗑</Txt></TouchableOpacity>
+              </View>
+            ))}
+          </Card>
+        )}
 
         {/* 3) Before / Now — the star */}
         <Txt size={font.h3} weight="800" style={{ marginTop: spacing(2), marginBottom: spacing(1) }}>📸 Before / Now</Txt>
