@@ -1,0 +1,113 @@
+- generic [active] [ref=e1]:
+  - figure [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: 🏋️
+        - generic [ref=e7]: FitHub
+      - generic [ref=e8]:
+        - generic [ref=e9]: The gym app that keeps you coming back
+        - generic [ref=e10]:
+          - text: Your gym.
+          - text: In your pocket.
+        - generic [ref=e11]: Check-ins · Diet · Community · Progress — all in one.
+      - generic [ref=e12]:
+        - generic [ref=e13]: ▶ Free on Google Play
+        - generic [ref=e14]: "@yourgym"
+  - figure [ref=e16]:
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]: 🏋️
+        - generic [ref=e20]: FitHub
+      - generic [ref=e21]:
+        - generic [ref=e22]: 🔥
+        - generic [ref=e23]: "30"
+      - generic [ref=e24]: DAY STREAK
+      - generic [ref=e25]: Show up. Every day. Keep the fire alive.
+      - generic [ref=e34]:
+        - generic [ref=e35]: Don't break the chain
+        - generic [ref=e36]: FitHub
+  - figure [ref=e38]:
+    - generic [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]: 🏋️
+        - generic [ref=e42]: FitHub
+      - generic [ref=e43]: AI food scan
+      - heading "Snap your meal. Know your macros." [level=2] [ref=e44]:
+        - text: Snap your meal.
+        - text: Know your macros.
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e47]: 📸
+          - generic [ref=e48]:
+            - generic [ref=e49]: Grilled chicken & rice
+            - generic [ref=e50]: 540 kcal · high protein
+        - generic [ref=e51]:
+          - generic [ref=e52]:
+            - text: 46g
+            - generic [ref=e55]: protein
+          - generic [ref=e56]:
+            - text: 52g
+            - generic [ref=e59]: carbs
+          - generic [ref=e60]:
+            - text: 14g
+            - generic [ref=e63]: fat
+      - generic [ref=e64]:
+        - generic [ref=e65]: Scan a meal in seconds
+        - generic [ref=e66]: "@yourgym"
+  - figure [ref=e68]:
+    - generic [ref=e69]:
+      - generic [ref=e70]:
+        - generic [ref=e71]: 🏋️
+        - generic [ref=e72]: FitHub
+      - generic [ref=e73]: This month at the gym
+      - heading "Can you top the board? 🏆" [level=2] [ref=e74]:
+        - text: Can you top
+        - text: the board? 🏆
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - text: Priya
+            - generic [ref=e78]: 21 days
+          - generic [ref=e79]: 🥈
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - text: Rahul
+            - generic [ref=e82]: 24 days
+          - generic [ref=e83]: 🥇
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - text: Karan
+            - generic [ref=e86]: 19 days
+          - generic [ref=e87]: 🥉
+      - generic [ref=e88]:
+        - generic [ref=e89]: Outwork your gym crew
+        - generic [ref=e90]: FitHub
+  - figure [ref=e92]:
+    - generic [ref=e93]:
+      - generic [ref=e94]:
+        - generic [ref=e95]: 🏋️
+        - generic [ref=e96]: FitHub
+      - generic [ref=e97]: Share & earn
+      - heading "Invite friends. Earn free Premium. 🎁" [level=2] [ref=e98]:
+        - text: Invite friends.
+        - text: Earn free Premium. 🎁
+      - generic [ref=e99]:
+        - generic [ref=e100]:
+          - generic [ref=e101]: "1"
+          - generic [ref=e102]: friend joins
+          - generic [ref=e103]: 1 day
+        - generic [ref=e104]:
+          - generic [ref=e105]: "3"
+          - generic [ref=e106]: friends join
+          - generic [ref=e107]: 3 days
+        - generic [ref=e108]:
+          - generic [ref=e109]: "5"
+          - generic [ref=e110]: friends join
+          - generic [ref=e111]: 10 days
+        - generic [ref=e112]:
+          - generic [ref=e113]: "10"
+          - generic [ref=e114]: friends join
+          - generic [ref=e115]: 30 days
+      - generic [ref=e116]:
+        - generic [ref=e117]: Share your code — stack the days
+        - generic [ref=e118]: "@yourgym"
