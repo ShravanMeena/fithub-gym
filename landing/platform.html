@@ -68,6 +68,7 @@
       <div class="stat"><b id="s_ai">0</b><span>Active AI subscriptions</span></div>
     </div>
     <div class="tabs">
+      <div class="tab" data-tab="analytics" onclick="switchTab('analytics')">📊 Analytics</div>
       <div class="tab active" data-tab="users" onclick="switchTab('users')">Users &amp; AI access</div>
       <div class="tab" data-tab="gyms" onclick="switchTab('gyms')">Gyms</div>
       <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Push</div>
@@ -87,6 +88,18 @@
     <div id="tab_gyms" class="card" style="display:none">
       <h3>All gyms</h3>
       <div style="overflow-x:auto"><table id="gymsTable"></table></div>
+    </div>
+
+    <div id="tab_analytics" style="display:none">
+      <div class="card">
+        <h3>Active users</h3>
+        <div id="anActive" style="display:flex;flex-wrap:wrap;gap:14px"></div>
+        <div id="anTrend" style="display:flex;align-items:flex-end;gap:5px;height:70px;margin-top:16px"></div>
+        <p class="muted" style="font-size:12px;margin-top:6px">Daily active users · last 14 days</p>
+      </div>
+      <div class="card"><h3 style="font-size:15px">Signups &amp; activity</h3><div id="anActivity" style="display:flex;flex-wrap:wrap;gap:14px"></div></div>
+      <div class="card"><h3 style="font-size:15px">Feature adoption</h3><p class="muted" style="font-size:12px;margin-bottom:10px">How many members have ever used each feature</p><div id="anAdopt"></div></div>
+      <div class="card"><h3 style="font-size:15px">Monetization</h3><div id="anMoney" style="display:flex;flex-wrap:wrap;gap:14px"></div></div>
     </div>
 
     <div id="tab_aiusage" style="display:none">
@@ -172,7 +185,22 @@
     finally{ $('loginBtn').disabled=false; $('loginBtn').textContent='Log in'; }
   }
   function logout(){ localStorage.removeItem(TOKEN_KEY); token=null; location.reload(); }
-  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['users','gyms','push','appupdate','aiusage','settings'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); if(t==='settings') loadSettings(); if(t==='aiusage') loadAiUsage(); }
+  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['analytics','users','gyms','push','appupdate','aiusage','settings'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); if(t==='settings') loadSettings(); if(t==='aiusage') loadAiUsage(); if(t==='analytics') loadAnalytics(); }
+
+  // ---- Product analytics ----
+  function stat(label,val,sub){ return '<div style="flex:1;min-width:110px;background:var(--bg);border-radius:10px;padding:12px"><div style="font-size:12px;color:var(--muted)">'+label+'</div><div style="font-size:22px;font-weight:800">'+val+'</div>'+(sub?'<div style="font-size:11px;color:var(--muted)">'+sub+'</div>':'')+'</div>'; }
+  async function loadAnalytics(){
+    try{
+      const d=await api('/super/analytics');
+      $('anActive').innerHTML = stat('DAU (today)', d.dau) + stat('WAU (7d)', d.wau) + stat('MAU (30d)', d.mau) + stat('Members', d.totalUsers, (d.mau&&d.totalUsers)?Math.round(d.mau/d.totalUsers*100)+'% active':'' );
+      const max=Math.max(1,...d.trend.map(x=>Number(x.users)));
+      $('anTrend').innerHTML = d.trend.map(x=>'<div title="'+x.day+': '+x.users+'" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center"><div style="width:100%;background:var(--accent);border-radius:3px 3px 0 0;height:'+Math.max(3,Math.round(Number(x.users)/max*56))+'px"></div></div>').join('');
+      $('anActivity').innerHTML = stat('Signups today', d.signups.today, d.signups.week+' this week') + stat('Check-ins', d.activity.checkinsToday, d.activity.checkinsWeek+' this week') + stat('Meals logged (7d)', d.activity.foodWeek) + stat('Posts (7d)', d.activity.postsWeek) + stat('PRs (7d)', d.activity.prsWeek);
+      const tot=d.totalUsers||1; const bar=(label,n)=>{ const pct=Math.round(n/tot*100); return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>'+label+'</span><span class="muted">'+n+' ('+pct+'%)</span></div><div style="height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:3px"><div style="width:'+pct+'%;height:100%;background:var(--accent)"></div></div></div>'; };
+      $('anAdopt').innerHTML = bar('Checked in', d.adoption.checkedIn)+bar('Logged food', d.adoption.loggedFood)+bar('Posted', d.adoption.posted)+bar('Progress photo', d.adoption.photo)+bar('Logged a PR', d.adoption.pr);
+      $('anMoney').innerHTML = stat('Premium active', d.aiActive) + stat('Saw paywall (7d)', d.paywallWeek) + stat('Conversion', (d.paywallWeek?Math.round(d.aiActive/(d.aiActive+d.paywallWeek)*100):0)+'%', 'active vs paywall');
+    }catch(e){ $('anActive').innerHTML='<p class="muted">'+e.message+'</p>'; }
+  }
 
   // ---- AI usage ----
   function fmtTokens(n){ n=Number(n)||0; return n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(1)+'k':String(n); }

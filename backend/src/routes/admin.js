@@ -25,6 +25,46 @@ router.use(async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Analytics for THIS gym only (org-scoped).
+router.get('/analytics', async (req, res, next) => {
+  try {
+    const oid = req.orgId;
+    const num = async (sql) => Number((await one(sql, [oid]))?.c || 0);
+    const activeIn = (days) => num(`SELECT COUNT(DISTINCT e.user_id) c FROM analytics_events e JOIN users u ON u.id = e.user_id WHERE u.org_id = $1 AND e.event='app_open' AND e.created_at >= now() - interval '${days} days'`);
+
+    const dau = await num(`SELECT COUNT(DISTINCT e.user_id) c FROM analytics_events e JOIN users u ON u.id = e.user_id WHERE u.org_id = $1 AND e.event='app_open' AND e.created_at::date = current_date`);
+    const wau = await activeIn(7);
+    const mau = await activeIn(30);
+    const totalUsers = await num(`SELECT COUNT(*) c FROM users WHERE org_id = $1 AND role='member'`);
+    const signups = {
+      today: await num(`SELECT COUNT(*) c FROM users WHERE org_id = $1 AND created_at::date = current_date`),
+      week: await num(`SELECT COUNT(*) c FROM users WHERE org_id = $1 AND created_at >= now() - interval '7 days'`),
+      month: await num(`SELECT COUNT(*) c FROM users WHERE org_id = $1 AND created_at >= now() - interval '30 days'`),
+    };
+    const activity = {
+      checkinsToday: await num(`SELECT COUNT(*) c FROM attendance WHERE org_id = $1 AND checked_in_at::date = current_date`),
+      checkinsWeek: await num(`SELECT COUNT(*) c FROM attendance WHERE org_id = $1 AND checked_in_at >= now() - interval '7 days'`),
+      foodWeek: await num(`SELECT COUNT(*) c FROM food_logs f JOIN users u ON u.id = f.user_id WHERE u.org_id = $1 AND f.eaten_at >= now() - interval '7 days'`),
+      postsWeek: await num(`SELECT COUNT(*) c FROM posts WHERE org_id = $1 AND created_at >= now() - interval '7 days' AND is_announcement = 0`),
+      prsWeek: await num(`SELECT COUNT(*) c FROM personal_records p JOIN users u ON u.id = p.user_id WHERE u.org_id = $1 AND p.logged_at >= now() - interval '7 days'`),
+    };
+    const adoption = {
+      checkedIn: await num(`SELECT COUNT(DISTINCT user_id) c FROM attendance WHERE org_id = $1`),
+      loggedFood: await num(`SELECT COUNT(DISTINCT f.user_id) c FROM food_logs f JOIN users u ON u.id = f.user_id WHERE u.org_id = $1`),
+      posted: await num(`SELECT COUNT(DISTINCT user_id) c FROM posts WHERE org_id = $1`),
+      photo: await num(`SELECT COUNT(DISTINCT ph.user_id) c FROM progress_photos ph JOIN users u ON u.id = ph.user_id WHERE u.org_id = $1`),
+      pr: await num(`SELECT COUNT(DISTINCT p.user_id) c FROM personal_records p JOIN users u ON u.id = p.user_id WHERE u.org_id = $1`),
+    };
+    const trend = await q(
+      `SELECT to_char(d::date,'MM-DD') AS day,
+              COALESCE((SELECT COUNT(DISTINCT e.user_id) FROM analytics_events e JOIN users u ON u.id = e.user_id WHERE u.org_id = $1 AND e.event='app_open' AND e.created_at::date = d::date), 0) AS users
+       FROM generate_series(current_date - interval '13 days', current_date, interval '1 day') d ORDER BY d`,
+      [oid]
+    );
+    res.json({ dau, wau, mau, totalUsers, signups, activity, adoption, trend });
+  } catch (e) { next(e); }
+});
+
 router.get('/overview', async (req, res, next) => {
   try {
     const org = await one('SELECT id, slug, name, tagline, primary_color, owner_name, contact_email, phone FROM organizations WHERE id = $1', [req.orgId]);

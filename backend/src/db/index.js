@@ -232,6 +232,17 @@ CREATE TABLE IF NOT EXISTS personal_records (
 );
 CREATE INDEX IF NOT EXISTS idx_prs_user ON personal_records(user_id);
 
+-- Lightweight analytics events (app opens, paywall views, etc.) for the dashboard.
+CREATE TABLE IF NOT EXISTS analytics_events (
+  id BIGSERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  org_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL,
+  event TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_analytics_event_day ON analytics_events(event, created_at);
+CREATE INDEX IF NOT EXISTS idx_analytics_user_day ON analytics_events(user_id, created_at);
+
 -- "Cheers" on a member's check-in for a day (social hype). One per cheerer/target/day.
 CREATE TABLE IF NOT EXISTS checkin_cheers (
   from_user INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

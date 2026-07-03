@@ -85,6 +85,11 @@ export const AppAPI = {
     api.get('/app/update', { params: { platform: Platform.OS, version: APP_VERSION } }).then((r) => r.data),
 };
 
+export const AnalyticsAPI = {
+  // Fire-and-forget; never throws into the app.
+  track: (event: string) => { api.post('/analytics/track', { event }).catch(() => {}); },
+};
+
 export const MeAPI = {
   week: () => api.get('/me/week').then((r) => r.data),
   badges: () => api.get('/me/badges').then((r) => r.data),

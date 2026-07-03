@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AuthAPI, TOKEN_KEY } from '../api/client';
+import { AuthAPI, AnalyticsAPI, TOKEN_KEY } from '../api/client';
 import { registerForPush, unregisterPush } from '../notifications/push';
 
 type User = {
@@ -38,12 +39,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { user } = await AuthAPI.me();
           setUser(user);
           registerForPush(user.org?.id).catch(() => {});
+          AnalyticsAPI.track('app_open');
         } catch {
           await AsyncStorage.removeItem(TOKEN_KEY);
         }
       }
       setLoading(false);
     })();
+  }, []);
+
+  // Count each foreground as an app open (for DAU/WAU). Harmless when logged out.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') AnalyticsAPI.track('app_open'); });
+    return () => sub.remove();
   }, []);
 
   const persist = async (data: { token: string; user: User }) => {

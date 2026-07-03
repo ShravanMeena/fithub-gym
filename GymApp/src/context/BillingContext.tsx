@@ -4,6 +4,7 @@ import { Txt, Button } from '../components/UI';
 import { useAuth } from './AuthContext';
 import { useOrg } from './OrgContext';
 import { PLANS, Plan, UPI_ID, WHATSAPP_NUMBER } from '../billing';
+import { AnalyticsAPI } from '../api/client';
 import { colors, font, radius, spacing } from '../theme';
 
 type BillingState = {
@@ -24,7 +25,7 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
   const aiActive = !!user?.ai_active;
   // Trial ended = they had AI access (ai_until set) but it's now in the past.
   const trialEnded = !aiActive && !!user?.ai_until && new Date(user.ai_until).getTime() < Date.now();
-  const showPaywall = useCallback((f?: string) => { setFeature(f || 'AI features'); setSelected(null); setVisible(true); }, []);
+  const showPaywall = useCallback((f?: string) => { setFeature(f || 'AI features'); setSelected(null); setVisible(true); AnalyticsAPI.track('paywall_shown'); }, []);
 
   const payUpi = (plan: Plan) => {
     const url = `upi://pay?pa=${UPI_ID}&pn=FitHub&am=${plan.price}&cu=INR&tn=${encodeURIComponent('FitHub AI ' + plan.label)}`;

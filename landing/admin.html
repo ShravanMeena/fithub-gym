@@ -93,6 +93,7 @@
 
     <div class="tabs">
       <div class="tab active" data-tab="members" onclick="switchTab('members')">Members</div>
+      <div class="tab" data-tab="analytics" onclick="switchTab('analytics')">📊 Analytics</div>
       <div class="tab" data-tab="inactive" onclick="switchTab('inactive')">😴 Win-back</div>
       <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Send Notification</div>
       <div class="tab" data-tab="notices" onclick="switchTab('notices')">Home Notices</div>
@@ -164,6 +165,17 @@
       <div style="overflow-x:auto"><table id="membersTable"></table></div>
     </div>
 
+    <div id="tab_analytics" style="display:none">
+      <div class="card">
+        <h3>Active members</h3>
+        <div id="anActive" style="display:flex;flex-wrap:wrap;gap:14px"></div>
+        <div id="anTrend" style="display:flex;align-items:flex-end;gap:5px;height:70px;margin-top:16px"></div>
+        <p style="font-size:12px;opacity:.6;margin-top:6px">Members opening the app · last 14 days</p>
+      </div>
+      <div class="card"><h3 style="font-size:15px">Signups &amp; activity</h3><div id="anActivity" style="display:flex;flex-wrap:wrap;gap:14px"></div></div>
+      <div class="card"><h3 style="font-size:15px">Feature adoption</h3><p style="font-size:12px;opacity:.6;margin-bottom:10px">How many of your members have ever used each feature</p><div id="anAdopt"></div></div>
+    </div>
+
     <div id="tab_attendance" class="card" style="display:none">
       <h3>Recent check-ins</h3>
       <div style="overflow-x:auto"><table id="attTable"></table></div>
@@ -223,9 +235,24 @@
 
   function switchTab(t){
     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
-    ['members','inactive','push','notices','announce','attendance','settings'].forEach(x=>$('tab_'+x).style.display = x===t?'block':'none');
+    ['members','analytics','inactive','push','notices','announce','attendance','settings'].forEach(x=>$('tab_'+x).style.display = x===t?'block':'none');
     if(t==='notices') loadNotices();
     if(t==='inactive') loadInactive(inactiveDays);
+    if(t==='analytics') loadAnalytics();
+  }
+
+  // ---- Gym analytics (this gym only) ----
+  function aStat(label,val,sub){ return '<div style="flex:1;min-width:110px;background:var(--bg,#0e0e0e);border:1px solid var(--border,#242424);border-radius:10px;padding:12px"><div style="font-size:12px;opacity:.6">'+label+'</div><div style="font-size:22px;font-weight:800">'+val+'</div>'+(sub?'<div style="font-size:11px;opacity:.6">'+sub+'</div>':'')+'</div>'; }
+  async function loadAnalytics(){
+    try{
+      const d=await api('/admin/analytics');
+      $('anActive').innerHTML = aStat('Active today', d.dau) + aStat('This week', d.wau) + aStat('This month', d.mau) + aStat('Members', d.totalUsers, (d.mau&&d.totalUsers)?Math.round(d.mau/d.totalUsers*100)+'% active':'');
+      const max=Math.max(1,...d.trend.map(x=>Number(x.users)));
+      $('anTrend').innerHTML = d.trend.map(x=>'<div title="'+x.day+': '+x.users+'" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center"><div style="width:100%;background:var(--accent,#FF5A1F);border-radius:3px 3px 0 0;height:'+Math.max(3,Math.round(Number(x.users)/max*56))+'px"></div></div>').join('');
+      $('anActivity').innerHTML = aStat('Signups today', d.signups.today, d.signups.week+' this week') + aStat('Check-ins', d.activity.checkinsToday, d.activity.checkinsWeek+' this week') + aStat('Meals logged (7d)', d.activity.foodWeek) + aStat('Posts (7d)', d.activity.postsWeek) + aStat('PRs (7d)', d.activity.prsWeek);
+      const tot=d.totalUsers||1; const bar=(label,n)=>{ const pct=Math.round(n/tot*100); return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>'+label+'</span><span style="opacity:.6">'+n+' ('+pct+'%)</span></div><div style="height:8px;background:var(--bg,#0e0e0e);border-radius:4px;overflow:hidden;margin-top:3px"><div style="width:'+pct+'%;height:100%;background:var(--accent,#FF5A1F)"></div></div></div>'; };
+      $('anAdopt').innerHTML = bar('Checked in', d.adoption.checkedIn)+bar('Logged food', d.adoption.loggedFood)+bar('Posted', d.adoption.posted)+bar('Progress photo', d.adoption.photo)+bar('Logged a PR', d.adoption.pr);
+    }catch(e){ $('anActive').innerHTML='<p style="opacity:.6">'+e.message+'</p>'; }
   }
 
   function fmtDate(s){ return s? s.slice(0,16).replace('T',' ') : '—'; }

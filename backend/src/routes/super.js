@@ -83,6 +83,48 @@ router.post('/users/:id/ai-access', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ---- Product analytics (usage dashboard) ----
+router.get('/analytics', async (req, res, next) => {
+  try {
+    const num = async (sql, params = []) => Number((await one(sql, params))?.c || 0);
+    const activeIn = (days) => num(`SELECT COUNT(DISTINCT user_id) c FROM analytics_events WHERE event='app_open' AND created_at >= now() - interval '${days} days'`);
+
+    const dau = await num(`SELECT COUNT(DISTINCT user_id) c FROM analytics_events WHERE event='app_open' AND created_at::date = current_date`);
+    const wau = await activeIn(7);
+    const mau = await activeIn(30);
+    const totalUsers = await num(`SELECT COUNT(*) c FROM users WHERE role='member'`);
+
+    const signups = {
+      today: await num(`SELECT COUNT(*) c FROM users WHERE created_at::date = current_date`),
+      week: await num(`SELECT COUNT(*) c FROM users WHERE created_at >= now() - interval '7 days'`),
+      month: await num(`SELECT COUNT(*) c FROM users WHERE created_at >= now() - interval '30 days'`),
+    };
+    const activity = {
+      checkinsToday: await num(`SELECT COUNT(*) c FROM attendance WHERE checked_in_at::date = current_date`),
+      checkinsWeek: await num(`SELECT COUNT(*) c FROM attendance WHERE checked_in_at >= now() - interval '7 days'`),
+      foodWeek: await num(`SELECT COUNT(*) c FROM food_logs WHERE eaten_at >= now() - interval '7 days'`),
+      postsWeek: await num(`SELECT COUNT(*) c FROM posts WHERE created_at >= now() - interval '7 days' AND is_announcement = 0`),
+      prsWeek: await num(`SELECT COUNT(*) c FROM personal_records WHERE logged_at >= now() - interval '7 days'`),
+    };
+    const paywallWeek = await num(`SELECT COUNT(DISTINCT user_id) c FROM analytics_events WHERE event='paywall_shown' AND created_at >= now() - interval '7 days'`);
+    const aiActive = await num(`SELECT COUNT(*) c FROM users WHERE ai_until > now()`);
+
+    const adoption = {
+      checkedIn: await num(`SELECT COUNT(DISTINCT user_id) c FROM attendance`),
+      loggedFood: await num(`SELECT COUNT(DISTINCT user_id) c FROM food_logs`),
+      posted: await num(`SELECT COUNT(DISTINCT user_id) c FROM posts`),
+      photo: await num(`SELECT COUNT(DISTINCT user_id) c FROM progress_photos`),
+      pr: await num(`SELECT COUNT(DISTINCT user_id) c FROM personal_records`),
+    };
+    const trend = await q(
+      `SELECT to_char(d::date,'MM-DD') AS day,
+              COALESCE((SELECT COUNT(DISTINCT user_id) FROM analytics_events e WHERE e.event='app_open' AND e.created_at::date = d::date), 0) AS users
+       FROM generate_series(current_date - interval '13 days', current_date, interval '1 day') d ORDER BY d`
+    );
+    res.json({ dau, wau, mau, totalUsers, signups, activity, paywallWeek, aiActive, adoption, trend });
+  } catch (e) { next(e); }
+});
+
 // ---- AI usage (tokens + cost), platform-wide ----
 router.get('/ai-usage', async (req, res, next) => {
   try {
