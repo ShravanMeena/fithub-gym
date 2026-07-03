@@ -318,6 +318,8 @@ const updateSchema = z.object({
   mode: z.enum(['auto', 'soft', 'force', 'off']).optional(),
   latest_version: z.string().max(20).optional(),
   min_version: z.string().max(20).optional(),
+  force_versions: z.string().max(500).optional(),
+  soft_versions: z.string().max(500).optional(),
   title: z.string().max(120).optional(),
   message: z.string().max(500).optional(),
   button_text: z.string().max(40).optional(),

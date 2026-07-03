@@ -361,6 +361,12 @@ CREATE INDEX IF NOT EXISTS idx_api_logs_status ON api_logs(status);
 CREATE INDEX IF NOT EXISTS idx_api_logs_user ON api_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_api_logs_route ON api_logs(route);
 CREATE INDEX IF NOT EXISTS idx_api_logs_errors ON api_logs(ts DESC) WHERE ok = false;
+
+-- Target specific versions regardless of the min/latest thresholds:
+-- comma-separated exact versions that must force-update (known-broken builds)
+-- or get a soft nudge. Explicit lists take priority over 'auto' thresholds.
+ALTER TABLE app_update ADD COLUMN IF NOT EXISTS force_versions TEXT NOT NULL DEFAULT '';
+ALTER TABLE app_update ADD COLUMN IF NOT EXISTS soft_versions TEXT NOT NULL DEFAULT '';
 `;
 
 const SEED_ORGS = [

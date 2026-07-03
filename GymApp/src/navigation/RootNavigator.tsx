@@ -3,6 +3,7 @@ import { ActivityIndicator, View, TouchableOpacity, Text } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
@@ -70,6 +71,10 @@ function MenuButton() {
 
 // 5 clear tabs that map to the daily loop.
 function MainTabs() {
+  // Respect the Android/iOS bottom inset so tab labels aren't hidden behind
+  // the system navigation / gesture bar.
+  const insets = useSafeAreaInsets();
+  const bottomInset = insets.bottom;
   return (
     <Tab.Navigator
       screenOptions={{
@@ -77,7 +82,7 @@ function MainTabs() {
         headerTitleStyle: { color: colors.text },
         headerTintColor: colors.text,
         headerLeft: () => <MenuButton />,
-        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border, height: 62, paddingBottom: 8, paddingTop: 6 },
+        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border, height: 62 + bottomInset, paddingBottom: 8 + bottomInset, paddingTop: 6 },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textDim,
       }}>

@@ -1,7 +1,7 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { View, Alert, TouchableOpacity, ActivityIndicator, Platform, PermissionsAndroid } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import { Camera } from 'react-native-camera-kit';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, Alert, TouchableOpacity, TouchableWithoutFeedback, Keyboard, ActivityIndicator, Linking } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
+import { Camera, useCameraDevice, useCameraPermission, useCodeScanner } from 'react-native-vision-camera';
 import { Card, Txt, Button, Field } from '../components/UI';
 import { FoodAPI, apiError } from '../api/client';
 import { colors, font, radius, spacing } from '../theme';
@@ -13,48 +13,53 @@ type Found = {
 };
 
 export default function BarcodeScanScreen({ navigation }: any) {
-  const [granted, setGranted] = useState(Platform.OS === 'ios');
+  const isFocused = useIsFocused();
+  const device = useCameraDevice('back');
+  const { hasPermission, requestPermission } = useCameraPermission();
+
   const [scanning, setScanning] = useState(true);
   const [looking, setLooking] = useState(false);
   const [found, setFound] = useState<Found | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [mode, setMode] = useState<'serving' | 'grams'>('serving');
-  const [qty, setQty] = useState('1'); // servings
+  const [qty, setQty] = useState('1');
   const [grams, setGrams] = useState('100');
   const [logging, setLogging] = useState(false);
   const lastCode = useRef<string>('');
+  const busy = useRef(false);
 
-  // Ask for the camera permission on Android before mounting the camera view.
-  useFocusEffect(useCallback(() => {
-    if (Platform.OS === 'android') {
-      PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA)
-        .then((r) => setGranted(r === PermissionsAndroid.RESULTS.GRANTED))
-        .catch(() => setGranted(false));
-    }
-  }, []));
+  // Ask for camera permission once when the screen opens.
+  useEffect(() => { if (!hasPermission) requestPermission(); }, [hasPermission, requestPermission]);
 
-  const onRead = useCallback(async (code: string) => {
-    if (!scanning || !code || code === lastCode.current) return;
+  const lookup = useCallback(async (code: string) => {
+    if (busy.current || !code || code === lastCode.current) return;
+    busy.current = true;
     lastCode.current = code;
     setScanning(false);
     setLooking(true);
     setNotFound(false);
     try {
       const r = await FoodAPI.barcode(code);
-      if (!r.found) { setNotFound(true); }
-      else {
-        setFound(r);
-        setMode(r.serving ? 'serving' : 'grams');
-      }
+      if (!r.found) setNotFound(true);
+      else { setFound(r); setMode(r.serving ? 'serving' : 'grams'); }
     } catch (e) {
       Alert.alert('Lookup failed', apiError(e));
       setNotFound(true);
-    } finally { setLooking(false); }
-  }, [scanning]);
+    } finally { setLooking(false); busy.current = false; }
+  }, []);
 
-  const rescan = () => { setFound(null); setNotFound(false); lastCode.current = ''; setQty('1'); setGrams('100'); setScanning(true); };
+  const codeScanner = useCodeScanner({
+    codeTypes: ['ean-13', 'ean-8', 'upc-e', 'code-128'],
+    onCodeScanned: (codes) => {
+      const v = codes[0]?.value;
+      if (v) lookup(v.replace(/[^0-9]/g, ''));
+    },
+  });
 
-  // Macros for the chosen amount.
+  const rescan = () => {
+    setFound(null); setNotFound(false); lastCode.current = ''; setQty('1'); setGrams('100'); setScanning(true);
+  };
+
   const computed = (() => {
     if (!found) return null;
     if (mode === 'serving' && found.serving) {
@@ -80,7 +85,7 @@ export default function BarcodeScanScreen({ navigation }: any) {
         fat_g: Math.round(computed.fat_g),
         source: 'barcode',
       });
-      Alert.alert('Logged!', `${found.name} added to today.`, [{ text: 'OK', onPress: () => navigation.navigate('Today') }]);
+      Alert.alert('Logged!', `${found.name} added to today.`, [{ text: 'OK', onPress: () => navigation.goBack() }]);
     } catch (e) { Alert.alert('Error', apiError(e)); }
     finally { setLogging(false); }
   };
@@ -88,16 +93,14 @@ export default function BarcodeScanScreen({ navigation }: any) {
   // ---- Result sheet ----
   if (found && computed) {
     return (
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={{ flex: 1, backgroundColor: colors.bg, padding: spacing(2), justifyContent: 'center' }}>
         <Card style={{ borderColor: colors.primary }}>
           <Txt dim size={font.tiny} weight="800" style={{ letterSpacing: 1 }}>📷 SCANNED</Txt>
           <Txt weight="800" size={font.h3} style={{ marginTop: 4 }}>{found.name}</Txt>
 
-          {/* Amount toggle */}
           <View style={{ flexDirection: 'row', backgroundColor: colors.cardAlt, borderRadius: radius.pill, padding: 4, marginTop: spacing(1.5) }}>
-            {found.serving ? (
-              <Toggle label={`Servings`} active={mode === 'serving'} onPress={() => setMode('serving')} />
-            ) : null}
+            {found.serving ? <Toggle label="Servings" active={mode === 'serving'} onPress={() => setMode('serving')} /> : null}
             <Toggle label="Grams" active={mode === 'grams'} onPress={() => setMode('grams')} />
           </View>
 
@@ -126,6 +129,7 @@ export default function BarcodeScanScreen({ navigation }: any) {
         <Button title="✅ Log this" loading={logging} onPress={log} style={{ marginTop: spacing(1) }} />
         <Button title="📷 Scan another" variant="ghost" onPress={rescan} style={{ marginTop: spacing(1) }} />
       </View>
+      </TouchableWithoutFeedback>
     );
   }
 
@@ -138,32 +142,58 @@ export default function BarcodeScanScreen({ navigation }: any) {
           <Txt dim style={{ marginTop: 6 }}>This barcode isn’t in Open Food Facts yet. Try scanning again, or add it with the AI photo scan or Quick add.</Txt>
         </Card>
         <Button title="📷 Try again" onPress={rescan} style={{ marginTop: spacing(1) }} />
-        <Button title="✍️ Log it another way" variant="ghost" onPress={() => navigation.navigate('Scan')} style={{ marginTop: spacing(1) }} />
+        <Button title="✍️ Log it another way" variant="ghost" onPress={() => navigation.goBack()} style={{ marginTop: spacing(1) }} />
       </View>
     );
   }
 
-  // ---- Camera ----
+  // ---- No camera hardware / module not in this build ----
+  if (!device) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, padding: spacing(2), justifyContent: 'center' }}>
+        <Card>
+          <Txt weight="800" size={font.h3}>Camera unavailable</Txt>
+          <Txt dim style={{ marginTop: 6 }}>No camera was found on this device (or the app needs the latest build). Log this food with the AI photo scan or Quick add instead.</Txt>
+        </Card>
+        <Button title="✍️ Log it another way" onPress={() => navigation.goBack()} style={{ marginTop: spacing(1) }} />
+      </View>
+    );
+  }
+
+  // ---- Needs camera permission ----
+  if (!hasPermission) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, padding: spacing(2), justifyContent: 'center' }}>
+        <Card>
+          <Txt weight="800" size={font.h3}>Allow camera access 📷</Txt>
+          <Txt dim style={{ marginTop: 6 }}>FitHub needs your camera to scan barcodes.</Txt>
+        </Card>
+        <Button title="Allow camera" onPress={requestPermission} style={{ marginTop: spacing(1) }} />
+        <Button title="Open Settings" variant="ghost" onPress={() => Linking.openSettings()} style={{ marginTop: spacing(1) }} />
+      </View>
+    );
+  }
+
+  // ---- Live scanner ----
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
-      {granted ? (
-        <Camera
-          style={{ flex: 1 }}
-          scanBarcode
-          onReadCode={(e: any) => onRead(e?.nativeEvent?.codeStringValue)}
-          showFrame
-          laserColor={colors.primary}
-          frameColor="#ffffff"
-        />
-      ) : (
-        <View style={{ flex: 1, justifyContent: 'center', padding: spacing(2), backgroundColor: colors.bg }}>
-          <Card><Txt weight="800">Camera access needed</Txt><Txt dim style={{ marginTop: 6 }}>Allow camera access to scan barcodes.</Txt></Card>
-        </View>
-      )}
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={scanning && isFocused && !found && !notFound}
+        codeScanner={codeScanner}
+      />
+
+      {/* framing box */}
+      <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: '72%', height: 150, borderWidth: 3, borderColor: colors.primary, borderRadius: 16, backgroundColor: '#0000' }} />
+      </View>
+
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: spacing(2), paddingTop: spacing(4) }}>
         <Txt weight="800" size={font.h3} style={{ color: '#fff', textAlign: 'center' }}>Scan a barcode</Txt>
-        <Txt style={{ color: '#fff9', textAlign: 'center', marginTop: 4 }}>Point at a packaged food’s barcode</Txt>
+        <Txt style={{ color: '#fff9', textAlign: 'center', marginTop: 4 }}>Line up a packaged food’s barcode</Txt>
       </View>
+
       {looking && (
         <View style={{ position: 'absolute', bottom: 60, left: 0, right: 0, alignItems: 'center' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#000a', paddingHorizontal: 16, paddingVertical: 10, borderRadius: radius.pill }}>

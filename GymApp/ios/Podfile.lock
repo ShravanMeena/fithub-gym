@@ -2272,6 +2272,12 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - VisionCamera (4.7.3):
+    - VisionCamera/Core (= 4.7.3)
+    - VisionCamera/React (= 4.7.3)
+  - VisionCamera/Core (4.7.3)
+  - VisionCamera/React (4.7.3):
+    - React-Core
   - Yoga (0.0.0)
 
 DEPENDENCIES:
@@ -2366,6 +2372,7 @@ DEPENDENCIES:
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNShare (from `../node_modules/react-native-share`)
   - VideoTrim (from `../node_modules/react-native-video-trim`)
+  - VisionCamera (from `../node_modules/react-native-vision-camera`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -2558,6 +2565,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-share"
   VideoTrim:
     :path: "../node_modules/react-native-video-trim"
+  VisionCamera:
+    :path: "../node_modules/react-native-vision-camera"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -2660,6 +2669,7 @@ SPEC CHECKSUMS:
   RNScreens: 032083414633a4d94cbcf08f8ab5019d72d1ba36
   RNShare: 43cee010ada075019148c7a6bac1ca71b074e1d7
   VideoTrim: c9d653ec642e4a720e68ff7284093207d4e214a8
+  VisionCamera: 3ea10c46a5c612f5f89fb46a54bef4a0de8b58a7
   Yoga: fe50ab299e578f397fef753cf309c6703a4db29b
 
 PODFILE CHECKSUM: 255061a449a8a17987eac7afbb8eb023885374f3

@@ -326,30 +326,51 @@
       const {platforms}=await api('/super/app-update');
       $('appUpdateCards').innerHTML = platforms.map(p=>{
         const on=p.enabled? 'checked':'';
+        const pf=p.platform;
         const opt=(v,l)=>`<option value="${v}" ${p.mode===v?'selected':''}>${l}</option>`;
         return `<div class="card" style="margin-bottom:16px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <h3 style="margin:0">${p.platform==='ios'?'🍎 iOS':'🤖 Android'}</h3>
-            <label style="font-size:14px"><input type="checkbox" id="u_${p.platform}_enabled" ${on}> Enabled</label>
+            <h3 style="margin:0">${pf==='ios'?'🍎 iOS':'🤖 Android'}</h3>
+            <label style="font-size:14px;font-weight:700"><input type="checkbox" id="u_${pf}_enabled" ${on}> Update checks on</label>
           </div>
-          <div class="field"><label>Mode</label>
-            <select id="u_${p.platform}_mode" style="width:auto;display:inline-block;padding:8px 10px">
-              ${opt('auto','Auto (by version)')}${opt('soft','Soft (suggest)')}${opt('force','Force (block)')}${opt('off','Off')}
+
+          <div class="field"><label>Rollout mode</label>
+            <select id="u_${pf}_mode" style="width:auto;display:inline-block;padding:8px 10px">
+              ${opt('auto','Auto — decide by version')}${opt('soft','Soft — nudge everyone')}${opt('force','Force — block everyone')}${opt('off','Off — thresholds only')}
             </select>
-            <span class="muted" style="font-size:12px;margin-left:8px">Auto: below "Min" = force, below "Latest" = soft</span>
+            <span class="muted" style="font-size:12px;margin-left:8px">Auto: below Min ⇒ force · below Latest ⇒ soft</span>
           </div>
+
           <div style="display:flex;gap:10px">
-            <div class="field" style="flex:1"><label>Latest version</label><input id="u_${p.platform}_latest_version" value="${esc(p.latest_version)}" placeholder="1.2"></div>
-            <div class="field" style="flex:1"><label>Min version (force below)</label><input id="u_${p.platform}_min_version" value="${esc(p.min_version)}" placeholder="1.1"></div>
+            <div class="field" style="flex:1"><label>Latest version <span class="muted" style="font-weight:400">(soft below)</span></label><input id="u_${pf}_latest_version" value="${esc(p.latest_version)}" placeholder="1.20"></div>
+            <div class="field" style="flex:1"><label>Min supported <span class="muted" style="font-weight:400">(force below)</span></label><input id="u_${pf}_min_version" value="${esc(p.min_version)}" placeholder="1.10"></div>
           </div>
-          <div class="field"><label>Title</label><input id="u_${p.platform}_title" value="${esc(p.title)}"></div>
-          <div class="field"><label>Message</label><input id="u_${p.platform}_message" value="${esc(p.message)}"></div>
+
+          <div style="border:1px dashed var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px">
+            <div class="muted" style="font-size:12px;font-weight:700;margin-bottom:8px">🎯 TARGET SPECIFIC VERSIONS (overrides the thresholds above)</div>
+            <div style="display:flex;gap:10px">
+              <div class="field" style="flex:1;margin-bottom:0"><label style="color:var(--danger)">Force these exact versions</label><input id="u_${pf}_force_versions" value="${esc(p.force_versions)}" placeholder="1.15, 1.16"></div>
+              <div class="field" style="flex:1;margin-bottom:0"><label style="color:var(--orange)">Soft-nudge these versions</label><input id="u_${pf}_soft_versions" value="${esc(p.soft_versions)}" placeholder="1.17, 1.18"></div>
+            </div>
+            <div class="muted" style="font-size:11px;margin-top:6px">Comma-separated. Use this to kill a known-broken build regardless of the range.</div>
+          </div>
+
+          <div class="field"><label>Card title</label><input id="u_${pf}_title" value="${esc(p.title)}" placeholder="Update available"></div>
+          <div class="field"><label>Message</label><input id="u_${pf}_message" value="${esc(p.message)}" placeholder="A new version of FitHub is available with improvements and fixes."></div>
           <div style="display:flex;gap:10px">
-            <div class="field" style="flex:1"><label>Button text</label><input id="u_${p.platform}_button_text" value="${esc(p.button_text)}"></div>
-            <div class="field" style="flex:2"><label>Download URL (store link)</label><input id="u_${p.platform}_download_url" value="${esc(p.download_url)}" placeholder="https://play.google.com/store/apps/details?id=com.fithub.gym"></div>
+            <div class="field" style="flex:1"><label>Button text</label><input id="u_${pf}_button_text" value="${esc(p.button_text)}" placeholder="Update now"></div>
+            <div class="field" style="flex:2"><label>Store link (opens on tap)</label><input id="u_${pf}_download_url" value="${esc(p.download_url)}" placeholder="${pf==='ios'?'https://apps.apple.com/app/idXXXXXXXXX':'https://play.google.com/store/apps/details?id=com.fithub.gym'}"></div>
           </div>
-          <button class="btn" onclick="saveAppUpdate('${p.platform}')">Save ${p.platform}</button>
-          <span class="msg" id="u_${p.platform}_msg" style="color:var(--accent);margin-left:10px"></span>
+
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button class="btn" onclick="saveAppUpdate('${pf}')">Save ${pf==='ios'?'iOS':'Android'}</button>
+            <span class="msg" id="u_${pf}_msg" style="color:var(--accent)"></span>
+            <span style="flex:1"></span>
+            <span class="muted" style="font-size:12px">🧪 Test a version:</span>
+            <input id="u_${pf}_test" placeholder="1.18" style="max-width:110px;padding:8px 10px" onkeydown="if(event.key==='Enter')testUpdate('${pf}')">
+            <button class="btn ghost sm" onclick="testUpdate('${pf}')">Check</button>
+            <span id="u_${pf}_testout" style="font-size:13px;font-weight:700"></span>
+          </div>
         </div>`;
       }).join('');
     }catch(e){ $('appUpdateCards').innerHTML='<div class="muted" style="color:var(--danger)">'+e.message+'</div>'; }
@@ -360,11 +381,25 @@
       enabled: $('u_'+pf+'_enabled').checked,
       mode: $('u_'+pf+'_mode').value,
       latest_version: v('latest_version'), min_version: v('min_version'),
+      force_versions: v('force_versions'), soft_versions: v('soft_versions'),
       title: v('title'), message: v('message'), button_text: v('button_text'), download_url: v('download_url'),
     };
     try{ await api('/super/app-update/'+pf,{method:'PUT',body:JSON.stringify(body)});
       $('u_'+pf+'_msg').style.color='var(--accent)'; $('u_'+pf+'_msg').textContent='✅ Saved';
+      setTimeout(()=>{$('u_'+pf+'_msg').textContent='';},2000);
     }catch(e){ $('u_'+pf+'_msg').style.color='var(--danger)'; $('u_'+pf+'_msg').textContent=e.message; }
+  }
+  // Preview what a given app version would receive (uses the live public endpoint + saved config).
+  async function testUpdate(pf){
+    const ver=$('u_'+pf+'_test').value.trim(); const out=$('u_'+pf+'_testout');
+    if(!ver){ out.textContent=''; return; }
+    out.style.color='var(--dim)'; out.textContent='…';
+    try{
+      const r=await api('/app/update?platform='+pf+'&version='+encodeURIComponent(ver));
+      if(!r.update){ out.style.color='var(--accent)'; out.textContent='✓ v'+ver+' is up to date'; }
+      else if(r.force){ out.style.color='var(--danger)'; out.textContent='⛔ v'+ver+' → FORCE update'; }
+      else{ out.style.color='var(--orange)'; out.textContent='🔔 v'+ver+' → soft update'; }
+    }catch(e){ out.style.color='var(--danger)'; out.textContent=e.message; }
   }
 
   async function showDash(){

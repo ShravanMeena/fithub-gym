@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, View, TouchableOpacity, TouchableWithoutFeedback, ScrollView, Dimensions, Platform } from 'react-native';
+import { Animated, View, TouchableOpacity, TouchableWithoutFeedback, ScrollView, Dimensions, Platform, Linking } from 'react-native';
 import { Txt } from './UI';
 import { Avatar } from './Avatar';
 import { Icon, IconName } from './Icon';
@@ -7,6 +7,8 @@ import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
 import { navTo } from '../navigation/ref';
+import { AppAPI } from '../api/client';
+import { APP_VERSION } from '../api/config';
 import { colors, font, spacing } from '../theme';
 
 const W = Math.min(300, Dimensions.get('window').width * 0.82);
@@ -33,6 +35,9 @@ export function Sidebar() {
   // Only keep the full-screen overlay mounted while open (or animating closed),
   // so a closed sidebar can NEVER block/capture touches on the screen behind it.
   const [mounted, setMounted] = useState(false);
+  // Server-driven update status (shown next to the version in the footer).
+  const [upd, setUpd] = useState<{ force?: boolean; download_url?: string } | null>(null);
+  useEffect(() => { AppAPI.checkUpdate().then((d) => { if (d?.update) setUpd(d); }).catch(() => {}); }, []);
 
   useEffect(() => {
     if (sidebarOpen) setMounted(true);
@@ -92,6 +97,18 @@ export function Sidebar() {
             <View style={{ width: 34 }}><Icon name="logout" color={colors.danger} size={21} /></View>
             <Txt size={font.body} style={{ color: colors.danger }}>Log out</Txt>
           </TouchableOpacity>
+
+          {/* Version + live update status */}
+          <View style={{ paddingHorizontal: spacing(2), paddingTop: 8, paddingBottom: 4 }}>
+            {upd ? (
+              <TouchableOpacity onPress={() => upd.download_url && Linking.openURL(upd.download_url).catch(() => {})} style={{ marginBottom: 5 }}>
+                <Txt size={font.tiny} weight="800" style={{ color: upd.force ? colors.danger : colors.primary }}>
+                  {upd.force ? '⛔ Update required' : '🔔 Update available'} · tap to update
+                </Txt>
+              </TouchableOpacity>
+            ) : null}
+            <Txt size={font.tiny} dim>FitHub v{APP_VERSION}</Txt>
+          </View>
         </View>
       </Animated.View>
     </View>

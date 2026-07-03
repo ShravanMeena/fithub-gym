@@ -27,14 +27,22 @@ router.get('/update', async (req, res, next) => {
 
     if (!cfg || !cfg.enabled) return res.json({ update: false });
 
+    // Parse the comma/space-separated explicit version lists.
+    const list = (s) => String(s || '').split(/[,\s]+/).map((v) => v.trim()).filter(Boolean);
+    const forceList = list(cfg.force_versions);
+    const softList = list(cfg.soft_versions);
+
     let type = 'none';
-    if (cfg.mode === 'force') type = 'force';
+    // Explicit per-version targeting wins over the thresholds (except the enabled kill-switch).
+    if (forceList.includes(version)) type = 'force';
+    else if (softList.includes(version)) type = 'soft';
+    else if (cfg.mode === 'force') type = 'force';
     else if (cfg.mode === 'soft') type = 'soft';
     else if (cfg.mode === 'off') type = 'none';
     else {
       // auto: below min => force, below latest => soft
-      if (cmpVersion(version, cfg.min_version) < 0) type = 'force';
-      else if (cmpVersion(version, cfg.latest_version) < 0) type = 'soft';
+      if (cfg.min_version && cmpVersion(version, cfg.min_version) < 0) type = 'force';
+      else if (cfg.latest_version && cmpVersion(version, cfg.latest_version) < 0) type = 'soft';
     }
 
     if (type === 'none') return res.json({ update: false });
