@@ -95,7 +95,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode autoVersionCode
-        versionName "1.18"
+        versionName "1.19"
     }
     signingConfigs {
         debug {
