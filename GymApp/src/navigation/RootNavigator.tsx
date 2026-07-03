@@ -34,6 +34,7 @@ import GymScheduleScreen from '../screens/GymScheduleScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import BadgesScreen from '../screens/BadgesScreen';
 import PRScreen from '../screens/PRScreen';
+import BarcodeScanScreen from '../screens/BarcodeScanScreen';
 
 const navTheme = {
   ...DefaultTheme,
@@ -156,6 +157,7 @@ export default function RootNavigator() {
               <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: 'Post' }} />
               <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: 'Badges' }} />
               <Stack.Screen name="PRs" component={PRScreen} options={{ title: 'Personal Records' }} />
+              <Stack.Screen name="BarcodeScan" component={BarcodeScanScreen} options={{ title: 'Scan Barcode' }} />
             </>
           ) : !org ? (
             <Stack.Screen name="OrgSelect" component={OrgSelectScreen} options={{ headerShown: false }} />

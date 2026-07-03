@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View, Alert, RefreshControl, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Image, Alert, RefreshControl, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Button, Field, Pill } from '../components/UI';
 import { TimeField } from '../components/TimeField';
 import { DateNav, todayStr } from '../components/DateNav';
 import { KeyboardScroll } from '../components/KeyboardScroll';
-import { DietAPI, ProfileAPI, ReminderAPI, FoodAPI, apiError } from '../api/client';
+import { DietAPI, ProfileAPI, ReminderAPI, FoodAPI, mealPhotoSource, apiError } from '../api/client';
 import { scheduleReminder, ensureNotifPermission } from '../notifications';
 import { useBilling } from '../context/BillingContext';
 import { colors, font, radius, spacing } from '../theme';
@@ -226,6 +226,7 @@ export default function DietScreen({ navigation }: any) {
         <Card><Txt dim size={font.small}>{isToday ? 'Nothing logged yet. Tap “Add food” to scan a meal or add one.' : 'No food logged this day.'}</Txt></Card>
       ) : logs.map((l) => (
         <Card key={l.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {l.photo_url ? <MealThumb url={l.photo_url} /> : null}
           <View style={{ flex: 1, paddingRight: 8 }}>
             <Txt weight="700">{l.name}</Txt>
             <Txt dim size={font.tiny}>P {Math.round(l.protein_g)}g · C {Math.round(l.carbs_g)}g · F {Math.round(l.fat_g)}g</Txt>
@@ -351,6 +352,14 @@ function Macro({ label, value, color }: any) {
       <Txt dim size={font.tiny}>{label}</Txt>
     </View>
   );
+}
+
+// Thumbnail of the meal photo attached to a food log (JWT-authed).
+function MealThumb({ url }: { url: string }) {
+  const [src, setSrc] = useState<any>(null);
+  useEffect(() => { mealPhotoSource(url).then(setSrc).catch(() => {}); }, [url]);
+  if (!src) return <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: colors.cardAlt, marginRight: 10 }} />;
+  return <Image source={src} style={{ width: 44, height: 44, borderRadius: 8, marginRight: 10, backgroundColor: colors.cardAlt }} />;
 }
 
 function Bar({ value, max, color }: { value: number; max?: number; color: string }) {

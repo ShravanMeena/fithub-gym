@@ -33,11 +33,16 @@ import { aiMode } from './services/bedrock.js';
 import { storageMode } from './services/storage.js';
 import { initPush } from './services/push.js';
 import { startReminderScheduler } from './services/reminderScheduler.js';
+import { apiLogger, startApiLogRetention } from './middleware/apiLogger.js';
 
 const app = express();
+app.set('trust proxy', true); // real client IP behind the reverse proxy
 // Large limit so base64 photos / short videos fit.
 app.use(express.json({ limit: '60mb' }));
 app.use(cors());
+
+// Observability: capture every /api request+response (fire-and-forget).
+app.use(apiLogger);
 
 app.get('/health', (req, res) => res.json({ ok: true, ai: aiMode() }));
 
@@ -81,6 +86,7 @@ if (existsSync(STATIC_DIR)) {
 // Central error handler (routes call next(err) on DB failures).
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
+  req._error = err; // picked up by apiLogger so the real stack is stored
   res.status(500).json({ error: 'Server error' });
 });
 
@@ -89,6 +95,7 @@ initDb()
   .then(async () => {
     await initPush();
     startReminderScheduler();
+    startApiLogRetention();
     app.listen(PORT, () => {
       console.log(`FitHub backend on :${PORT}  (AI: ${aiMode()}, storage: ${storageMode()}, static: ${existsSync(STATIC_DIR) ? 'on' : 'off'})`);
     });

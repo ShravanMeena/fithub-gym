@@ -182,7 +182,12 @@ export const FoodAPI = {
   day: (date?: string) => api.get('/food/day', { params: date ? { date } : {} }).then((r) => r.data),
   recent: () => api.get('/food/recent').then((r) => r.data),
   remove: (id: number) => api.delete(`/food/log/${id}`).then((r) => r.data),
+  // Packaged-food lookup by barcode (free, no AI — Open Food Facts).
+  barcode: (code: string) => api.get(`/food/barcode/${code}`).then((r) => r.data),
 };
+
+// <Image> source for a meal photo attached to a food log (JWT header).
+export const mealPhotoSource = (photoUrl: string) => authedImageSource(photoUrl);
 
 export const ProgressAPI = {
   list: () => api.get('/progress').then((r) => r.data),

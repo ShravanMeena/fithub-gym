@@ -74,6 +74,7 @@
       <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Push</div>
       <div class="tab" data-tab="appupdate" onclick="switchTab('appupdate')">📲 App Update</div>
       <div class="tab" data-tab="aiusage" onclick="switchTab('aiusage')">🤖 AI Usage</div>
+      <div class="tab" data-tab="logs" onclick="switchTab('logs')">🩺 API Logs</div>
       <div class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</div>
     </div>
 
@@ -116,6 +117,38 @@
         <h3 style="font-size:15px">Top users</h3>
         <div id="aiByUser"></div>
       </div>
+    </div>
+
+    <div id="tab_logs" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3>API health · last 24h</h3>
+          <button class="btn ghost sm" onclick="loadLogs()">↻ Refresh</button>
+        </div>
+        <div id="lgStats" style="display:flex;flex-wrap:wrap;gap:14px;margin-top:6px"></div>
+        <div id="lgTrend" style="display:flex;align-items:flex-end;gap:3px;height:60px;margin-top:16px"></div>
+        <p class="muted" style="font-size:12px;margin-top:6px">Requests (bar) &amp; errors (red) per hour</p>
+        <div style="display:flex;flex-wrap:wrap;gap:18px;margin-top:14px">
+          <div style="flex:1;min-width:240px"><div class="muted" style="font-size:12px;font-weight:700;margin-bottom:6px">TOP FAILING ENDPOINTS</div><div id="lgTopErrors"></div></div>
+          <div style="flex:1;min-width:240px"><div class="muted" style="font-size:12px;font-weight:700;margin-bottom:6px">SLOWEST ENDPOINTS</div><div id="lgSlowest"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:15px">Request log</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0">
+          <span id="lgChips"></span>
+          <input id="lg_q" placeholder="path contains… /api/food" style="flex:1;min-width:160px" onkeydown="if(event.key==='Enter')loadLogList(true)">
+          <input id="lg_user" placeholder="user id" style="width:90px" onkeydown="if(event.key==='Enter')loadLogList(true)">
+          <button class="btn ghost sm" onclick="loadLogList(true)">Search</button>
+        </div>
+        <div style="overflow-x:auto"><table id="lgTable"></table></div>
+        <div style="text-align:center;margin-top:12px"><button class="btn ghost sm" id="lgMore" onclick="loadLogList(false)" style="display:none">Load more</button></div>
+      </div>
+    </div>
+
+    <div id="logModal" style="display:none;position:fixed;inset:0;background:#000b;z-index:50;padding:24px;overflow:auto" onclick="if(event.target===this)closeLog()">
+      <div class="card" style="max-width:760px;margin:0 auto"><div id="logDetail"></div><button class="btn ghost" style="margin-top:14px" onclick="closeLog()">Close</button></div>
     </div>
 
     <div id="tab_settings" class="card" style="display:none">
@@ -185,7 +218,7 @@
     finally{ $('loginBtn').disabled=false; $('loginBtn').textContent='Log in'; }
   }
   function logout(){ localStorage.removeItem(TOKEN_KEY); token=null; location.reload(); }
-  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['analytics','users','gyms','push','appupdate','aiusage','settings'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); if(t==='settings') loadSettings(); if(t==='aiusage') loadAiUsage(); if(t==='analytics') loadAnalytics(); }
+  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['analytics','users','gyms','push','appupdate','aiusage','logs','settings'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); if(t==='settings') loadSettings(); if(t==='aiusage') loadAiUsage(); if(t==='analytics') loadAnalytics(); if(t==='logs') loadLogs(); }
 
   // ---- Product analytics ----
   function stat(label,val,sub){ return '<div style="flex:1;min-width:110px;background:var(--bg);border-radius:10px;padding:12px"><div style="font-size:12px;color:var(--muted)">'+label+'</div><div style="font-size:22px;font-weight:800">'+val+'</div>'+(sub?'<div style="font-size:11px;color:var(--muted)">'+sub+'</div>':'')+'</div>'; }
@@ -378,6 +411,66 @@
       alert(days? 'AI granted until '+r.ai_until+' UTC' : 'AI revoked'); }catch(e){ alert(e.message); }
   }
   let t; function debouncedUsers(){ clearTimeout(t); t=setTimeout(loadUsers,350); }
+
+  // ---- API logs console ----
+  let lgScope='all', lgCursor=null;
+  const esc2=(s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const statusColor=(s)=>s>=500?'var(--danger)':s>=400?'var(--orange)':'var(--accent)';
+  const ago=(ts)=>{const d=(Date.now()-new Date(ts).getTime())/1000; if(d<60)return Math.floor(d)+'s'; if(d<3600)return Math.floor(d/60)+'m'; if(d<86400)return Math.floor(d/3600)+'h'; return Math.floor(d/86400)+'d';};
+
+  async function loadLogs(){
+    const box=(label,val,color)=>'<div style="flex:1;min-width:110px;background:var(--bg);border-radius:10px;padding:12px"><div style="font-size:12px;color:var(--muted)">'+label+'</div><div style="font-size:20px;font-weight:800;color:'+(color||'var(--text)')+'">'+val+'</div></div>';
+    try{
+      const s=await api('/super/logs/stats');
+      const t=s.totals||{};
+      const rate=t.total?((t.errors/t.total)*100).toFixed(1):'0';
+      $('lgStats').innerHTML = box('Requests',t.total||0)+box('Errors',(t.errors||0)+' ('+rate+'%)',(t.errors>0?'var(--danger)':'var(--accent)'))+box('5xx',t.server_errors||0,(t.server_errors>0?'var(--danger)':'var(--text)'))+box('Avg latency',(t.avg_ms||0)+' ms')+box('Slowest',(t.max_ms||0)+' ms');
+      const max=Math.max(1,...s.trend.map(x=>x.total));
+      $('lgTrend').innerHTML = s.trend.map(x=>{const h=Math.max(2,Math.round(x.total/max*46));const eh=x.total?Math.round(x.errors/x.total*h):0;return '<div title="'+x.hour+' · '+x.total+' req, '+x.errors+' err" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end"><div style="height:'+(h-eh)+'px;background:var(--primary);border-radius:2px 2px 0 0"></div><div style="height:'+eh+'px;background:var(--danger)"></div></div>';}).join('');
+      const line=(r)=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="font-family:monospace;color:'+statusColor(r.status)+'">'+esc2(r.route)+'</span><span class="muted">'+(r.avg_ms!=null?r.avg_ms+' ms':r.c+'× · '+r.status)+'</span></div>';
+      $('lgTopErrors').innerHTML = (s.topErrors||[]).map(r=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="font-family:monospace;color:'+statusColor(r.status)+'">'+esc2(r.route)+'</span><span class="muted">'+r.c+'× · '+r.status+'</span></div>').join('')||'<p class="muted" style="font-size:13px">No errors 🎉</p>';
+      $('lgSlowest').innerHTML = (s.slowest||[]).map(line).join('')||'<p class="muted" style="font-size:13px">—</p>';
+    }catch(e){ $('lgStats').innerHTML='<p class="muted">'+esc2(e.message)+'</p>'; }
+    renderChips();
+    loadLogList(true);
+  }
+
+  function renderChips(){
+    const opts=[['all','All'],['errors','Errors'],['5xx','5xx'],['4xx','4xx']];
+    $('lgChips').innerHTML = opts.map(([v,l])=>'<button class="btn '+(lgScope===v?'':'ghost')+' sm" style="margin-right:6px" onclick="setScope(\''+v+'\')">'+l+'</button>').join('');
+  }
+  function setScope(v){ lgScope=v; renderChips(); loadLogList(true); }
+
+  async function loadLogList(reset){
+    if(reset) lgCursor=null;
+    const p=new URLSearchParams(); if(lgScope!=='all')p.set('scope',lgScope);
+    const qv=$('lg_q').value.trim(); if(qv)p.set('q',qv);
+    const uv=$('lg_user').value.trim(); if(uv)p.set('user_id',uv);
+    if(lgCursor)p.set('before',lgCursor);
+    try{
+      const d=await api('/super/logs?'+p.toString());
+      const rows=(d.logs||[]).map(r=>'<tr style="cursor:pointer" onclick="openLog('+r.id+')"><td style="color:'+statusColor(r.status)+';font-weight:800">'+r.status+'</td><td style="font-weight:700">'+esc2(r.method)+'</td><td style="font-family:monospace;font-size:12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc2(r.path)+'</td><td class="muted" style="font-size:12px">'+(r.duration_ms)+'ms</td><td class="muted" style="font-size:12px">'+(r.user_id?esc2(r.user_name||r.user_email||('#'+r.user_id)):'—')+'</td><td class="muted" style="font-size:12px">'+ago(r.ts)+'</td></tr>').join('');
+      const head='<tr><th>Status</th><th>Method</th><th>Path</th><th>Time</th><th>User</th><th>When</th></tr>';
+      if(reset) $('lgTable').innerHTML = head+(rows||'<tr><td colspan="6" class="muted" style="padding:16px">No requests match.</td></tr>');
+      else $('lgTable').innerHTML += rows;
+      lgCursor=d.nextCursor;
+      $('lgMore').style.display = d.nextCursor?'inline-block':'none';
+    }catch(e){ $('lgTable').innerHTML='<tr><td class="muted" style="padding:16px">'+esc2(e.message)+'</td></tr>'; }
+  }
+
+  async function openLog(id){
+    $('logDetail').innerHTML='<p class="muted">Loading…</p>'; $('logModal').style.display='block';
+    try{
+      const {log:l}=await api('/super/logs/'+id);
+      const pre=(label,val)=>val==null?'':'<div style="margin-top:12px"><div class="muted" style="font-size:12px;font-weight:700;margin-bottom:4px">'+label+'</div><pre style="background:var(--bg);border-radius:10px;padding:12px;overflow:auto;font-size:12px;max-height:260px;margin:0;white-space:pre-wrap;word-break:break-word">'+esc2(typeof val==='object'?JSON.stringify(val,null,2):val)+'</pre></div>';
+      $('logDetail').innerHTML =
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:22px;font-weight:900;color:'+statusColor(l.status)+'">'+l.status+'</span><span style="font-weight:800">'+esc2(l.method)+'</span><span style="font-family:monospace;font-size:13px">'+esc2(l.path)+'</span></div>'+
+        '<div class="muted" style="font-size:13px;margin-top:6px">'+esc2(l.route)+' · '+l.duration_ms+'ms · '+fmtT(l.ts)+' · '+(l.user_id?('👤 '+esc2(l.user_name||l.user_email||l.user_id)):'anonymous')+' · '+esc2(l.ip||'')+'</div>'+
+        (l.error?'<div style="margin-top:12px"><div class="muted" style="font-size:12px;font-weight:700;margin-bottom:4px;color:var(--danger)">ERROR</div><pre style="background:rgba(255,90,90,.1);border:1px solid var(--danger);border-radius:10px;padding:12px;overflow:auto;font-size:12px;max-height:240px;margin:0;white-space:pre-wrap;word-break:break-word;color:#ffb4b4">'+esc2(l.error)+'</pre></div>':'')+
+        pre('REQUEST BODY',l.req_body)+pre('QUERY',l.req_query)+pre('RESPONSE',l.res_body)+pre('User-Agent',l.user_agent)+pre('REQUEST HEADERS',l.req_headers);
+    }catch(e){ $('logDetail').innerHTML='<p class="muted">'+esc2(e.message)+'</p>'; }
+  }
+  function closeLog(){ $('logModal').style.display='none'; }
 
   if(token) showDash();
 </script>

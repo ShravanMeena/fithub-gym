@@ -45,6 +45,86 @@ router.get('/gyms', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ---- API logs console (observability) -------------------------------------
+
+// Quick health numbers for the last 24h + top offenders.
+router.get('/logs/stats', async (req, res, next) => {
+  try {
+    const totals = await one(
+      `SELECT COUNT(*)::int AS total,
+              COUNT(*) FILTER (WHERE ok = false)::int AS errors,
+              COUNT(*) FILTER (WHERE status >= 500)::int AS server_errors,
+              COALESCE(ROUND(AVG(duration_ms))::int, 0) AS avg_ms,
+              COALESCE(MAX(duration_ms), 0) AS max_ms
+       FROM api_logs WHERE ts >= now() - interval '24 hours'`
+    );
+    const topErrors = await q(
+      `SELECT route, COUNT(*)::int AS c, MAX(status) AS status
+       FROM api_logs WHERE ok = false AND ts >= now() - interval '24 hours'
+       GROUP BY route ORDER BY c DESC LIMIT 6`
+    );
+    const slowest = await q(
+      `SELECT route, ROUND(AVG(duration_ms))::int AS avg_ms, COUNT(*)::int AS c
+       FROM api_logs WHERE ts >= now() - interval '24 hours'
+       GROUP BY route HAVING COUNT(*) >= 3 ORDER BY avg_ms DESC LIMIT 6`
+    );
+    // Requests + errors per hour for the last 24h (sparkline).
+    const trend = await q(
+      `SELECT to_char(h, 'HH24:00') AS hour,
+              COALESCE(c.total, 0)::int AS total, COALESCE(c.errors, 0)::int AS errors
+       FROM generate_series(date_trunc('hour', now()) - interval '23 hours', date_trunc('hour', now()), interval '1 hour') h
+       LEFT JOIN (
+         SELECT date_trunc('hour', ts) AS hh, COUNT(*) AS total, COUNT(*) FILTER (WHERE ok = false) AS errors
+         FROM api_logs WHERE ts >= now() - interval '24 hours' GROUP BY 1
+       ) c ON c.hh = h ORDER BY h`
+    );
+    res.json({ totals, topErrors, slowest, trend });
+  } catch (e) { next(e); }
+});
+
+// Paginated, filterable log list (lightweight rows — no headers/bodies).
+router.get('/logs', async (req, res, next) => {
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const where = [];
+    const params = [];
+    const add = (clause, val) => { params.push(val); where.push(clause.replace('?', `$${params.length}`)); };
+
+    const scope = req.query.scope;
+    if (scope === 'errors') where.push('l.ok = false');
+    else if (scope === '5xx') where.push('l.status >= 500');
+    else if (scope === '4xx') where.push('l.status >= 400 AND l.status < 500');
+    if (req.query.user_id) add('l.user_id = ?', parseInt(req.query.user_id, 10));
+    if (req.query.route) add('l.route ILIKE ?', `%${req.query.route}%`);
+    if (req.query.q) add('l.path ILIKE ?', `%${req.query.q}%`);
+    if (req.query.method) add('l.method = ?', String(req.query.method).toUpperCase());
+    if (req.query.before) add('l.id < ?', parseInt(req.query.before, 10)); // cursor
+
+    const sql = `
+      SELECT l.id, l.ts, l.method, l.path, l.route, l.status, l.duration_ms, l.ok, l.user_id, l.error,
+             u.name AS user_name, u.email AS user_email
+      FROM api_logs l LEFT JOIN users u ON u.id = l.user_id
+      ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+      ORDER BY l.id DESC LIMIT ${limit}`;
+    const rows = await q(sql, params);
+    const nextCursor = rows.length === limit ? rows[rows.length - 1].id : null;
+    res.json({ logs: rows, nextCursor });
+  } catch (e) { next(e); }
+});
+
+// Full detail for one request (headers + bodies).
+router.get('/logs/:id', async (req, res, next) => {
+  try {
+    const row = await one(
+      `SELECT l.*, u.name AS user_name, u.email AS user_email
+       FROM api_logs l LEFT JOIN users u ON u.id = l.user_id WHERE l.id = $1`,
+      [req.params.id]
+    );
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json({ log: row });
+  } catch (e) { next(e); }
+});
+
 router.get('/users', async (req, res, next) => {
   try {
     const term = `%${(req.query.q || '').toString().toLowerCase()}%`;

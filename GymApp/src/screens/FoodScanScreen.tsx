@@ -71,7 +71,9 @@ export default function FoodScanScreen({ navigation }: any) {
     if (!estimate) return;
     setLogging(true);
     try {
-      await FoodAPI.log({ name: estimate.name, calories: estimate.calories, protein_g: estimate.protein_g, carbs_g: estimate.carbs_g, fat_g: estimate.fat_g, items: estimate.items, source });
+      // Attach the scanned photo so the diary shows what you ate, not just macros.
+      const photo = source === 'photo' && asset?.base64 ? { imageBase64: asset.base64, mediaType: asset.type || 'image/jpeg' } : {};
+      await FoodAPI.log({ name: estimate.name, calories: estimate.calories, protein_g: estimate.protein_g, carbs_g: estimate.carbs_g, fat_g: estimate.fat_g, items: estimate.items, source, ...photo });
       Alert.alert('Logged!', `${estimate.name} added to today.`, [{ text: 'OK', onPress: () => navigation.navigate('Today') }]);
       setAsset(null); setEstimate(null); setDesc('');
     } catch (e) { Alert.alert('Error', apiError(e)); }
@@ -140,6 +142,16 @@ export default function FoodScanScreen({ navigation }: any) {
             {!aiActive && (
               <Txt size={font.tiny} style={{ marginTop: 10, color: colors.primary, fontWeight: '700' }}>✨ Premium feature — Quick add stays free.</Txt>
             )}
+          </Card>
+
+          {/* Barcode scan — free, no AI (Open Food Facts) */}
+          <Card onPress={() => navigation.navigate('BarcodeScan')} style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing(1.5) }}>
+            <Txt size={26} style={{ marginRight: spacing(1.5) }}>📷</Txt>
+            <View style={{ flex: 1 }}>
+              <Txt weight="800">Scan a barcode</Txt>
+              <Txt dim size={font.small} style={{ marginTop: 2 }}>Packaged food? Get exact macros instantly — free.</Txt>
+            </View>
+            <Txt size={font.h3} dim>›</Txt>
           </Card>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing(1.5) }}>

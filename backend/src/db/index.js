@@ -218,6 +218,9 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS water_goal_ml INTEGER NOT NULL DEFAUL
 -- What muscle groups the member trained in a session (comma-separated).
 ALTER TABLE attendance ADD COLUMN IF NOT EXISTS focus TEXT;
 
+-- Optional meal photo attached to a food log (see what you ate, not just macros).
+ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS photo_path TEXT;
+
 -- Allow phone-only accounts (login by phone OR email, no OTP).
 ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
 
@@ -332,6 +335,32 @@ CREATE TABLE IF NOT EXISTS app_update (
   download_url TEXT NOT NULL DEFAULT '',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- API request/response log for observability (fire-and-forget from middleware).
+-- Sensitive fields are redacted and long values truncated before insert.
+CREATE TABLE IF NOT EXISTS api_logs (
+  id BIGSERIAL PRIMARY KEY,
+  ts TIMESTAMPTZ NOT NULL DEFAULT now(),
+  method TEXT,
+  path TEXT,                                     -- actual path hit (no query string)
+  route TEXT,                                    -- matched pattern, e.g. /api/food/photo/:id
+  status INTEGER,
+  duration_ms INTEGER,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,  -- null when not logged in
+  ip TEXT,
+  user_agent TEXT,
+  req_headers JSONB,
+  req_query JSONB,
+  req_body JSONB,
+  res_body JSONB,
+  error TEXT,                                    -- error text for 5xx/4xx
+  ok BOOLEAN
+);
+CREATE INDEX IF NOT EXISTS idx_api_logs_ts ON api_logs(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_api_logs_status ON api_logs(status);
+CREATE INDEX IF NOT EXISTS idx_api_logs_user ON api_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_logs_route ON api_logs(route);
+CREATE INDEX IF NOT EXISTS idx_api_logs_errors ON api_logs(ts DESC) WHERE ok = false;
 `;
 
 const SEED_ORGS = [
