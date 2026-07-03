@@ -19,6 +19,7 @@ type AuthState = {
   signup: (name: string, email: string, password: string, orgId?: number, phone?: string, referralCode?: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState>({} as AuthState);
@@ -65,8 +66,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    await AuthAPI.deleteAccount();
+    await unregisterPush().catch(() => {});
+    await AsyncStorage.removeItem(TOKEN_KEY);
+    setUser(null);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, signup, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, signup, login, logout, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

@@ -6,7 +6,7 @@ import { Avatar } from '../components/Avatar';
 import { ProfileAPI, apiError } from '../api/client';
 import { scanOrUpload } from '../utils/imagePicker';
 import { useAuth } from '../context/AuthContext';
-import { colors, font, spacing } from '../theme';
+import { colors, font, radius, spacing } from '../theme';
 
 const GOALS = [
   ['lose_fat', 'Lose Fat'],
@@ -33,15 +33,39 @@ const cmToFtIn = (cm: number) => {
 const ftInToCm = (ft: number, inch: number) => Math.round((ft * 12 + inch) * 2.54);
 
 export default function ProfileScreen() {
-  const { user } = useAuth();
+  const { user, deleteAccount } = useAuth();
   const [p, setP] = useState<any>({});
   const [targets, setTargets] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [heightUnit, setHeightUnit] = useState<'cm' | 'ft'>('cm');
   const [ft, setFt] = useState('');
   const [inch, setInch] = useState('');
   const [hasAvatar, setHasAvatar] = useState(false);
   const [avatarV, setAvatarV] = useState(0); // bump to force avatar reload after upload
+
+  // Two-step confirm before permanently deleting the account.
+  const confirmDelete = () => {
+    Alert.alert('Delete account?', 'This permanently deletes your profile, posts, photos and all data. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => Alert.alert('Are you sure?', 'Last chance — your account and everything in it will be gone for good.', [
+          { text: 'Keep my account', style: 'cancel' },
+          {
+            text: 'Delete forever',
+            style: 'destructive',
+            onPress: async () => {
+              setDeleting(true);
+              try { await deleteAccount(); } // AuthContext clears the session → returns to login
+              catch (e) { setDeleting(false); Alert.alert('Could not delete', apiError(e)); }
+            },
+          },
+        ]),
+      },
+    ]);
+  };
 
   useEffect(() => {
     ProfileAPI.get().then(({ profile, targets, avatar }) => {
@@ -173,6 +197,19 @@ export default function ProfileScreen() {
       <Field label="Allergies / dislikes" value={p.allergies || ''} onChangeText={(v) => set('allergies', v)} placeholder="e.g. lactose, peanuts" />
 
       <Button title="Save Profile" loading={loading} onPress={save} style={{ marginTop: spacing(1) }} />
+
+      {/* Danger zone — permanent account deletion (required in-app by Google Play) */}
+      <View style={{ marginTop: spacing(4), borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing(2) }}>
+        <Txt size={font.small} weight="800" style={{ color: colors.danger, letterSpacing: 1 }}>DANGER ZONE</Txt>
+        <Txt dim size={font.small} style={{ marginTop: 6, marginBottom: spacing(1.5), lineHeight: 19 }}>
+          Deleting your account permanently removes your profile, posts, photos, diet & progress logs. This can't be undone.
+        </Txt>
+        <TouchableOpacity onPress={confirmDelete} disabled={deleting}
+          style={{ borderWidth: 1, borderColor: colors.danger, borderRadius: radius.md, paddingVertical: 13, alignItems: 'center' }}>
+          <Txt weight="800" style={{ color: colors.danger }}>{deleting ? 'Deleting…' : '🗑  Delete my account'}</Txt>
+        </TouchableOpacity>
+      </View>
+
       <View style={{ height: spacing(4) }} />
     </KeyboardScroll>
   );

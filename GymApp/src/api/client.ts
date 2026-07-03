@@ -46,6 +46,7 @@ export const AuthAPI = {
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }).then((r) => r.data),
   me: () => api.get('/auth/me').then((r) => r.data),
+  deleteAccount: () => api.delete('/auth/account').then((r) => r.data),
 };
 
 export const ReferralAPI = {
@@ -87,6 +88,7 @@ export const WaterAPI = {
   today: () => api.get('/water').then((r) => r.data),
   add: (ml: number) => api.post('/water/add', { ml }).then((r) => r.data),
   setGoal: (goalMl: number) => api.put('/water/goal', { goalMl }).then((r) => r.data),
+  history: () => api.get('/water/history').then((r) => r.data),
 };
 
 export const ChallengeAPI = {
@@ -159,6 +161,7 @@ export const FoodAPI = {
     api.post('/food/estimate-text', { text }).then((r) => r.data),
   log: (entry: Record<string, any>) => api.post('/food/log', entry).then((r) => r.data),
   today: () => api.get('/food/today').then((r) => r.data),
+  day: (date?: string) => api.get('/food/day', { params: date ? { date } : {} }).then((r) => r.data),
   recent: () => api.get('/food/recent').then((r) => r.data),
   remove: (id: number) => api.delete(`/food/log/${id}`).then((r) => r.data),
 };

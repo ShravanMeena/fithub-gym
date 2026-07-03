@@ -56,6 +56,22 @@ router.post('/log', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Food for a specific day (?date=YYYY-MM-DD; defaults to today). Powers the diary.
+router.get('/day', async (req, res, next) => {
+  try {
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : null;
+    const logs = await q(
+      `SELECT * FROM food_logs WHERE user_id = $1 AND eaten_at::date = COALESCE($2::date, current_date) ORDER BY eaten_at DESC`,
+      [req.user.id, date]
+    );
+    const totals = logs.reduce(
+      (t, r) => ({ calories: t.calories + r.calories, protein_g: t.protein_g + r.protein_g, carbs_g: t.carbs_g + r.carbs_g, fat_g: t.fat_g + r.fat_g }),
+      { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }
+    );
+    res.json({ logs, totals });
+  } catch (e) { next(e); }
+});
+
 router.get('/today', async (req, res, next) => {
   try {
     const logs = await q(

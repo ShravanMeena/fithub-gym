@@ -5,6 +5,7 @@ import { q, one, exec } from '../db/index.js';
 import { signToken, authRequired } from '../middleware/auth.js';
 import { applyReferral, ensureReferralCode } from '../services/referral.js';
 import { getTrialDays } from '../services/settings.js';
+import { deleteFile } from '../services/storage.js';
 
 const router = Router();
 
@@ -110,6 +111,24 @@ router.get('/me', authRequired, async (req, res, next) => {
     const u = await one(`SELECT ${USER_COLS} FROM users WHERE id = $1`, [req.user.id]);
     if (!u) return res.status(404).json({ error: 'User not found' });
     res.json({ user: await publicUser(u) });
+  } catch (e) { next(e); }
+});
+
+// Permanently delete the account and all its data (profile, posts, photos, logs,
+// reminders, attendance, tokens). Required in-app by Google Play.
+router.delete('/account', authRequired, async (req, res, next) => {
+  try {
+    const uid = req.user.id;
+    // Delete the user's files from storage (DB cascade won't touch GCS/disk).
+    const u = await one('SELECT avatar_path FROM users WHERE id = $1', [uid]);
+    const photos = await q('SELECT file_path FROM progress_photos WHERE user_id = $1', [uid]);
+    const posts = await q('SELECT media_path FROM posts WHERE user_id = $1', [uid]);
+    const paths = [u?.avatar_path, ...photos.map((p) => p.file_path), ...posts.map((p) => p.media_path)].filter(Boolean);
+    for (const p of paths) await deleteFile(p).catch(() => {});
+    // Unlink anyone this user referred (that FK has no cascade), then delete → cascades the rest.
+    await exec('UPDATE users SET referred_by = NULL WHERE referred_by = $1', [uid]);
+    await one('DELETE FROM users WHERE id = $1 RETURNING id', [uid]);
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 
