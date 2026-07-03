@@ -13,6 +13,16 @@ const orgId = async (userId) => (await one('SELECT org_id FROM users WHERE id = 
 const extFor = (mt) => (mt === 'image/png' ? 'png' : mt === 'video/mp4' ? 'mp4' : mt === 'video/quicktime' ? 'mov' : 'jpg');
 const PAGE = 15;
 
+// Pull lowercase #hashtags out of post text (for interest matching).
+const extractTags = (s) => {
+  const out = [];
+  if (!s) return out;
+  const re = /#([A-Za-z0-9_]+)/g;
+  let m;
+  while ((m = re.exec(s))) out.push(m[1].toLowerCase());
+  return out;
+};
+
 // Serve media. Auth via Bearer header OR ?token= (video players can't send headers).
 router.get('/:id/media', async (req, res, next) => {
   try {
@@ -165,6 +175,79 @@ router.get('/', async (req, res, next) => {
       `SELECT ${SEL} FROM posts p JOIN users u ON u.id=p.user_id LEFT JOIN organizations o ON o.id=p.org_id
        WHERE p.org_id = $2 AND ($3::int IS NULL OR p.id < $3) ORDER BY p.id DESC LIMIT $4`,
       [req.user.id, oid, before, PAGE + 1]
+    );
+    const hasMore = rows.length > PAGE;
+    const page = rows.slice(0, PAGE);
+    res.json({ posts: await withSignedMedia(page.map((r) => likeInfo(r, req.user.id))), nextBefore: hasMore ? page[page.length - 1].id : null });
+  } catch (e) { next(e); }
+});
+
+// Interest-based "For You" feed — ranked like Instagram, not pure chronological.
+// Signals: recency, engagement, authors you interact with, hashtags you like,
+// media posts, and your gym's announcements. Offset-paginated (ranking shifts).
+router.get('/for-you', async (req, res, next) => {
+  try {
+    const me = req.user.id;
+    const oid = await orgId(me);
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const LIMIT = PAGE;
+
+    // Interest profile: authors + hashtags from posts you authored, liked or commented on.
+    const engaged = await q(
+      `SELECT p.user_id, p.content FROM posts p
+       WHERE p.user_id = $1
+          OR p.id IN (SELECT post_id FROM post_likes WHERE user_id = $1)
+          OR p.id IN (SELECT post_id FROM post_comments WHERE user_id = $1)
+       ORDER BY p.id DESC LIMIT 200`,
+      [me]
+    );
+    const likedAuthors = new Set(engaged.map((r) => r.user_id));
+    const likedTags = new Set();
+    for (const r of engaged) extractTags(r.content).forEach((t) => likedTags.add(t));
+
+    // Candidate pool: your gym's posts (incl. announcements) + public posts, recent.
+    const rows = await q(
+      `SELECT ${SEL} FROM posts p JOIN users u ON u.id=p.user_id LEFT JOIN organizations o ON o.id=p.org_id
+       WHERE ((p.org_id = $2) OR (p.is_public = 1 AND p.is_announcement = 0))
+         AND p.created_at > now() - interval '60 days'
+       ORDER BY p.id DESC LIMIT 300`,
+      [me, oid]
+    );
+
+    const now = Date.now();
+    const scored = rows.map((r) => {
+      const post = likeInfo(r, me);
+      const ageH = Math.max(0, (now - new Date(post.created_at).getTime()) / 3.6e6);
+      const recency = 50 * Math.exp(-ageH / 72);                 // ~week-long decay
+      const engagement = post.likes * 2 + post.comments * 4;
+      const authorAff = likedAuthors.has(post.authorId) ? 25 : 0;
+      const tagAff = extractTags(post.content).some((t) => likedTags.has(t)) ? 22 : 0;
+      const media = post.type !== 'text' ? 6 : 0;
+      const announce = post.is_announcement ? 35 : 0;            // your gym's notices float up
+      const mine = post.mine ? -8 : 0;                           // your own posts sink a bit
+      return { post, score: recency + engagement + authorAff + tagAff + media + announce + mine };
+    }).sort((a, b) => b.score - a.score);
+
+    const page = scored.slice(offset, offset + LIMIT).map((s) => s.post);
+    const posts = await withSignedMedia(page);
+    res.json({ posts, nextOffset: offset + LIMIT < scored.length ? offset + LIMIT : null });
+  } catch (e) { next(e); }
+});
+
+// Posts containing a #hashtag — from the member's gym OR the public feed.
+router.get('/tag/:tag', async (req, res, next) => {
+  try {
+    const tag = String(req.params.tag).replace(/[^a-zA-Z0-9_]/g, '').slice(0, 50);
+    if (!tag) return res.json({ posts: [], nextBefore: null });
+    const oid = await orgId(req.user.id);
+    const before = req.query.before ? Number(req.query.before) : null;
+    // Match the hashtag as a whole token, case-insensitive (POSIX regex).
+    const pattern = `(^|[^a-zA-Z0-9_])#${tag}([^a-zA-Z0-9_]|$)`;
+    const rows = await q(
+      `SELECT ${SEL} FROM posts p JOIN users u ON u.id=p.user_id LEFT JOIN organizations o ON o.id=p.org_id
+       WHERE (p.org_id = $2 OR p.is_public = 1) AND p.content ~* $5
+         AND ($3::int IS NULL OR p.id < $3) ORDER BY p.id DESC LIMIT $4`,
+      [req.user.id, oid, before, PAGE + 1, pattern]
     );
     const hasMore = rows.length > PAGE;
     const page = rows.slice(0, PAGE);

@@ -14,6 +14,7 @@ import { colors, font, spacing } from '../theme';
 const W = Math.min(300, Dimensions.get('window').width * 0.82);
 
 const ITEMS: { label: string; icon: IconName; screen: string }[] = [
+  { label: 'Food diary 🍽️', icon: 'diet', screen: 'FoodDiary' },
   { label: 'Share & Earn 🎁', icon: 'profile', screen: 'Referral' },
   { label: 'AI Coach ✨', icon: 'coach', screen: 'Coach' },
   { label: 'Badges 🏅', icon: 'attendance', screen: 'Badges' },

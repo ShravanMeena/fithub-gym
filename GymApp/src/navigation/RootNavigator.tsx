@@ -36,6 +36,7 @@ import PostDetailScreen from '../screens/PostDetailScreen';
 import BadgesScreen from '../screens/BadgesScreen';
 import PRScreen from '../screens/PRScreen';
 import BarcodeScanScreen from '../screens/BarcodeScanScreen';
+import FoodDiaryScreen from '../screens/FoodDiaryScreen';
 
 const navTheme = {
   ...DefaultTheme,
@@ -160,9 +161,11 @@ export default function RootNavigator() {
               <Stack.Screen name="Referral" component={ReferralScreen} options={{ title: 'Share & Earn' }} />
               <Stack.Screen name="GymSchedule" component={GymScheduleScreen} options={{ title: 'Gym Timing' }} />
               <Stack.Screen name="PostDetail" component={PostDetailScreen} options={{ title: 'Post' }} />
+              <Stack.Screen name="HashtagFeed" component={FeedScreen} options={({ route }: any) => ({ title: route.params?.tag ? `#${route.params.tag}` : 'Tag' })} />
               <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: 'Badges' }} />
               <Stack.Screen name="PRs" component={PRScreen} options={{ title: 'Personal Records' }} />
               <Stack.Screen name="BarcodeScan" component={BarcodeScanScreen} options={{ title: 'Scan Barcode' }} />
+              <Stack.Screen name="FoodDiary" component={FoodDiaryScreen} options={{ title: 'Food Diary' }} />
             </>
           ) : !org ? (
             <Stack.Screen name="OrgSelect" component={OrgSelectScreen} options={{ headerShown: false }} />

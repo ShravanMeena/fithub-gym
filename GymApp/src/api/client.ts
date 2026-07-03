@@ -125,6 +125,8 @@ export const WorkoutAPI = {
 export const FeedAPI = {
   list: (before?: number) => api.get('/feed', { params: before ? { before } : {} }).then((r) => r.data),
   publicFeed: (before?: number) => api.get('/feed/public', { params: before ? { before } : {} }).then((r) => r.data),
+  forYou: (offset?: number) => api.get('/feed/for-you', { params: offset ? { offset } : {} }).then((r) => r.data),
+  tag: (tag: string, before?: number) => api.get(`/feed/tag/${tag}`, { params: before ? { before } : {} }).then((r) => r.data),
   create: (body: Record<string, any>) => api.post('/feed', body, { timeout: 180000 }).then((r) => r.data),
   // Video is uploaded as a streamed multipart file via fetch (React Native sets
   // the multipart boundary natively — reliable on iOS + Android, no base64).

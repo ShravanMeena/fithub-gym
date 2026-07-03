@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, FlatList, Image, Alert, TouchableOpacity, RefreshControl } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
 import Video from 'react-native-video';
 import VideoTrim, { showEditor } from 'react-native-video-trim';
 import { Card, Txt, Button, Field } from '../components/UI';
 import { Avatar } from '../components/Avatar';
 import { AutoImage } from '../components/AutoImage';
+import { PostSkeleton } from '../components/Skeleton';
 import { PostInteractions } from '../components/PostInteractions';
 import { FeedAPI, authedImageSource, authedVideoSource, apiError } from '../api/client';
 import { useOrg } from '../context/OrgContext';
@@ -14,6 +15,15 @@ import { scanOrUpload, pickVideo } from '../utils/imagePicker';
 import { colors, font, radius, spacing } from '../theme';
 
 const fileUri = (p: string) => (p.startsWith('file://') || p.startsWith('http') ? p : `file://${p}`);
+
+// Render post text with tappable #hashtags highlighted in the accent colour.
+function renderContent(content: string, onTag: (t: string) => void) {
+  return content.split(/(#[A-Za-z0-9_]+)/g).map((part, i) => {
+    const m = /^#([A-Za-z0-9_]+)$/.exec(part);
+    if (m) return <Txt key={i} onPress={() => onTag(m[1])} style={{ color: colors.primary, fontWeight: '700' }}>{part}</Txt>;
+    return part;
+  });
+}
 
 // ---- Composer: keeps its own state so typing never re-renders the feed list ----
 const Composer = React.memo(function Composer({ onPosted }: { onPosted: () => void }) {
@@ -61,7 +71,7 @@ const Composer = React.memo(function Composer({ onPosted }: { onPosted: () => vo
 
   return (
     <Card>
-      <Field value={text} onChangeText={setText} placeholder="What's on your mind? PR, progress, motivation…" multiline style={{ height: 70, textAlignVertical: 'top', paddingTop: 12 }} />
+      <Field value={text} onChangeText={setText} placeholder="What's on your mind? Add #hashtags like #legday…" multiline style={{ height: 70, textAlignVertical: 'top', paddingTop: 12 }} />
       {photo?.uri ? (
         <View style={{ marginBottom: spacing(1) }}>
           <Image source={{ uri: photo.uri }} style={{ width: '100%', height: 180, borderRadius: radius.sm }} />
@@ -143,7 +153,7 @@ function FeedVideo({ source, playing, postId }: any) {
 }
 
 // ---- One post card ----
-function PostCard({ p, source, playing, tab, onOpen, onRemove }: any) {
+function PostCard({ p, source, playing, tab, onOpen, onRemove, onTag }: any) {
   return (
     <Card style={p.is_announcement ? { borderColor: colors.primary, backgroundColor: colors.primary + '0e' } : undefined}>
       {p.is_announcement ? (
@@ -164,7 +174,7 @@ function PostCard({ p, source, playing, tab, onOpen, onRemove }: any) {
 
       {p.content ? (
         <TouchableOpacity activeOpacity={0.7} onPress={onOpen}>
-          <Txt style={{ marginBottom: p.media_url ? 8 : 0, lineHeight: 21 }}>{p.content}</Txt>
+          <Txt style={{ marginBottom: p.media_url ? 8 : 0, lineHeight: 21 }}>{renderContent(p.content, onTag)}</Txt>
         </TouchableOpacity>
       ) : null}
 
@@ -184,13 +194,18 @@ function PostCard({ p, source, playing, tab, onOpen, onRemove }: any) {
 export default function FeedScreen() {
   const { org } = useOrg();
   const navigation = useNavigation<any>();
-  const [tab, setTab] = useState<'community' | 'public'>('community');
+  const route = useRoute<any>();
+  const tagParam: string | undefined = route.params?.tag; // set when viewing a #hashtag feed
+  const [tab, setTab] = useState<'foryou' | 'community' | 'public'>('foryou');
   const [posts, setPosts] = useState<any[]>([]);
   const [sources, setSources] = useState<Record<number, any>>({});
   const [nextBefore, setNextBefore] = useState<number | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const openTag = useCallback((t: string) => navigation.navigate('HashtagFeed', { tag: t }), [navigation]);
 
   const resolveSources = useCallback(async (list: any[]) => {
     const srcs: Record<number, any> = {};
@@ -205,29 +220,39 @@ export default function FeedScreen() {
     setSources((prev) => ({ ...prev, ...srcs }));
   }, []);
 
-  const load = useCallback(async (which: 'community' | 'public' = tab) => {
+  // One fetcher for every mode; `cursor` is an id-cursor (before) or an offset
+  // (for-you), whichever that mode uses. Returns the raw response.
+  const fetchFeed = (which: typeof tab, cursor?: number) =>
+    tagParam ? FeedAPI.tag(tagParam, cursor)
+      : which === 'foryou' ? FeedAPI.forYou(cursor)
+      : which === 'public' ? FeedAPI.publicFeed(cursor)
+      : FeedAPI.list(cursor);
+
+  const load = useCallback(async (which: typeof tab = tab) => {
+    setLoading(true);
     try {
-      const res = which === 'public' ? await FeedAPI.publicFeed() : await FeedAPI.list();
+      const res = await fetchFeed(which);
       setPosts(res.posts);
-      setNextBefore(res.nextBefore ?? null);
+      setNextBefore(res.nextBefore ?? res.nextOffset ?? null);
       resolveSources(res.posts);
     } catch (e) { Alert.alert('Error', apiError(e)); }
-  }, [tab, resolveSources]);
+    finally { setLoading(false); }
+  }, [tab, tagParam, resolveSources]); // eslint-disable-line
 
   const loadMore = async () => {
     if (!nextBefore || loadingMore) return;
     setLoadingMore(true);
     try {
-      const res = tab === 'public' ? await FeedAPI.publicFeed(nextBefore) : await FeedAPI.list(nextBefore);
+      const res = await fetchFeed(tab, nextBefore);
       setPosts((prev) => [...prev, ...res.posts]);
-      setNextBefore(res.nextBefore ?? null);
+      setNextBefore(res.nextBefore ?? res.nextOffset ?? null);
       resolveSources(res.posts);
     } catch { /* ignore */ } finally { setLoadingMore(false); }
   };
 
-  useEffect(() => { setPosts([]); setNextBefore(null); setPlayingId(null); load(tab); }, [tab]); // eslint-disable-line
+  useEffect(() => { setPosts([]); setNextBefore(null); setPlayingId(null); load(tab); }, [tab, tagParam]); // eslint-disable-line
   // Reload on focus; pause any playing video when leaving the tab.
-  useFocusEffect(useCallback(() => { load(tab); return () => setPlayingId(null); }, [tab])); // eslint-disable-line
+  useFocusEffect(useCallback(() => { load(tab); return () => setPlayingId(null); }, [tab, tagParam])); // eslint-disable-line
 
   const onPosted = useCallback(() => { setTab('community'); load('community'); }, [load]);
   const remove = (p: any) => {
@@ -251,9 +276,9 @@ export default function FeedScreen() {
     setPlayingId(vid ? vid.item.id : null);
   });
 
-  const Seg = ({ id, label }: { id: 'community' | 'public'; label: string }) => (
+  const Seg = ({ id, label }: { id: 'foryou' | 'community' | 'public'; label: string }) => (
     <TouchableOpacity onPress={() => setTab(id)} style={{ flex: 1, paddingVertical: 10, borderRadius: radius.pill, alignItems: 'center', backgroundColor: tab === id ? colors.primary : 'transparent' }}>
-      <Txt weight="700" size={font.small} style={{ color: tab === id ? '#fff' : colors.textDim }}>{label}</Txt>
+      <Txt weight="700" size={font.tiny} numberOfLines={1} style={{ color: tab === id ? '#fff' : colors.textDim }}>{label}</Txt>
     </TouchableOpacity>
   );
 
@@ -273,15 +298,27 @@ export default function FeedScreen() {
       viewabilityConfig={viewConfigRef.current}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(tab); setRefreshing(false); }} tintColor={colors.primary} />}
       ListHeaderComponent={
-        <View>
-          <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: colors.border, marginBottom: spacing(2) }}>
-            <Seg id="community" label={`${org?.name || 'Gym'} Community`} />
-            <Seg id="public" label="Public Feed 🌍" />
+        tagParam ? (
+          <View style={{ marginBottom: spacing(1) }}>
+            <Txt size={font.h2} weight="900" style={{ color: colors.primary }}>#{tagParam}</Txt>
+            <Txt dim size={font.small} style={{ marginTop: 2 }}>Posts tagged #{tagParam}</Txt>
           </View>
-          {tab === 'community' ? <Composer onPosted={onPosted} /> : null}
-        </View>
+        ) : (
+          <View>
+            <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: colors.border, marginBottom: spacing(2) }}>
+              <Seg id="foryou" label="✨ For You" />
+              <Seg id="community" label={org?.name || 'Gym'} />
+              <Seg id="public" label="🌍 Public" />
+            </View>
+            {tab !== 'public' ? <Composer onPosted={onPosted} /> : null}
+          </View>
+        )
       }
-      ListEmptyComponent={<Card><Txt dim>{tab === 'public' ? 'No public posts yet.' : 'No posts yet. Be the first to share!'}</Txt></Card>}
+      ListEmptyComponent={
+        loading
+          ? <View><PostSkeleton /><PostSkeleton /><PostSkeleton /></View>
+          : <Card><Txt dim>{tagParam ? `No posts tagged #${tagParam} yet.` : tab === 'public' ? 'No public posts yet.' : 'No posts yet. Be the first to share!'}</Txt></Card>
+      }
       renderItem={({ item: p }) => (
         <PostCard
           p={p}
@@ -290,6 +327,7 @@ export default function FeedScreen() {
           tab={tab}
           onOpen={() => navigation.navigate('PostDetail', { post: p })}
           onRemove={() => remove(p)}
+          onTag={openTag}
         />
       )}
       ListFooterComponent={

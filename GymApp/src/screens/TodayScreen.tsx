@@ -26,7 +26,6 @@ export default function TodayScreen({ navigation }: any) {
   const { org, refreshOrg } = useOrg();
   const [targets, setTargets] = useState<any>(null);
   const [totals, setTotals] = useState<any>({ calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
-  const [logs, setLogs] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -35,7 +34,6 @@ export default function TodayScreen({ navigation }: any) {
       const [p, t, r, a] = await Promise.all([ProfileAPI.get(), FoodAPI.today(), ReminderAPI.list(), AttendanceAPI.status()]);
       setTargets(p.targets);
       setTotals(t.totals);
-      setLogs(t.logs);
       setAttendance(a);
       refreshOrg(org?.slug || user?.org?.slug).catch(() => {});
       syncReminders(r.reminders).catch(() => {});
@@ -110,22 +108,6 @@ export default function TodayScreen({ navigation }: any) {
 
       {/* Water */}
       <WaterCard />
-
-      {/* Today's meals */}
-      {logs.length > 0 && (
-        <>
-          <Txt size={font.h3} weight="700" style={{ marginTop: spacing(1), marginBottom: spacing(1) }}>Today's meals</Txt>
-          {logs.map((m) => (
-            <Card key={m.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View style={{ flex: 1, paddingRight: 8 }}>
-                <Txt weight="600">{m.name}</Txt>
-                <Txt dim size={font.small}>P {Math.round(m.protein_g)}g · C {Math.round(m.carbs_g)}g · F {Math.round(m.fat_g)}g</Txt>
-              </View>
-              <Txt weight="700" style={{ color: colors.primary }}>{Math.round(m.calories)}</Txt>
-            </Card>
-          ))}
-        </>
-      )}
 
       {/* 4) Leaderboard — highlighted (competition = motivation) */}
       <Card onPress={() => navigation.navigate('Challenges')} style={{ borderColor: colors.primary, backgroundColor: colors.primary + '10' }}>
