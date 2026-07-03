@@ -7,6 +7,25 @@ router.use(authRequired);
 
 const orgId = async (userId) => (await one('SELECT org_id FROM users WHERE id = $1', [userId]))?.org_id;
 
+// A member who checks in but never checks out would otherwise stay "in the gym"
+// forever AND be blocked from checking in the next day. So any session left open
+// longer than this is auto-closed with a sensible default duration.
+const STALE_HOURS = 3;
+async function closeStaleSessions() {
+  try {
+    await q(
+      `UPDATE attendance
+         SET checked_out_at = checked_in_at + interval '90 minutes',
+             reason = COALESCE(reason, 'Auto checkout — no manual checkout')
+       WHERE checked_out_at IS NULL
+         AND checked_in_at < now() - interval '${STALE_HOURS} hours'`
+    );
+  } catch { /* never let cleanup break a request */ }
+}
+// Sweep periodically so presence stays accurate even with no traffic.
+closeStaleSessions();
+setInterval(() => closeStaleSessions(), 10 * 60 * 1000).unref?.();
+
 // If this check-in pushed the user past a new streak milestone, auto-post a
 // celebration to their gym feed (and return the milestone). Won't repeat.
 async function celebrateStreakMilestone(userId) {
@@ -28,6 +47,7 @@ async function celebrateStreakMilestone(userId) {
 
 router.post('/checkin', async (req, res, next) => {
   try {
+    await closeStaleSessions(); // a forgotten checkout from yesterday must not block today's
     const open = await one('SELECT * FROM attendance WHERE user_id = $1 AND checked_out_at IS NULL ORDER BY id DESC LIMIT 1', [req.user.id]);
     if (open) return res.json({ attendance: open, already: true });
     const attendance = await one('INSERT INTO attendance (user_id, org_id) VALUES ($1,$2) RETURNING *', [req.user.id, await orgId(req.user.id)]);
@@ -71,6 +91,7 @@ router.put('/:id/focus', async (req, res, next) => {
 
 router.get('/', async (req, res, next) => {
   try {
+    await closeStaleSessions();
     const open = await one('SELECT * FROM attendance WHERE user_id = $1 AND checked_out_at IS NULL ORDER BY id DESC LIMIT 1', [req.user.id]);
     const history = await q(
       `SELECT *, CASE WHEN checked_out_at IS NOT NULL
@@ -100,14 +121,19 @@ router.get('/', async (req, res, next) => {
 // Today's gym crew — members who checked in today, with cheers. Social hype.
 router.get('/crew', async (req, res, next) => {
   try {
+    await closeStaleSessions();
     const oid = await orgId(req.user.id);
+    // "In the gym right now" = an OPEN session started within the last few hours.
     const crew = await q(
       `SELECT u.id, u.name, (u.avatar_path IS NOT NULL) AS has_avatar,
               (SELECT COUNT(*) FROM checkin_cheers c WHERE c.to_user = u.id AND c.day = current_date) AS cheers,
               EXISTS(SELECT 1 FROM checkin_cheers c WHERE c.to_user = u.id AND c.from_user = $2 AND c.day = current_date) AS i_cheered,
               (u.id = $2) AS me
        FROM users u
-       WHERE u.org_id = $1 AND EXISTS(SELECT 1 FROM attendance a WHERE a.user_id = u.id AND a.checked_in_at::date = current_date)
+       WHERE u.org_id = $1 AND EXISTS(
+         SELECT 1 FROM attendance a
+         WHERE a.user_id = u.id AND a.checked_out_at IS NULL
+           AND a.checked_in_at > now() - interval '${STALE_HOURS} hours')
        ORDER BY cheers DESC, u.name`,
       [oid, req.user.id]
     );
