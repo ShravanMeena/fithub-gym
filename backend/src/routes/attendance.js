@@ -97,6 +97,35 @@ router.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Today's gym crew — members who checked in today, with cheers. Social hype.
+router.get('/crew', async (req, res, next) => {
+  try {
+    const oid = await orgId(req.user.id);
+    const crew = await q(
+      `SELECT u.id, u.name, (u.avatar_path IS NOT NULL) AS has_avatar,
+              (SELECT COUNT(*) FROM checkin_cheers c WHERE c.to_user = u.id AND c.day = current_date) AS cheers,
+              EXISTS(SELECT 1 FROM checkin_cheers c WHERE c.to_user = u.id AND c.from_user = $2 AND c.day = current_date) AS i_cheered,
+              (u.id = $2) AS me
+       FROM users u
+       WHERE u.org_id = $1 AND EXISTS(SELECT 1 FROM attendance a WHERE a.user_id = u.id AND a.checked_in_at::date = current_date)
+       ORDER BY cheers DESC, u.name`,
+      [oid, req.user.id]
+    );
+    res.json({ crew });
+  } catch (e) { next(e); }
+});
+
+// Cheer a member's check-in for today (one per day).
+router.post('/cheer/:userId', async (req, res, next) => {
+  try {
+    const to = Number(req.params.userId);
+    if (to === req.user.id) return res.status(400).json({ error: "You can't cheer yourself" });
+    await one('INSERT INTO checkin_cheers (from_user, to_user, day) VALUES ($1,$2,current_date) ON CONFLICT DO NOTHING RETURNING to_user', [req.user.id, to]);
+    const cheers = (await one('SELECT COUNT(*) AS c FROM checkin_cheers WHERE to_user = $1 AND day = current_date', [to]))?.c || 0;
+    res.json({ cheers });
+  } catch (e) { next(e); }
+});
+
 export const MILESTONES = [7, 14, 30, 50, 100, 200, 365];
 const REST_PER_MONTH = 4;
 

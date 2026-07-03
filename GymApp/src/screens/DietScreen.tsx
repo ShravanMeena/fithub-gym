@@ -36,7 +36,13 @@ export default function DietScreen({ navigation }: any) {
   const [logs, setLogs] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>({ calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
   const [targets, setTargets] = useState<any>(null);
+  const [recent, setRecent] = useState<any[]>([]);
   const isToday = date === todayStr();
+
+  const relog = async (f: any) => {
+    setTotals((t: any) => ({ calories: t.calories + f.calories, protein_g: t.protein_g + f.protein_g, carbs_g: t.carbs_g + f.carbs_g, fat_g: t.fat_g + f.fat_g }));
+    try { await FoodAPI.log({ name: f.name, calories: f.calories, protein_g: f.protein_g, carbs_g: f.carbs_g, fat_g: f.fat_g, source: 'relog' }); loadFood(); } catch {}
+  };
 
   // schedule preferences
   const [wake, setWake] = useState('07:00');
@@ -49,6 +55,7 @@ export default function DietScreen({ navigation }: any) {
     const d = await FoodAPI.day(isToday ? undefined : date).catch(() => ({ logs: [], totals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 } }));
     setLogs(d.logs || []);
     setTotals(d.totals || { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
+    if (isToday) FoodAPI.recent().then((r) => setRecent(r.recent || [])).catch(() => {});
   }, [date, isToday]);
 
   // Plan + profile (not date-specific).
@@ -196,6 +203,22 @@ export default function DietScreen({ navigation }: any) {
         </View>
         {isToday ? <Button title="📷 Add food" onPress={() => navigation.navigate('Scan')} style={{ marginTop: spacing(1.5) }} /> : null}
       </Card>
+
+      {/* One-tap re-log of recent foods */}
+      {isToday && recent.length > 0 && (
+        <View style={{ marginTop: spacing(2) }}>
+          <Txt weight="800" style={{ marginBottom: spacing(1) }}>⚡ Log again</Txt>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {recent.map((f, i) => (
+              <TouchableOpacity key={i} onPress={() => relog(f)}
+                style={{ backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 10, marginRight: 8, maxWidth: 180 }}>
+                <Txt weight="700" size={font.small} numberOfLines={1}>＋ {f.name}</Txt>
+                <Txt dim size={font.tiny}>{Math.round(f.calories)} kcal · {Math.round(f.protein_g)}g P</Txt>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Food diary — tap 🗑 to remove a wrong entry (today only) */}
       <Txt size={font.h3} weight="800" style={{ marginTop: spacing(2), marginBottom: spacing(1) }}>{isToday ? "Today's food" : 'Food logged'}</Txt>

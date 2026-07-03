@@ -40,6 +40,14 @@ export async function readBuffer(key) {
   return readFileSync(diskPath(key));
 }
 
+// Direct public GCS URL — served straight from Google (fast), no signing/IAM.
+// Only used when PUBLIC_MEDIA=1 AND the object's prefix is made public on the
+// bucket. Returns null otherwise (caller falls back to signed URL / proxy).
+export function publicUrl(key) {
+  if (!useGcs || !key || process.env.PUBLIC_MEDIA !== '1') return null;
+  return `https://storage.googleapis.com/${BUCKET}/${key}`;
+}
+
 // A time-limited direct GCS read URL so clients stream media straight from
 // Google (fast, CDN-like) instead of proxying through this server. Returns null
 // on disk mode or if signing isn't available (caller falls back to the proxy).

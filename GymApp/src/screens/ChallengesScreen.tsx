@@ -4,7 +4,7 @@ import { ScrollView, View, RefreshControl, TouchableOpacity } from 'react-native
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt } from '../components/UI';
 import { Avatar } from '../components/Avatar';
-import { ChallengeAPI } from '../api/client';
+import { ChallengeAPI, MeAPI, AttendanceAPI } from '../api/client';
 import { useOrg } from '../context/OrgContext';
 import { colors, font, radius, shadow, spacing } from '../theme';
 
@@ -14,14 +14,23 @@ export default function ChallengesScreen() {
   const { org } = useOrg();
   const [period, setPeriod] = useState<'month' | 'week'>('month');
   const [data, setData] = useState<any>(null);
+  const [challenge, setChallenge] = useState<any>(null);
+  const [crew, setCrew] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async (p = period) => {
     try { setData(await ChallengeAPI.leaderboard(p)); } catch {}
+    MeAPI.challenge().then(setChallenge).catch(() => {});
+    AttendanceAPI.crew().then((d) => setCrew(d.crew || [])).catch(() => {});
   }, [period]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
   const board = data?.leaderboard || [];
+
+  const cheer = async (u: any) => {
+    setCrew((prev) => prev.map((c) => (c.id === u.id ? { ...c, cheers: Number(c.cheers) + 1, i_cheered: true } : c)));
+    try { await AttendanceAPI.cheer(u.id); } catch {}
+  };
 
   return (
     <ScrollView
@@ -31,6 +40,20 @@ export default function ChallengesScreen() {
 
       <Txt size={font.h2} weight="900">🏆 Leaderboard</Txt>
       <Txt dim style={{ marginBottom: spacing(2) }}>Most gym check-ins at {org?.name || 'your gym'} — keep showing up to climb.</Txt>
+
+      {/* Monthly challenge */}
+      {challenge && (
+        <Card style={{ borderColor: colors.primary, backgroundColor: colors.primary + '10' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Txt weight="800">🎯 {challenge.title}</Txt>
+            <Txt size={font.small} weight="800" style={{ color: challenge.done ? colors.accent : colors.primary }}>{challenge.done ? '✅ Done!' : `${challenge.mine}/${challenge.goal}`}</Txt>
+          </View>
+          <View style={{ height: 10, borderRadius: 5, backgroundColor: colors.cardAlt, marginTop: spacing(1), overflow: 'hidden' }}>
+            <View style={{ width: `${Math.min(100, Math.round((challenge.mine / challenge.goal) * 100))}%`, height: '100%', backgroundColor: challenge.done ? colors.accent : colors.primary }} />
+          </View>
+          <Txt dim size={font.tiny} style={{ marginTop: 6 }}>{challenge.done ? 'You crushed this month’s challenge!' : `${challenge.goal - challenge.mine} more check-ins this month`} · {challenge.finishers} member{challenge.finishers === 1 ? '' : 's'} finished</Txt>
+        </Card>
+      )}
 
       {/* Period switch */}
       <View style={{ flexDirection: 'row', backgroundColor: colors.cardAlt, borderRadius: radius.pill, padding: 4, marginBottom: spacing(2) }}>
@@ -109,6 +132,27 @@ export default function ChallengesScreen() {
           );
         })
       )}
+
+      {/* Today's crew — cheer whoever showed up today */}
+      {crew.length > 0 && (
+        <>
+          <Txt size={font.h3} weight="800" style={{ marginTop: spacing(2), marginBottom: spacing(1) }}>🔥 In the gym today</Txt>
+          {crew.map((c) => (
+            <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing(1.25), marginBottom: 8 }}>
+              <Avatar userId={c.id} name={c.name} hasAvatar={c.has_avatar} size={38} />
+              <Txt weight="700" style={{ flex: 1, marginLeft: 10 }} numberOfLines={1}>{c.name}{c.me ? '  (you)' : ''}</Txt>
+              {Number(c.cheers) > 0 ? <Txt size={font.small} weight="800" style={{ color: colors.accent, marginRight: 10 }}>👏 {c.cheers}</Txt> : null}
+              {!c.me && (
+                <TouchableOpacity onPress={() => cheer(c)} disabled={c.i_cheered}
+                  style={{ backgroundColor: c.i_cheered ? colors.cardAlt : colors.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill }}>
+                  <Txt weight="800" size={font.small} style={{ color: c.i_cheered ? colors.textDim : '#fff' }}>{c.i_cheered ? 'Cheered' : '👏 Cheer'}</Txt>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
+        </>
+      )}
+
       <View style={{ height: spacing(4) }} />
     </ScrollView>
   );

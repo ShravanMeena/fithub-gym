@@ -76,6 +76,8 @@ export const AttendanceAPI = {
   checkout: (reason?: string) => api.post('/attendance/checkout', { reason }).then((r) => r.data),
   setReason: (id: number, reason: string) => api.put(`/attendance/${id}/reason`, { reason }).then((r) => r.data),
   setFocus: (id: number, focus: string[]) => api.put(`/attendance/${id}/focus`, { focus }).then((r) => r.data),
+  crew: () => api.get('/attendance/crew').then((r) => r.data),
+  cheer: (userId: number) => api.post(`/attendance/cheer/${userId}`).then((r) => r.data),
 };
 
 export const AppAPI = {
@@ -85,6 +87,14 @@ export const AppAPI = {
 
 export const MeAPI = {
   week: () => api.get('/me/week').then((r) => r.data),
+  badges: () => api.get('/me/badges').then((r) => r.data),
+  challenge: () => api.get('/me/challenge').then((r) => r.data),
+};
+
+export const PRsAPI = {
+  list: () => api.get('/prs').then((r) => r.data),
+  add: (lift: string, weight_kg: number, reps: number) => api.post('/prs', { lift, weight_kg, reps }).then((r) => r.data),
+  remove: (id: number) => api.delete(`/prs/${id}`).then((r) => r.data),
 };
 
 export const WaterAPI = {

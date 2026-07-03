@@ -1,8 +1,8 @@
 // "My Progress" — built for a gym-goer: one clear headline of how much you've
 // changed, a big BEFORE / NOW photo comparison, an easy weight log, and the trend.
 import React, { useCallback, useRef, useState } from 'react';
-import { View, Alert, Image, TouchableOpacity } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { View, Alert, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { captureRef } from 'react-native-view-shot';
 import Share from 'react-native-share';
 import { Card, Txt, Field, Button } from '../components/UI';
@@ -21,6 +21,7 @@ const clamp = (n: number) => Math.max(0, Math.min(1, n));
 export default function ProgressScreen() {
   const { user } = useAuth();
   const { org } = useOrg();
+  const navigation = useNavigation<any>();
   const { aiActive, showPaywall } = useBilling();
   const [entries, setEntries] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -174,6 +175,8 @@ export default function ProgressScreen() {
   const sortedPhotos = [...photos].sort((a, b) => String(a.taken_at).localeCompare(String(b.taken_at)));
   const before = sortedPhotos[0];
   const after = sortedPhotos[sortedPhotos.length - 1];
+  const daysSincePhoto = after?.taken_at ? Math.floor((Date.now() - new Date(after.taken_at).getTime()) / 86400000) : null;
+  const photoNudge = photos.length === 0 || (daysSincePhoto != null && daysSincePhoto >= 14);
   const waists = entries.filter((e) => e.waist_cm != null);
   const latest = entries[entries.length - 1] || {};
   const streak = stats?.streak || 0;
@@ -270,6 +273,40 @@ export default function ProgressScreen() {
           )}
           <Button title={uploading ? 'Uploading…' : '📸 Add a photo'} loading={uploading} onPress={addPhoto} style={{ marginTop: spacing(1.5) }} />
           <Txt dim size={font.tiny} style={{ textAlign: 'center', marginTop: 6 }}>🔒 Private to you unless you post it in Community.</Txt>
+        </Card>
+
+        {/* Photo nudge */}
+        {photoNudge && photos.length > 0 && (
+          <Card style={{ borderColor: colors.primary, backgroundColor: colors.primary + '0e' }}>
+            <Txt weight="800">📸 Time for a new progress photo</Txt>
+            <Txt dim size={font.small} style={{ marginTop: 2 }}>It's been {daysSincePhoto} days. Keep your record so you can *see* how far you've come.</Txt>
+          </Card>
+        )}
+
+        {/* Photo timeline — swipe through all your photos over time */}
+        {photos.length > 2 && (
+          <Card>
+            <Txt weight="800" style={{ marginBottom: spacing(1) }}>🗓️ Your timeline</Txt>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {sortedPhotos.map((p) => (
+                <View key={p.id} style={{ marginRight: 8, alignItems: 'center' }}>
+                  {sources[p.id] ? (
+                    <Image source={sources[p.id]} style={{ width: 84, height: 112, borderRadius: radius.sm, backgroundColor: colors.cardAlt }} />
+                  ) : <View style={{ width: 84, height: 112, borderRadius: radius.sm, backgroundColor: colors.cardAlt }} />}
+                  <Txt dim size={font.tiny} style={{ marginTop: 4 }}>{p.taken_at?.slice(5, 10)}</Txt>
+                </View>
+              ))}
+            </ScrollView>
+          </Card>
+        )}
+
+        {/* Badges preview */}
+        <Card onPress={() => navigation.navigate('Badges')} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <Txt weight="800">🏅 Your badges</Txt>
+            <Txt dim size={font.small} style={{ marginTop: 2 }}>See what you've unlocked →</Txt>
+          </View>
+          <Txt size={22}>›</Txt>
         </Card>
 
         {/* 4) Weight trend */}

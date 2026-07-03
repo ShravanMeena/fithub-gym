@@ -109,12 +109,40 @@ async function dietNudge(utcMin) {
   }
 }
 
+// Sunday 10am local: nudge active members to open their weekly recap.
+const RECAP_LOCAL_MIN = 10 * 60;
+async function weeklyRecap(utcMin) {
+  const tzRows = await q('SELECT DISTINCT tz_offset FROM device_tokens');
+  for (const { tz_offset: tz } of tzRows) {
+    const localMin = (((utcMin + tz) % 1440) + 1440) % 1440;
+    if (localMin !== RECAP_LOCAL_MIN) continue;
+    // Only on the local Sunday (0 = Sunday).
+    const localDow = new Date(Date.now() + tz * 60000).getUTCDay();
+    if (localDow !== 0) continue;
+    const rows = await q(
+      `SELECT DISTINCT dt.token FROM device_tokens dt
+       WHERE dt.tz_offset = $1
+         AND EXISTS (SELECT 1 FROM attendance a WHERE a.user_id = dt.user_id AND a.checked_in_at >= now() - interval '10 days')`,
+      [tz]
+    );
+    if (rows.length) {
+      await sendToTokens(rows.map((r) => r.token), {
+        title: '📊 Your week is in!',
+        body: 'See your sessions, streak and progress this week 💪',
+        data: { type: 'alert', screen: 'Today' },
+      });
+      console.log(`[reminders] weekly recap pushed to ${rows.length} device(s) (tz ${tz})`);
+    }
+  }
+}
+
 async function tick() {
   if (!pushEnabled()) return; // skip the DB scan entirely when push is off
   try {
     const now = new Date();
     const utcMin = now.getUTCHours() * 60 + now.getUTCMinutes();
     streakSaver(utcMin).catch((e) => console.log('[reminders] streak-saver error —', e.message));
+    weeklyRecap(utcMin).catch((e) => console.log('[reminders] weekly recap error —', e.message));
     dietNudge(utcMin).catch((e) => console.log('[reminders] diet nudge error —', e.message));
     dailyMessages(utcMin).catch((e) => console.log('[reminders] daily message error —', e.message));
 

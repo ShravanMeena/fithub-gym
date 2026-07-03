@@ -4,7 +4,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import { q, one } from '../db/index.js';
 import { authRequired, verifyToken } from '../middleware/auth.js';
-import { saveFile, streamFile, deleteFile, fileExists, fileSize, readBuffer, signedReadUrl } from '../services/storage.js';
+import { saveFile, streamFile, deleteFile, fileExists, fileSize, readBuffer, signedReadUrl, publicUrl } from '../services/storage.js';
 import { optimizeVideo } from '../services/video.js';
 
 const router = Router();
@@ -77,9 +77,9 @@ function likeInfo(row, userId) {
 async function withSignedMedia(posts) {
   await Promise.all(posts.map(async (p) => {
     // Videos benefit most from direct streaming; images use the cheap cached
-    // thumbnail proxy, so we only sign video media (fewer signing calls too).
+    // thumbnail proxy. Prefer a public URL (no IAM), else a signed URL, else proxy.
     if (p.type === 'video' && p.media_key) {
-      const url = await signedReadUrl(p.media_key);
+      const url = publicUrl(p.media_key) || await signedReadUrl(p.media_key);
       if (url) p.media_url = url;
     }
     delete p.media_key;

@@ -221,6 +221,26 @@ ALTER TABLE attendance ADD COLUMN IF NOT EXISTS focus TEXT;
 -- Allow phone-only accounts (login by phone OR email, no OTP).
 ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
 
+-- Personal records for the big lifts (quick PR tracking, no full workout logging).
+CREATE TABLE IF NOT EXISTS personal_records (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  lift TEXT NOT NULL,
+  weight_kg REAL NOT NULL,
+  reps INTEGER NOT NULL DEFAULT 1,
+  logged_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_prs_user ON personal_records(user_id);
+
+-- "Cheers" on a member's check-in for a day (social hype). One per cheerer/target/day.
+CREATE TABLE IF NOT EXISTS checkin_cheers (
+  from_user INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  to_user INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day DATE NOT NULL DEFAULT current_date,
+  PRIMARY KEY (from_user, to_user, day)
+);
+CREATE INDEX IF NOT EXISTS idx_cheers_to ON checkin_cheers(to_user, day);
+
 -- Platform-wide key/value settings (e.g. free-trial length), set by superadmin.
 CREATE TABLE IF NOT EXISTS platform_settings (
   key TEXT PRIMARY KEY,

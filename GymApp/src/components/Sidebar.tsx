@@ -14,6 +14,8 @@ const W = Math.min(300, Dimensions.get('window').width * 0.82);
 const ITEMS: { label: string; icon: IconName; screen: string }[] = [
   { label: 'Share & Earn 🎁', icon: 'profile', screen: 'Referral' },
   { label: 'AI Coach ✨', icon: 'coach', screen: 'Coach' },
+  { label: 'Badges 🏅', icon: 'attendance', screen: 'Badges' },
+  { label: 'Personal Records 💪', icon: 'workout', screen: 'PRs' },
   { label: 'Leaderboard', icon: 'attendance', screen: 'Challenges' },
   { label: 'Attendance history', icon: 'attendance', screen: 'Attendance' },
   { label: 'Gym Timing ⏰', icon: 'reminders', screen: 'GymSchedule' },
