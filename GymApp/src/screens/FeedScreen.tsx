@@ -110,6 +110,10 @@ function FeedVideo({ source, playing, postId }: any) {
         muted={muted}
         repeat
         resizeMode="contain"
+        // Start playing as soon as ~1s is buffered (fast start, Instagram-like).
+        bufferConfig={{ minBufferMs: 2000, maxBufferMs: 10000, bufferForPlaybackMs: 800, bufferForPlaybackAfterRebufferMs: 1500 }}
+        ignoreSilentSwitch="ignore"
+        playInBackground={false}
         onLoad={(d: any) => {
           const ns = d?.naturalSize;
           if (ns?.width && ns?.height) {
@@ -192,7 +196,10 @@ export default function FeedScreen() {
     const srcs: Record<number, any> = {};
     await Promise.all(
       list.filter((p) => p.media_url).map(async (p) => {
-        srcs[p.id] = p.type === 'video' ? await authedVideoSource(p.media_url) : await authedImageSource(`${p.media_url}?w=700`);
+        // Video = direct GCS URL (fast). Image = cached thumbnail via proxy.
+        srcs[p.id] = p.type === 'video'
+          ? await authedVideoSource(p.media_url)
+          : await authedImageSource(p.media_url.startsWith('http') ? p.media_url : `${p.media_url}?w=700`);
       })
     );
     setSources((prev) => ({ ...prev, ...srcs }));

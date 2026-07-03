@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View, Alert, RefreshControl, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Button, Field, Pill } from '../components/UI';
 import { TimeField } from '../components/TimeField';
+import { DateNav, todayStr } from '../components/DateNav';
 import { KeyboardScroll } from '../components/KeyboardScroll';
 import { DietAPI, ProfileAPI, ReminderAPI, FoodAPI, apiError } from '../api/client';
 import { scheduleReminder, ensureNotifPermission } from '../notifications';
@@ -30,10 +31,12 @@ export default function DietScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
 
-  // today's food diary
+  // food diary (any day)
+  const [date, setDate] = useState(todayStr());
   const [logs, setLogs] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>({ calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
   const [targets, setTargets] = useState<any>(null);
+  const isToday = date === todayStr();
 
   // schedule preferences
   const [wake, setWake] = useState('07:00');
@@ -41,17 +44,19 @@ export default function DietScreen({ navigation }: any) {
   const [gym, setGym] = useState('evening');
   const [meals, setMeals] = useState(4);
 
+  // Food for the selected day.
+  const loadFood = useCallback(async () => {
+    const d = await FoodAPI.day(isToday ? undefined : date).catch(() => ({ logs: [], totals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 } }));
+    setLogs(d.logs || []);
+    setTotals(d.totals || { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
+  }, [date, isToday]);
+
+  // Plan + profile (not date-specific).
   const load = useCallback(async () => {
     try {
-      const [{ plan }, prof, today] = await Promise.all([
-        DietAPI.current(),
-        ProfileAPI.get(),
-        FoodAPI.today().catch(() => ({ logs: [], totals: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 } })),
-      ]);
+      const [{ plan }, prof] = await Promise.all([DietAPI.current(), ProfileAPI.get()]);
       setPlans(toPlans(plan));
       if (toPlans(plan).length) setShowPlan(true);
-      setLogs(today.logs || []);
-      setTotals(today.totals || { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
       setTargets(prof?.targets || null);
       const profile = prof?.profile;
       if (profile?.wake_time) setWake(profile.wake_time);
@@ -63,7 +68,8 @@ export default function DietScreen({ navigation }: any) {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useEffect(() => { loadFood(); }, [loadFood]); // reload food when the day changes
+  useFocusEffect(useCallback(() => { load(); loadFood(); }, [load, loadFood]));
 
   const deleteFood = (item: any) => {
     setLogs((prev) => prev.filter((x) => x.id !== item.id)); // instant
@@ -167,13 +173,16 @@ export default function DietScreen({ navigation }: any) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
 
       <Txt size={font.h2} weight="800">Diet</Txt>
-      <Txt dim style={{ marginBottom: spacing(2) }}>Track what you eat and hit your daily target.</Txt>
+      <Txt dim style={{ marginBottom: spacing(1.5) }}>Your food diary — swipe back to any day.</Txt>
 
-      {/* Today's nutrition */}
+      {/* Day navigator */}
+      <DateNav date={date} onChange={setDate} />
+
+      {/* Day's nutrition */}
       <Card style={{ borderColor: colors.primary }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Txt dim size={font.small} weight="800" style={{ letterSpacing: 1 }}>TODAY</Txt>
-          {targets ? <Txt size={font.small} weight="800" style={{ color: kcalLeft <= 0 ? colors.accent : colors.primary }}>{kcalLeft <= 0 ? '🎯 Target hit' : `${kcalLeft} kcal left`}</Txt> : null}
+          <Txt dim size={font.small} weight="800" style={{ letterSpacing: 1 }}>INTAKE</Txt>
+          {targets ? <Txt size={font.small} weight="800" style={{ color: kcalLeft <= 0 ? colors.accent : colors.primary }}>{kcalLeft <= 0 ? '🎯 Target hit' : `${kcalLeft} kcal ${isToday ? 'left' : 'under'}`}</Txt> : null}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 6 }}>
           <Txt size={font.h1} weight="900">{Math.round(totals.calories)}</Txt>
@@ -185,13 +194,13 @@ export default function DietScreen({ navigation }: any) {
           <MiniMacro label="Carbs" v={totals.carbs_g} t={targets?.carbs_g} color={colors.carbs} />
           <MiniMacro label="Fat" v={totals.fat_g} t={targets?.fat_g} color={colors.fat} />
         </View>
-        <Button title="📷 Add food" onPress={() => navigation.navigate('Scan')} style={{ marginTop: spacing(1.5) }} />
+        {isToday ? <Button title="📷 Add food" onPress={() => navigation.navigate('Scan')} style={{ marginTop: spacing(1.5) }} /> : null}
       </Card>
 
-      {/* Today's food diary — tap 🗑 to remove a wrong entry */}
-      <Txt size={font.h3} weight="800" style={{ marginTop: spacing(2), marginBottom: spacing(1) }}>Today's food</Txt>
+      {/* Food diary — tap 🗑 to remove a wrong entry (today only) */}
+      <Txt size={font.h3} weight="800" style={{ marginTop: spacing(2), marginBottom: spacing(1) }}>{isToday ? "Today's food" : 'Food logged'}</Txt>
       {logs.length === 0 ? (
-        <Card><Txt dim size={font.small}>Nothing logged yet. Tap “Add food” to scan a meal or add one.</Txt></Card>
+        <Card><Txt dim size={font.small}>{isToday ? 'Nothing logged yet. Tap “Add food” to scan a meal or add one.' : 'No food logged this day.'}</Txt></Card>
       ) : logs.map((l) => (
         <Card key={l.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1, paddingRight: 8 }}>
@@ -199,7 +208,7 @@ export default function DietScreen({ navigation }: any) {
             <Txt dim size={font.tiny}>P {Math.round(l.protein_g)}g · C {Math.round(l.carbs_g)}g · F {Math.round(l.fat_g)}g</Txt>
           </View>
           <Txt weight="800" style={{ color: colors.primary, marginRight: 6 }}>{Math.round(l.calories)}</Txt>
-          <TouchableOpacity onPress={() => deleteFood(l)} style={{ padding: 8 }}><Txt size={15} style={{ color: colors.danger }}>🗑</Txt></TouchableOpacity>
+          {isToday ? <TouchableOpacity onPress={() => deleteFood(l)} style={{ padding: 8 }}><Txt size={15} style={{ color: colors.danger }}>🗑</Txt></TouchableOpacity> : null}
         </Card>
       ))}
 

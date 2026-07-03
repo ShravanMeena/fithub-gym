@@ -4,7 +4,7 @@ import multer from 'multer';
 import sharp from 'sharp';
 import { q, one } from '../db/index.js';
 import { authRequired, verifyToken } from '../middleware/auth.js';
-import { saveFile, streamFile, deleteFile, fileExists, fileSize, readBuffer } from '../services/storage.js';
+import { saveFile, streamFile, deleteFile, fileExists, fileSize, readBuffer, signedReadUrl } from '../services/storage.js';
 import { optimizeVideo } from '../services/video.js';
 
 const router = Router();
@@ -64,11 +64,27 @@ router.use(authRequired);
 function likeInfo(row, userId) {
   return { id: row.id, type: row.type, content: row.content,
     media_url: row.media_path ? `/api/feed/${row.id}/media` : null,
+    media_key: row.media_path || null,
     author: row.author_name, authorId: row.user_id, authorAvatar: !!row.author_avatar,
     gym: row.gym_name || null, created_at: row.created_at,
     is_announcement: !!row.is_announcement, is_public: !!row.is_public,
     likes: Number(row.likes) || 0, liked: !!row.liked, myReaction: row.my_reaction || null,
     comments: Number(row.comments) || 0, mine: row.user_id === userId };
+}
+
+// Swap the proxy media_url for a direct GCS signed URL (fast streaming). Falls
+// back to the proxy path when signing isn't available. Strips the internal key.
+async function withSignedMedia(posts) {
+  await Promise.all(posts.map(async (p) => {
+    // Videos benefit most from direct streaming; images use the cheap cached
+    // thumbnail proxy, so we only sign video media (fewer signing calls too).
+    if (p.type === 'video' && p.media_key) {
+      const url = await signedReadUrl(p.media_key);
+      if (url) p.media_url = url;
+    }
+    delete p.media_key;
+  }));
+  return posts;
 }
 
 const SEL = `p.*, u.name AS author_name, (u.avatar_path IS NOT NULL) AS author_avatar, o.name AS gym_name,
@@ -114,7 +130,7 @@ router.post('/', async (req, res, next) => {
       await one('UPDATE posts SET media_path = $1 WHERE id = $2 RETURNING id', [key, ins.id]);
     }
     const row = await one(`SELECT ${SEL} FROM posts p JOIN users u ON u.id=p.user_id LEFT JOIN organizations o ON o.id=p.org_id WHERE p.id = $2`, [req.user.id, ins.id]);
-    res.json({ post: likeInfo(row, req.user.id) });
+    res.json({ post: (await withSignedMedia([likeInfo(row, req.user.id)]))[0] });
   } catch (e) { next(e); }
 });
 
@@ -137,7 +153,7 @@ router.post('/video', videoUpload.single('video'), async (req, res, next) => {
     await one('UPDATE posts SET media_path = $1, media_type = $2 WHERE id = $3 RETURNING id', [key, opt.contentType, ins.id]);
 
     const row = await one(`SELECT ${SEL} FROM posts p JOIN users u ON u.id=p.user_id LEFT JOIN organizations o ON o.id=p.org_id WHERE p.id = $2`, [req.user.id, ins.id]);
-    res.json({ post: likeInfo(row, req.user.id) });
+    res.json({ post: (await withSignedMedia([likeInfo(row, req.user.id)]))[0] });
   } catch (e) { next(e); }
 });
 
@@ -152,7 +168,7 @@ router.get('/', async (req, res, next) => {
     );
     const hasMore = rows.length > PAGE;
     const page = rows.slice(0, PAGE);
-    res.json({ posts: page.map((r) => likeInfo(r, req.user.id)), nextBefore: hasMore ? page[page.length - 1].id : null });
+    res.json({ posts: await withSignedMedia(page.map((r) => likeInfo(r, req.user.id))), nextBefore: hasMore ? page[page.length - 1].id : null });
   } catch (e) { next(e); }
 });
 
@@ -166,7 +182,7 @@ router.get('/public', async (req, res, next) => {
     );
     const hasMore = rows.length > PAGE;
     const page = rows.slice(0, PAGE);
-    res.json({ posts: page.map((r) => likeInfo(r, req.user.id)), nextBefore: hasMore ? page[page.length - 1].id : null });
+    res.json({ posts: await withSignedMedia(page.map((r) => likeInfo(r, req.user.id))), nextBefore: hasMore ? page[page.length - 1].id : null });
   } catch (e) { next(e); }
 });
 

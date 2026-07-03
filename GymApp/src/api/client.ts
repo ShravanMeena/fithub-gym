@@ -19,13 +19,16 @@ export const SERVER_ORIGIN = API_BASE.replace(/\/api$/, '');
 
 // Build an <Image> source for a protected photo URL (sends the JWT as a header).
 export async function authedImageSource(path: string) {
+  // Direct GCS signed URL — self-authorizing, served straight from Google (fast).
+  if (/^https?:\/\//.test(path)) return { uri: path };
   const token = await AsyncStorage.getItem(TOKEN_KEY);
   return { uri: `${SERVER_ORIGIN}${path}`, headers: { Authorization: `Bearer ${token}` } };
 }
 
-// Build a <Video> source. Video players can't reliably send auth headers on iOS,
-// so we pass the JWT as a query param (the media route accepts ?token=).
+// Build a <Video> source. A direct GCS signed URL needs no auth; otherwise pass
+// the JWT as a query param (the media route accepts ?token=).
 export async function authedVideoSource(path: string) {
+  if (/^https?:\/\//.test(path)) return { uri: path };
   const token = await AsyncStorage.getItem(TOKEN_KEY);
   return { uri: `${SERVER_ORIGIN}${path}?token=${token}` };
 }

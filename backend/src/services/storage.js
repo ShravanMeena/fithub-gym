@@ -40,6 +40,23 @@ export async function readBuffer(key) {
   return readFileSync(diskPath(key));
 }
 
+// A time-limited direct GCS read URL so clients stream media straight from
+// Google (fast, CDN-like) instead of proxying through this server. Returns null
+// on disk mode or if signing isn't available (caller falls back to the proxy).
+export async function signedReadUrl(key, minutes = 720) {
+  if (!useGcs || !key) return null;
+  try {
+    const [url] = await bucket.file(key).getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + minutes * 60 * 1000,
+    });
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 // Returns a readable stream (optionally a byte range) for piping to res.
 export function streamFile(key, range) {
   const opts = range && range.start != null ? { start: range.start, end: range.end } : {};

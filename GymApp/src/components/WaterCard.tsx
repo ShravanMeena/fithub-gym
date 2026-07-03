@@ -14,18 +14,22 @@ const QUICK = [
 ];
 const litres = (ml: number) => (ml / 1000).toFixed(ml % 1000 === 0 ? 0 : 1);
 
+const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
 export function WaterCard() {
   const [ml, setMl] = useState(0);
   const [goalMl, setGoalMl] = useState(3000);
+  const [history, setHistory] = useState<{ day: string; ml: number }[]>([]);
 
   const load = useCallback(() => {
     WaterAPI.today().then((d) => { setMl(d.ml); setGoalMl(d.goalMl); }).catch(() => {});
+    WaterAPI.history().then((d) => setHistory(d.days || [])).catch(() => {});
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const add = async (amount: number) => {
     setMl((m) => Math.max(0, m + amount)); // optimistic
-    try { const d = await WaterAPI.add(amount); setMl(d.ml); } catch { load(); }
+    try { const d = await WaterAPI.add(amount); setMl(d.ml); load(); } catch { load(); }
   };
 
   const editGoal = () => {
@@ -78,6 +82,26 @@ export function WaterCard() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* last 7 days */}
+      {history.length > 0 && (
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: spacing(1.75), paddingTop: spacing(1.25), borderTopWidth: 1, borderTopColor: colors.border }}>
+          {history.map((h, i) => {
+            const hpct = Math.min(1, goalMl ? h.ml / goalMl : 0);
+            const isToday = i === history.length - 1;
+            const [y, m, d] = h.day.split('-').map(Number);
+            const dow = DOW[new Date(y, (m || 1) - 1, d || 1).getDay()];
+            return (
+              <View key={h.day} style={{ alignItems: 'center', flex: 1 }}>
+                <View style={{ width: 8, height: 34, borderRadius: 4, backgroundColor: colors.cardAlt, justifyContent: 'flex-end', overflow: 'hidden' }}>
+                  <View style={{ width: '100%', height: `${Math.max(6, hpct * 100)}%`, backgroundColor: h.ml >= goalMl ? colors.accent : colors.primary, opacity: isToday ? 1 : 0.7 }} />
+                </View>
+                <Txt size={9} weight={isToday ? '800' : '400'} style={{ color: isToday ? colors.primary : colors.textDim, marginTop: 4 }}>{isToday ? 'Today' : dow}</Txt>
+              </View>
+            );
+          })}
+        </View>
+      )}
     </Card>
   );
 }
