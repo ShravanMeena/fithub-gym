@@ -98,6 +98,7 @@
       <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Send Notification</div>
       <div class="tab" data-tab="notices" onclick="switchTab('notices')">Home Notices</div>
       <div class="tab" data-tab="announce" onclick="switchTab('announce')">Announce</div>
+      <div class="tab" data-tab="chat" onclick="switchTab('chat')">💬 Group Chat</div>
       <div class="tab" data-tab="attendance" onclick="switchTab('attendance')">Attendance log</div>
       <div class="tab" data-tab="settings" onclick="switchTab('settings')">Settings</div>
     </div>
@@ -181,6 +182,26 @@
       <div style="overflow-x:auto"><table id="attTable"></table></div>
     </div>
 
+    <div id="tab_chat" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">💬 <span id="chatTitle">Group chat</span></h3>
+          <button class="btn ghost sm" onclick="loadChat()">↻ Refresh</button>
+        </div>
+        <p class="muted" style="font-size:13px;margin:6px 0 12px">Moderate your gym's group chat — delete any message, or remove a member so they can't post.</p>
+        <div style="display:grid;grid-template-columns:1fr;gap:16px">
+          <div>
+            <h3 style="font-size:14px">Messages</h3>
+            <div id="chatMessages" style="max-height:420px;overflow-y:auto"></div>
+          </div>
+          <div>
+            <h3 style="font-size:14px">Members</h3>
+            <div id="chatMembers"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="tab_settings" class="card" style="display:none">
       <h3>Gym settings</h3>
       <div class="row2">
@@ -235,11 +256,49 @@
 
   function switchTab(t){
     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
-    ['members','analytics','inactive','push','notices','announce','attendance','settings'].forEach(x=>$('tab_'+x).style.display = x===t?'block':'none');
+    ['members','analytics','inactive','push','notices','announce','chat','attendance','settings'].forEach(x=>$('tab_'+x).style.display = x===t?'block':'none');
     if(t==='notices') loadNotices();
     if(t==='inactive') loadInactive(inactiveDays);
     if(t==='analytics') loadAnalytics();
+    if(t==='chat') loadChat();
   }
+
+  // ---- Group chat moderation ----
+  let chatGroupId = null;
+  async function loadChat(){
+    try{
+      const g = await api('/chat/group'); chatGroupId = g.conversationId;
+      $('chatTitle').textContent = g.title || 'Group chat';
+      await Promise.all([loadChatMessages(), loadChatMembers()]);
+    }catch(e){ $('chatMessages').innerHTML = '<p class="muted" style="color:var(--danger)">'+e.message+'</p>'; }
+  }
+  async function loadChatMessages(){
+    const { messages } = await api('/chat/'+chatGroupId+'/messages');
+    if(!messages.length){ $('chatMessages').innerHTML = '<p class="muted">No messages yet.</p>'; return; }
+    $('chatMessages').innerHTML = messages.map(m=>{
+      const who = esc(m.sender||'—'); const when = (m.created_at||'').slice(0,16).replace('T',' ');
+      const body = m.deleted ? '<i style="opacity:.5">🚫 message removed</i>' : esc(m.body||'');
+      const del = m.deleted ? '' : '<button class="btn ghost sm" style="color:var(--danger)" onclick="delChatMsg('+m.id+')">Delete</button>';
+      return '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border,#242424)">'
+        +'<div style="min-width:0"><div style="font-weight:700;font-size:13px">'+who+' <span class="muted" style="font-weight:400;font-size:11px">'+when+'</span></div>'
+        +'<div style="font-size:14px;margin-top:2px;word-break:break-word">'+body+'</div></div>'+del+'</div>';
+    }).join('');
+  }
+  async function loadChatMembers(){
+    const { members } = await api('/chat/'+chatGroupId+'/members');
+    $('chatMembers').innerHTML = members.map(m=>{
+      const tag = m.role==='admin' ? ' 👑' : '';
+      const removed = m.blocked ? '<span style="color:var(--danger);font-size:11px">Removed</span>' : '';
+      const btn = m.blocked
+        ? '<button class="btn sm" onclick="chatUnblock('+m.id+')">Allow</button>'
+        : '<button class="btn ghost sm" style="color:var(--danger)" onclick="chatBlock('+m.id+')">Remove</button>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border,#242424)">'
+        +'<div>'+esc(m.name)+tag+' '+removed+'</div>'+btn+'</div>';
+    }).join('');
+  }
+  async function delChatMsg(id){ try{ await api('/chat/messages/'+id,{method:'DELETE'}); loadChatMessages(); }catch(e){ alert(e.message); } }
+  async function chatBlock(uid){ if(!confirm('Remove this member from the group chat?'))return; try{ await api('/chat/'+chatGroupId+'/members/'+uid+'/block',{method:'POST'}); loadChatMembers(); }catch(e){ alert(e.message); } }
+  async function chatUnblock(uid){ try{ await api('/chat/'+chatGroupId+'/members/'+uid+'/unblock',{method:'POST'}); loadChatMembers(); }catch(e){ alert(e.message); } }
 
   // ---- Gym analytics (this gym only) ----
   function aStat(label,val,sub){ return '<div style="flex:1;min-width:110px;background:var(--bg,#0e0e0e);border:1px solid var(--border,#242424);border-radius:10px;padding:12px"><div style="font-size:12px;opacity:.6">'+label+'</div><div style="font-size:22px;font-weight:800">'+val+'</div>'+(sub?'<div style="font-size:11px;opacity:.6">'+sub+'</div>':'')+'</div>'; }

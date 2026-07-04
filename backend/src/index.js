@@ -28,6 +28,7 @@ import aiRoutes from './routes/ai.js';
 import meRoutes from './routes/me.js';
 import prsRoutes from './routes/prs.js';
 import analyticsRoutes from './routes/analytics.js';
+import chatRoutes from './routes/chat.js';
 import { initDb } from './db/index.js';
 import { aiMode } from './services/bedrock.js';
 import { storageMode } from './services/storage.js';
@@ -69,6 +70,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/me', meRoutes);
 app.use('/api/prs', prsRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Unknown /api routes -> JSON 404.
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));

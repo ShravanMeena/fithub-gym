@@ -56,6 +56,20 @@ export const ReferralAPI = {
   get: () => api.get('/referral').then((r) => r.data),
 };
 
+export const ChatAPI = {
+  conversations: () => api.get('/chat/conversations').then((r) => r.data),
+  group: () => api.get('/chat/group').then((r) => r.data),
+  members: () => api.get('/chat/members').then((r) => r.data),
+  direct: (userId: number) => api.post(`/chat/direct/${userId}`).then((r) => r.data),
+  messages: (id: number, params?: { after?: number; before?: number }) =>
+    api.get(`/chat/${id}/messages`, { params: params || {} }).then((r) => r.data),
+  send: (id: number, body: string) => api.post(`/chat/${id}/messages`, { body }).then((r) => r.data),
+  delMessage: (mid: number) => api.delete(`/chat/messages/${mid}`).then((r) => r.data),
+  convMembers: (id: number) => api.get(`/chat/${id}/members`).then((r) => r.data),
+  block: (id: number, userId: number) => api.post(`/chat/${id}/members/${userId}/block`).then((r) => r.data),
+  unblock: (id: number, userId: number) => api.post(`/chat/${id}/members/${userId}/unblock`).then((r) => r.data),
+};
+
 export const OrgAPI = {
   list: () => api.get('/orgs').then((r) => r.data),
   get: (slug: string) => api.get(`/orgs/${slug}`).then((r) => r.data),

@@ -37,6 +37,8 @@ import BadgesScreen from '../screens/BadgesScreen';
 import PRScreen from '../screens/PRScreen';
 import BarcodeScanScreen from '../screens/BarcodeScanScreen';
 import FoodDiaryScreen from '../screens/FoodDiaryScreen';
+import ChatListScreen from '../screens/ChatListScreen';
+import ChatScreen from '../screens/ChatScreen';
 
 const navTheme = {
   ...DefaultTheme,
@@ -166,6 +168,8 @@ export default function RootNavigator() {
               <Stack.Screen name="PRs" component={PRScreen} options={{ title: 'Personal Records' }} />
               <Stack.Screen name="BarcodeScan" component={BarcodeScanScreen} options={{ title: 'Scan Barcode' }} />
               <Stack.Screen name="FoodDiary" component={FoodDiaryScreen} options={{ title: 'Food Diary' }} />
+              <Stack.Screen name="Messages" component={ChatListScreen} options={{ title: 'Messages' }} />
+              <Stack.Screen name="Chat" component={ChatScreen} options={{ title: 'Chat' }} />
             </>
           ) : !org ? (
             <Stack.Screen name="OrgSelect" component={OrgSelectScreen} options={{ headerShown: false }} />

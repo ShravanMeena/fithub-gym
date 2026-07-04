@@ -123,6 +123,7 @@ export default function TodayScreen({ navigation }: any) {
       {/* Compact tiles for everything else (declutter) */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: spacing(1) }}>
         <Tile emoji="💬" label="Community" onPress={() => navigation.navigate('Community')} />
+        <Tile emoji="✉️" label="Messages" onPress={() => navigation.navigate('Messages')} />
         <Tile emoji="🎁" label="Invite & earn" onPress={() => navigation.navigate('Referral')} />
         <Tile emoji="⏰" label="Gym timing" onPress={() => navigation.navigate('GymSchedule')} />
         <Tile emoji="✨" label="AI Coach" onPress={() => navigation.navigate('Coach')} />

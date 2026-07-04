@@ -17,6 +17,14 @@ export const pool = new pg.Pool({
   max: 10,
 });
 
+// CRITICAL: without this, an idle-client error (DB restart, failover, maintenance,
+// or Cloud SQL terminating a connection — Postgres code 57P01) emits an unhandled
+// 'error' event on the pool and crashes the entire API. Log and let the pool
+// recover instead of taking the whole process down.
+pool.on('error', (err) => {
+  console.error('[pg pool] idle client error (recovering):', err.code || '', err.message);
+});
+
 // Query helpers. q -> rows[], one -> first row|null, exec -> result.
 export async function q(text, params) {
   const r = await pool.query(text, params);
@@ -367,6 +375,34 @@ CREATE INDEX IF NOT EXISTS idx_api_logs_errors ON api_logs(ts DESC) WHERE ok = f
 -- or get a soft nudge. Explicit lists take priority over 'auto' thresholds.
 ALTER TABLE app_update ADD COLUMN IF NOT EXISTS force_versions TEXT NOT NULL DEFAULT '';
 ALTER TABLE app_update ADD COLUMN IF NOT EXISTS soft_versions TEXT NOT NULL DEFAULT '';
+
+-- ===== Chat: 1-on-1 direct messages + a per-gym group chat =====
+CREATE TABLE IF NOT EXISTS conversations (
+  id SERIAL PRIMARY KEY,
+  org_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
+  type TEXT NOT NULL DEFAULT 'direct',            -- 'direct' | 'group'
+  title TEXT,                                     -- group name
+  dkey TEXT UNIQUE,                               -- direct: 'orgId:minUser:maxUser' (dedupe)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS conversation_members (
+  conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  last_read_id INTEGER NOT NULL DEFAULT 0,
+  blocked INTEGER NOT NULL DEFAULT 0,             -- admin removed/blocked from the group
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (conversation_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id SERIAL PRIMARY KEY,
+  conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  body TEXT NOT NULL,
+  deleted INTEGER NOT NULL DEFAULT 0,             -- soft delete (moderation)
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_chat_msg_conv ON chat_messages(conversation_id, id);
+CREATE INDEX IF NOT EXISTS idx_conv_members_user ON conversation_members(user_id);
 `;
 
 const SEED_ORGS = [
@@ -375,7 +411,20 @@ const SEED_ORGS = [
 ];
 
 // Create schema + seed. Call once at startup before serving.
+// Retries so the API rides out the DB/proxy still coming up (e.g. after a VM or
+// Cloud SQL restart) instead of crash-looping the container.
 export async function initDb() {
+  const MAX_TRIES = 30;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await pool.query('SELECT 1');
+      break;
+    } catch (e) {
+      if (attempt >= MAX_TRIES) throw e;
+      console.log(`[db] not ready (${e.code || e.message}); retry ${attempt}/${MAX_TRIES} in 3s…`);
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+  }
   await pool.query(SCHEMA);
   for (const o of SEED_ORGS) {
     await pool.query(
