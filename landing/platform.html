@@ -241,8 +241,8 @@
     try{
       const d = await api('/super/early-access');
       $('earlyStats').innerHTML = '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">'
-        + aStat('Total signups', d.total)
-        + aStat('This week', d.week)
+        + stat('Total signups', d.total)
+        + stat('This week', d.week)
         + '</div>';
       if(!d.signups.length){ $('earlyTable').innerHTML='<p class="muted">No signups yet.</p>'; return; }
       const rows = d.signups.map(s=>'<tr>'
