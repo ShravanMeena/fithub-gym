@@ -165,7 +165,8 @@ router.post('/:id/messages', async (req, res, next) => {
     const others = await q('SELECT user_id FROM conversation_members WHERE conversation_id=$1 AND user_id<>$2 AND blocked=0', [convId, me.id]);
     const title = conv.type === 'group' ? (conv.title || 'Group chat') : me.name;
     const preview = (conv.type === 'group' ? `${me.name}: ${body}` : body).slice(0, 140);
-    for (const o of others) sendToUser(o.user_id, { title, body: preview, data: { type: 'chat', conversationId: String(convId) } }).catch(() => {});
+    const data = { type: 'chat', conversationId: String(convId), convType: conv.type, chatTitle: title };
+    for (const o of others) sendToUser(o.user_id, { title, body: preview, data }).catch(() => {});
 
     res.json({ message: { id: msg.id, senderId: me.id, sender: me.name, senderAvatar: false, body: msg.body, deleted: false, created_at: msg.created_at, mine: true } });
   } catch (e) { next(e); }

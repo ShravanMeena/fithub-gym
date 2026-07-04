@@ -6,8 +6,24 @@ import { q, one } from '../db/index.js';
 import { authRequired, verifyToken } from '../middleware/auth.js';
 import { saveFile, streamFile, deleteFile, fileExists, fileSize, readBuffer, signedReadUrl, publicUrl } from '../services/storage.js';
 import { optimizeVideo } from '../services/video.js';
+import { sendToUser } from '../services/push.js';
 
 const router = Router();
+
+// Notify a post's author when someone likes/reacts/comments (never self). Tap
+// routes to the post via data.type + data.postId. Best-effort (never throws).
+async function notifyPostAuthor(postId, actorId, { type, verb, preview }) {
+  try {
+    const post = await one('SELECT user_id FROM posts WHERE id = $1', [postId]);
+    if (!post || post.user_id === actorId) return;
+    const actor = await one('SELECT name FROM users WHERE id = $1', [actorId]);
+    await sendToUser(post.user_id, {
+      title: actor?.name || 'Someone',
+      body: preview ? `${verb}: ${preview}` : verb,
+      data: { type, postId: String(postId) },
+    });
+  } catch { /* ignore */ }
+}
 
 const orgId = async (userId) => (await one('SELECT org_id FROM users WHERE id = $1', [userId]))?.org_id;
 const extFor = (mt) => (mt === 'image/png' ? 'png' : mt === 'video/mp4' ? 'mp4' : mt === 'video/quicktime' ? 'mov' : 'jpg');
@@ -269,11 +285,25 @@ router.get('/public', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// A single post (used when opening a post from a notification tap).
+router.get('/post/:id', async (req, res, next) => {
+  try {
+    const row = await one(
+      `SELECT ${SEL} FROM posts p JOIN users u ON u.id=p.user_id LEFT JOIN organizations o ON o.id=p.org_id WHERE p.id = $2`,
+      [req.user.id, Number(req.params.id)]
+    );
+    if (!row) return res.status(404).json({ error: 'Post not found' });
+    if (!row.is_public && row.org_id !== (await orgId(req.user.id))) return res.status(403).json({ error: 'Not allowed' });
+    res.json({ post: (await withSignedMedia([likeInfo(row, req.user.id)]))[0] });
+  } catch (e) { next(e); }
+});
+
 router.post('/:id/like', async (req, res, next) => {
   try {
-    await one('INSERT INTO post_likes (post_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING post_id', [req.params.id, req.user.id]);
+    const inserted = await one('INSERT INTO post_likes (post_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING RETURNING post_id', [req.params.id, req.user.id]);
     const likes = (await one('SELECT COUNT(*) AS c FROM post_likes WHERE post_id = $1', [req.params.id]))?.c || 0;
     res.json({ likes, liked: true });
+    if (inserted) notifyPostAuthor(req.params.id, req.user.id, { type: 'like', verb: 'liked your post ❤️' });
   } catch (e) { next(e); }
 });
 
@@ -302,6 +332,8 @@ router.post('/:id/react', async (req, res, next) => {
     const likes = (await one('SELECT COUNT(*) AS c FROM post_likes WHERE post_id = $1', [req.params.id]))?.c || 0;
     const mine = await one('SELECT reaction FROM post_likes WHERE post_id = $1 AND user_id = $2', [req.params.id, req.user.id]);
     res.json({ likes, myReaction: mine?.reaction || null });
+    const emoji = { like: '❤️', fire: '🔥', muscle: '💪', clap: '👏' }[reaction] || '❤️';
+    if (mine?.reaction === reaction) notifyPostAuthor(req.params.id, req.user.id, { type: 'like', verb: `reacted ${emoji} to your post` });
   } catch (e) { next(e); }
 });
 
@@ -328,6 +360,7 @@ router.post('/:id/comments', async (req, res, next) => {
       [req.params.id, req.user.id, body.slice(0, 500)]
     );
     res.json({ comment: { ...row, author: 'You', mine: true } });
+    notifyPostAuthor(req.params.id, req.user.id, { type: 'comment', verb: 'commented', preview: body.slice(0, 100) });
   } catch (e) { next(e); }
 });
 

@@ -39,7 +39,11 @@ let handlersReady = false;
 // (Tab routes are Today / Diet / Community / Progress.)
 function routeFromData(data?: Record<string, any>) {
   if (!data) return;
-  if (data.type === 'announcement') navTo('Community');
+  if (data.type === 'chat' && data.conversationId) {
+    navTo('Chat', { conversationId: Number(data.conversationId), title: data.chatTitle || 'Chat', type: data.convType || 'direct' });
+  } else if ((data.type === 'comment' || data.type === 'like') && data.postId) {
+    navTo('PostDetail', { postId: Number(data.postId) });
+  } else if (data.type === 'announcement') navTo('Community');
   else if (data.type === 'notice' || data.type === 'alert' || data.type === 'water') navTo('Today');
   else if (data.type === 'reminder') navTo('Reminders');
   else if (data.type === 'pr') navTo('Workout');

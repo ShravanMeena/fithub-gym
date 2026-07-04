@@ -7,13 +7,21 @@ import { Card, Txt } from '../components/UI';
 import { Avatar } from '../components/Avatar';
 import { AutoImage } from '../components/AutoImage';
 import { PostInteractions } from '../components/PostInteractions';
-import { authedImageSource, authedVideoSource } from '../api/client';
+import { authedImageSource, authedVideoSource, FeedAPI } from '../api/client';
 import { colors, font, radius, spacing } from '../theme';
 
 export default function PostDetailScreen({ route }: any) {
-  const post = route.params?.post;
+  const [post, setPost] = useState<any>(route.params?.post || null);
+  const postId = route.params?.postId;
   const [src, setSrc] = useState<any>(null);
   const [vidRatio, setVidRatio] = useState<number | null>(null);
+
+  // Opened from a notification with only an id? Fetch the full post.
+  useFocusEffect(useCallback(() => {
+    let alive = true;
+    if (!post && postId) FeedAPI.getPost(postId).then((r) => alive && setPost(r.post)).catch(() => {});
+    return () => { alive = false; };
+  }, [post, postId]));
 
   useFocusEffect(useCallback(() => {
     let alive = true;
