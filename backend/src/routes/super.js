@@ -305,6 +305,16 @@ router.post('/notify', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ---- Early-access signups from the marketing site ----
+router.get('/early-access', async (req, res, next) => {
+  try {
+    const signups = await q('SELECT id, name, email, phone, goal, gym, source, created_at FROM early_access ORDER BY created_at DESC LIMIT 1000');
+    const total = Number((await one('SELECT COUNT(*) AS c FROM early_access'))?.c || 0);
+    const week = Number((await one("SELECT COUNT(*) AS c FROM early_access WHERE created_at >= now() - interval '7 days'"))?.c || 0);
+    res.json({ signups, total, week });
+  } catch (e) { next(e); }
+});
+
 // ---- App update management (force / soft update) ----
 router.get('/app-update', async (req, res, next) => {
   try {

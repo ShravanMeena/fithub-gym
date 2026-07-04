@@ -403,6 +403,20 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 CREATE INDEX IF NOT EXISTS idx_chat_msg_conv ON chat_messages(conversation_id, id);
 CREATE INDEX IF NOT EXISTS idx_conv_members_user ON conversation_members(user_id);
+
+-- Early-access / waitlist signups from the marketing site.
+CREATE TABLE IF NOT EXISTS early_access (
+  id SERIAL PRIMARY KEY,
+  name TEXT,
+  email TEXT NOT NULL,
+  phone TEXT,
+  goal TEXT,
+  gym TEXT,
+  source TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_early_access_email ON early_access (lower(email));
+CREATE INDEX IF NOT EXISTS idx_early_access_created ON early_access (created_at DESC);
 `;
 
 const SEED_ORGS = [

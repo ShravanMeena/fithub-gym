@@ -69,6 +69,7 @@
     </div>
     <div class="tabs">
       <div class="tab" data-tab="analytics" onclick="switchTab('analytics')">📊 Analytics</div>
+      <div class="tab" data-tab="early" onclick="switchTab('early')">🚀 Early Access</div>
       <div class="tab active" data-tab="users" onclick="switchTab('users')">Users &amp; AI access</div>
       <div class="tab" data-tab="gyms" onclick="switchTab('gyms')">Gyms</div>
       <div class="tab" data-tab="push" onclick="switchTab('push')">🔔 Push</div>
@@ -89,6 +90,21 @@
     <div id="tab_gyms" class="card" style="display:none">
       <h3>All gyms</h3>
       <div style="overflow-x:auto"><table id="gymsTable"></table></div>
+    </div>
+
+    <div id="tab_early" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">🚀 Early access signups</h3>
+          <div>
+            <button class="btn ghost sm" onclick="loadEarly()">↻ Refresh</button>
+            <button class="btn ghost sm" id="earlyExport">⬇ Export CSV</button>
+          </div>
+        </div>
+        <p class="muted" style="font-size:13px;margin:6px 0 14px">People who signed up on the FitHub marketing site to get early access.</p>
+        <div id="earlyStats"></div>
+        <div style="overflow-x:auto"><div id="earlyTable"></div></div>
+      </div>
     </div>
 
     <div id="tab_analytics" style="display:none">
@@ -218,7 +234,36 @@
     finally{ $('loginBtn').disabled=false; $('loginBtn').textContent='Log in'; }
   }
   function logout(){ localStorage.removeItem(TOKEN_KEY); token=null; location.reload(); }
-  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['analytics','users','gyms','push','appupdate','aiusage','logs','settings'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); if(t==='settings') loadSettings(); if(t==='aiusage') loadAiUsage(); if(t==='analytics') loadAnalytics(); if(t==='logs') loadLogs(); }
+  function switchTab(t){ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t)); ['analytics','early','users','gyms','push','appupdate','aiusage','logs','settings'].forEach(x=>$('tab_'+x).style.display=x===t?'block':'none'); if(t==='appupdate') loadAppUpdate(); if(t==='push') loadPush(); if(t==='settings') loadSettings(); if(t==='aiusage') loadAiUsage(); if(t==='analytics') loadAnalytics(); if(t==='logs') loadLogs(); if(t==='early') loadEarly(); }
+
+  // ---- Early-access signups (from the marketing site) ----
+  async function loadEarly(){
+    try{
+      const d = await api('/super/early-access');
+      $('earlyStats').innerHTML = '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">'
+        + aStat('Total signups', d.total)
+        + aStat('This week', d.week)
+        + '</div>';
+      if(!d.signups.length){ $('earlyTable').innerHTML='<p class="muted">No signups yet.</p>'; return; }
+      const rows = d.signups.map(s=>'<tr>'
+        + '<td>'+esc(s.name||'—')+'</td>'
+        + '<td><a href="mailto:'+esc(s.email)+'" style="color:var(--accent,#FF5A1F)">'+esc(s.email)+'</a></td>'
+        + '<td>'+esc(s.phone||'—')+'</td>'
+        + '<td>'+esc(s.goal||'—')+'</td>'
+        + '<td>'+esc(s.gym||'—')+'</td>'
+        + '<td class="muted">'+esc(s.source||'')+'</td>'
+        + '<td class="muted" style="white-space:nowrap">'+(s.created_at||'').slice(0,16).replace('T',' ')+'</td>'
+        + '</tr>').join('');
+      $('earlyTable').innerHTML = '<table style="width:100%;border-collapse:collapse"><thead><tr>'
+        + ['Name','Email','Phone','Goal','Gym','Source','Joined'].map(h=>'<th style="text-align:left;padding:8px 10px;border-bottom:1px solid var(--border,#242424);font-size:12px;opacity:.6">'+h+'</th>').join('')
+        + '</tr></thead><tbody>'+rows+'</tbody></table>';
+      $('earlyExport').onclick = ()=>{
+        const head = ['name','email','phone','goal','gym','source','created_at'];
+        const csv = [head.join(',')].concat(d.signups.map(s=>head.map(k=>'"'+String(s[k]==null?'':s[k]).replace(/"/g,'""')+'"').join(','))).join('\n');
+        const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='fithub-early-access.csv'; a.click();
+      };
+    }catch(e){ $('earlyStats').innerHTML='<p class="muted" style="color:var(--danger)">'+e.message+'</p>'; }
+  }
 
   // ---- Product analytics ----
   function stat(label,val,sub){ return '<div style="flex:1;min-width:110px;background:var(--bg);border-radius:10px;padding:12px"><div style="font-size:12px;color:var(--muted)">'+label+'</div><div style="font-size:22px;font-weight:800">'+val+'</div>'+(sub?'<div style="font-size:11px;color:var(--muted)">'+sub+'</div>':'')+'</div>'; }
