@@ -193,6 +193,10 @@
           <div>
             <h3 style="font-size:14px">Messages</h3>
             <div id="chatMessages" style="max-height:420px;overflow-y:auto"></div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <input id="chatInput" placeholder="Message the group as admin…" style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--border,#242424);background:var(--bg,#0e0e0e);color:inherit;font-size:14px" onkeydown="if(event.key==='Enter')sendGroupMsg()">
+              <button class="btn" onclick="sendGroupMsg()">Send</button>
+            </div>
           </div>
           <div>
             <h3 style="font-size:14px">Members</h3>
@@ -296,6 +300,12 @@
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border,#242424)">'
         +'<div>'+esc(m.name)+tag+' '+removed+'</div>'+btn+'</div>';
     }).join('');
+  }
+  async function sendGroupMsg(){
+    const el=$('chatInput'); const body=el.value.trim(); if(!body||!chatGroupId)return;
+    el.value='';
+    try{ await api('/chat/'+chatGroupId+'/messages',{method:'POST',body:JSON.stringify({body})}); loadChatMessages(); }
+    catch(e){ el.value=body; alert(e.message); }
   }
   async function delChatMsg(id){ try{ await api('/chat/messages/'+id,{method:'DELETE'}); loadChatMessages(); }catch(e){ alert(e.message); } }
   async function chatBlock(uid){ if(!confirm('Remove this member from the group chat?'))return; try{ await api('/chat/'+chatGroupId+'/members/'+uid+'/block',{method:'POST'}); loadChatMembers(); }catch(e){ alert(e.message); } }
