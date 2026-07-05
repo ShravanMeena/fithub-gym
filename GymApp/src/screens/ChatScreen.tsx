@@ -128,10 +128,12 @@ export default function ChatScreen({ navigation, route }: any) {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
       <FlatList
         ref={listRef}
-        contentContainerStyle={{ padding: spacing(2) }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: spacing(2), flexGrow: 1 }}
         data={messages}
         keyExtractor={(m) => String(m.id)}
         renderItem={renderItem}
+        keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={<Card><Txt dim>{isGroup ? 'Welcome to the gym group! Be the first to say something 💬' : 'Say hi 👋'}</Txt></Card>}
       />

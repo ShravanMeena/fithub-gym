@@ -1,7 +1,7 @@
 // Messages — list of the gym group + 1-on-1 conversations. Tap "New" to DM any
 // member. Polls while focused so unread counts stay fresh.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Modal, RefreshControl } from 'react-native';
+import { View, FlatList, TouchableOpacity, Modal, RefreshControl, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Button, Field } from '../components/UI';
 import { Avatar } from '../components/Avatar';
@@ -39,7 +39,8 @@ export default function ChatListScreen({ navigation }: any) {
 
   const openPicker = async () => {
     setPicker(true);
-    try { const r = await ChatAPI.members(); setMembers(r.members || []); } catch (e) { setMembers([]); }
+    try { const r = await ChatAPI.members(); setMembers(r.members || []); }
+    catch (e) { setMembers([]); Alert.alert('Could not load members', apiError(e)); }
   };
 
   const startDM = async (m: any) => {
@@ -47,7 +48,7 @@ export default function ChatListScreen({ navigation }: any) {
       const { conversationId } = await ChatAPI.direct(m.id);
       setPicker(false); setSearch('');
       navigation.navigate('Chat', { conversationId, title: m.name, type: 'direct' });
-    } catch (e) { /* ignore */ }
+    } catch (e) { Alert.alert('Could not open chat', apiError(e)); }
   };
 
   const openConv = (c: any) =>
