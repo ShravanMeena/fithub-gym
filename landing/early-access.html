@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FitHub — Get Early Access</title>
+<meta name="description" content="Get early access to FitHub — the app that keeps you showing up. AI diet, food scanning, streaks, PRs and your gym community, in one place.">
+<meta name="theme-color" content="#0A0A0B">
+<meta property="og:title" content="FitHub — Your gym, in your pocket.">
+<meta property="og:description" content="Early access is open. AI diet, food scanning, streaks & your gym community — one app.">
+<meta property="og:type" content="website">
+<style>
+  :root{
+    --bg:#0A0A0B; --bg2:#0D0C0F; --surface:#141216; --surface2:#1B181E;
+    --line:#242028; --line2:#322D38; --text:#F4F2EF; --dim:#9A948D; --faint:#615B64;
+    --brand:#FF5A1F; --brand2:#FF824C; --brand-dp:#E6440C;
+    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+
+  header{position:sticky;top:0;z-index:20;background:rgba(10,10,11,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:-.01em}
+  .logo .bars{display:flex;gap:3px;align-items:flex-end;height:18px}
+  .logo .bars i{width:4px;border-radius:2px;background:var(--brand);display:block}
+  .logo .fit{color:var(--text)} .logo .hub{color:var(--brand)}
+  .navcta{background:var(--brand);color:#fff;font-weight:700;font-size:14px;padding:10px 16px;border-radius:11px}
+
+  .hero{position:relative;padding:70px 0 40px;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:-30% -10% auto -10%;height:560px;z-index:0;pointer-events:none;
+    background:radial-gradient(42% 48% at 78% 12%,rgba(255,90,31,.22),transparent 60%)}
+  .grid{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:52px;align-items:center}
+  @media(max-width:880px){.grid{grid-template-columns:1fr;gap:36px}}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--brand)}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px rgba(255,90,31,.16)}
+  h1{font-size:clamp(38px,6.4vw,66px);font-weight:800;letter-spacing:-.035em;line-height:1.03;margin:18px 0 0}
+  h1 .a{color:var(--brand)}
+  .lead{color:var(--dim);font-size:clamp(15px,2vw,18px);margin-top:18px;max-width:34ch}
+  .perks{margin-top:26px;display:flex;flex-direction:column;gap:11px}
+  .perk{display:flex;gap:11px;align-items:flex-start;font-size:15px}
+  .perk .c{color:var(--brand);font-weight:800}
+
+  /* form card */
+  .card{background:linear-gradient(180deg,var(--surface2),var(--bg2));border:1px solid var(--line2);border-radius:22px;padding:26px;box-shadow:0 30px 70px -30px #000}
+  .card h2{font-size:22px;font-weight:800;letter-spacing:-.02em}
+  .card .sub{color:var(--dim);font-size:14px;margin-top:4px}
+  form{margin-top:18px;display:flex;flex-direction:column;gap:13px}
+  .row{display:flex;gap:12px}
+  .row .field{flex:1}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--dim);margin-bottom:6px}
+  input,select{width:100%;background:var(--surface);border:1px solid var(--line2);border-radius:12px;padding:13px 14px;color:var(--text);font-family:inherit;font-size:15px;transition:border-color .2s}
+  input::placeholder{color:var(--faint)}
+  input:focus,select:focus{outline:none;border-color:var(--brand)}
+  button.submit{margin-top:5px;background:var(--brand);color:#fff;border:none;font-weight:700;font-size:16px;padding:15px;border-radius:13px;cursor:pointer;transition:background .2s,transform .15s;font-family:inherit}
+  button.submit:hover{background:var(--brand2)}
+  button.submit:active{transform:translateY(1px)}
+  button.submit:disabled{opacity:.6;cursor:default}
+  .fine{color:var(--faint);font-size:12px;text-align:center;margin-top:2px}
+  .err{color:#ff7a6b;font-size:13px;font-weight:600;text-align:center;min-height:16px}
+  .ok{display:none;text-align:center;padding:14px 0}
+  .ok .big{font-size:40px}
+  .ok h3{font-size:20px;font-weight:800;margin-top:8px}
+  .ok p{color:var(--dim);margin-top:6px;font-size:15px}
+
+  .band{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg2);margin-top:52px}
+  .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:46px 0}
+  @media(max-width:760px){.feats{grid-template-columns:1fr}}
+  .feat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .feat .ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:23px;background:rgba(255,90,31,.1);border:1px solid rgba(255,90,31,.22)}
+  .feat h4{font-size:17px;font-weight:700;margin-top:14px}
+  .feat p{color:var(--dim);font-size:14px;margin-top:6px}
+
+  footer{padding:40px 0;text-align:center;color:var(--faint);font-size:13px}
+</style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <span class="logo"><span class="bars"><i style="height:52%"></i><i style="height:78%"></i><i style="height:100%"></i></span><span><span class="fit">FIT</span><span class="hub">HUB</span></span></span>
+      <a class="navcta" href="#join">Get early access</a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="wrap grid">
+      <div>
+        <span class="eyebrow"><span class="dot"></span> Early access · now open</span>
+        <h1>Your gym.<br>Now in your <span class="a">pocket.</span></h1>
+        <p class="lead">The app that actually keeps you showing up — AI diet, food scanning, streaks, PRs and your gym community, all in one place.</p>
+        <div class="perks">
+          <div class="perk"><span class="c">✓</span><span>Early invite before public launch</span></div>
+          <div class="perk"><span class="c">✓</span><span>Founding-member Premium perks</span></div>
+          <div class="perk"><span class="c">✓</span><span>A direct line to shape features</span></div>
+        </div>
+      </div>
+
+      <div class="card" id="join">
+        <div id="formView">
+          <h2>Get early access</h2>
+          <div class="sub">Join the list — we’ll email your invite the moment it opens.</div>
+          <form id="eaForm" novalidate>
+            <div class="field">
+              <label for="name">Your name</label>
+              <input id="name" name="name" placeholder="e.g. Arjun" autocomplete="name" required>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" placeholder="you@email.com" autocomplete="email" required>
+              </div>
+              <div class="field">
+                <label for="phone">Phone (optional)</label>
+                <input id="phone" name="phone" placeholder="+91…" inputmode="tel" autocomplete="tel">
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="goal">Your main goal</label>
+                <select id="goal" name="goal">
+                  <option value="">Choose one</option>
+                  <option>Build muscle</option>
+                  <option>Lose fat</option>
+                  <option>Get consistent</option>
+                  <option>Body recomposition</option>
+                  <option>Just started the gym</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="gym">Your gym (optional)</label>
+                <input id="gym" name="gym" placeholder="Gym name">
+              </div>
+            </div>
+            <div class="err" id="err"></div>
+            <button class="submit" type="submit" id="submitBtn">Get early access →</button>
+            <div class="fine">Free to join · No spam · Just your invite when we open the doors.</div>
+          </form>
+        </div>
+
+        <div class="ok" id="okView">
+          <div class="big">🎉</div>
+          <h3>You’re on the list!</h3>
+          <p>We’ll email your early-access invite soon. Now go get after it. 💪</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="band">
+    <div class="wrap feats">
+      <div class="feat"><div class="ic">📷</div><h4>AI food scan</h4><p>Snap your plate — instant calories, protein, carbs & fat. No weighing.</p></div>
+      <div class="feat"><div class="ic">🔥</div><h4>Streaks & challenges</h4><p>Check in, keep the streak, earn badges and climb your gym leaderboard.</p></div>
+      <div class="feat"><div class="ic">👥</div><h4>Your gym community</h4><p>A feed, group chat, DMs and cheers — train alongside your crew.</p></div>
+    </div>
+  </div>
+
+  <footer>© <span id="yr"></span> FitHub · Your gym, in your pocket.</footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+    var form = document.getElementById('eaForm');
+    var errEl = document.getElementById('err');
+    var btn = document.getElementById('submitBtn');
+    var isEmail = function(s){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s); };
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      errEl.textContent = '';
+      var data = {
+        name: document.getElementById('name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        goal: document.getElementById('goal').value,
+        gym: document.getElementById('gym').value.trim(),
+        source: 'early-access-page'
+      };
+      if(!data.name){ errEl.textContent = 'Please add your name.'; return; }
+      if(!isEmail(data.email)){ errEl.textContent = 'Please enter a valid email.'; return; }
+      btn.disabled = true; btn.textContent = 'Joining…';
+      fetch('/api/early-access', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
+        .then(async function(r){ var d = await r.json().catch(function(){return {};}); if(!r.ok) throw new Error(d.error||'Something went wrong'); return d; })
+        .then(function(){
+          document.getElementById('formView').style.display = 'none';
+          document.getElementById('okView').style.display = 'block';
+        })
+        .catch(function(err){ errEl.textContent = err.message || 'Could not submit. Try again.'; btn.disabled = false; btn.textContent = 'Get early access →'; });
+    });
+  </script>
+</body>
+</html>
