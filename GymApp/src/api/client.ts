@@ -187,6 +187,8 @@ export const DietAPI = {
   generate: () => api.post('/diet/generate').then((r) => r.data),
   normal: () => api.post('/diet/normal').then((r) => r.data),
   current: () => api.get('/diet/current').then((r) => r.data),
+  manual: (plan: Record<string, any>) => api.post('/diet/manual', plan).then((r) => r.data),
+  update: (id: number, plan: Record<string, any>) => api.put(`/diet/${id}`, plan).then((r) => r.data),
 };
 
 export const FoodAPI = {

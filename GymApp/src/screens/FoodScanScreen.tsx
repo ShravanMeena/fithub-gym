@@ -1,5 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { View, Image, Alert, TouchableOpacity, ToastAndroid, Platform } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Image, Alert, TouchableOpacity, ToastAndroid, Platform, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
 import { Card, Txt, Button, Field } from '../components/UI';
@@ -29,6 +29,13 @@ export default function FoodScanScreen({ navigation }: any) {
   const [logging, setLogging] = useState(false);
   const [desc, setDesc] = useState('');
   const [source, setSource] = useState<'photo' | 'manual'>('photo');
+  const scrollRef = useRef<ScrollView>(null);
+
+  // When a result comes back (or analysis starts), scroll down so it's visible
+  // — otherwise the estimate card renders below the fold and users miss it.
+  useEffect(() => {
+    if (estimate || analyzing) setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
+  }, [estimate, analyzing]);
 
   const loadRecent = useCallback(() => { FoodAPI.recent().then((r) => setRecent(r.recent || [])).catch(() => {}); }, []);
   useFocusEffect(useCallback(() => { loadRecent(); }, [loadRecent]));
@@ -81,7 +88,7 @@ export default function FoodScanScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardScroll style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
+    <KeyboardScroll ref={scrollRef} style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2) }}>
       <Txt size={font.h2} weight="800">Log a Meal</Txt>
       <Txt dim style={{ marginBottom: spacing(1.5) }}>Snap a photo for instant calories, or quick-add from the list.</Txt>
 

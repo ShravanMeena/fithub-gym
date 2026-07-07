@@ -27,6 +27,7 @@ const GYM_SLOTS = [
 export default function DietScreen({ navigation }: any) {
   const { aiActive, showPaywall } = useBilling();
   const [plans, setPlans] = useState<any[]>([]);
+  const [planId, setPlanId] = useState<number | null>(null);
   const [selected, setSelected] = useState(0);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,8 +40,9 @@ export default function DietScreen({ navigation }: any) {
 
   const load = useCallback(async () => {
     try {
-      const [{ plan }, prof] = await Promise.all([DietAPI.current(), ProfileAPI.get()]);
-      setPlans(toPlans(plan));
+      const [cur, prof] = await Promise.all([DietAPI.current(), ProfileAPI.get()]);
+      setPlans(toPlans(cur.plan));
+      setPlanId(cur.id ?? null);
       const profile = prof?.profile;
       if (profile?.wake_time) setWake(profile.wake_time);
       if (profile?.sleep_time) setSleep(profile.sleep_time);
@@ -86,8 +88,9 @@ export default function DietScreen({ navigation }: any) {
   const choosePlan = () => {
     Alert.alert(
       'Choose your plan',
-      'Free ready-made plans, or an AI plan personalised to your schedule & goal.',
+      'Build your own, use a free ready-made plan, or get an AI plan personalised to your goal.',
       [
+        { text: '✏️ Build my own', onPress: () => navigation.navigate('DietBuilder') },
         { text: '✨ AI personalised (premium)', onPress: generateAI },
         { text: 'Free ready-made plan', onPress: generateNormal },
         { text: 'Cancel', style: 'cancel' },
@@ -174,7 +177,10 @@ export default function DietScreen({ navigation }: any) {
         </View>
 
         <Button title={plans.length ? '🔄 New Plan' : '✨ Get My Plan'} loading={loading} onPress={choosePlan} />
-        <Button title="Edit full profile" variant="ghost" onPress={() => navigation.navigate('Profile')} style={{ marginTop: spacing(1) }} />
+        <View style={{ flexDirection: 'row', gap: spacing(1.5), marginTop: spacing(1) }}>
+          <Button title="✏️ Build my own" variant="ghost" onPress={() => navigation.navigate('DietBuilder')} style={{ flex: 1 }} />
+          <Button title="Edit profile" variant="ghost" onPress={() => navigation.navigate('Profile')} style={{ flex: 1 }} />
+        </View>
       </Card>
 
       {plans.length > 0 && (
@@ -238,8 +244,11 @@ export default function DietScreen({ navigation }: any) {
             </Card>
           ) : null}
 
-          {/* Select + set reminders */}
-          <Button title={`✅ Use "${plan.title}" & set reminders`} onPress={() => useThisPlan(plan)} style={{ marginTop: spacing(1) }} />
+          {/* Edit + set reminders */}
+          <View style={{ flexDirection: 'row', gap: spacing(1.5), marginTop: spacing(1) }}>
+            <Button title="✏️ Edit plan" variant="ghost" onPress={() => navigation.navigate('DietBuilder', { id: planId, plan })} style={{ flex: 1 }} />
+            <Button title="✅ Use & remind" onPress={() => useThisPlan(plan)} style={{ flex: 1 }} />
+          </View>
         </>
       )}
 

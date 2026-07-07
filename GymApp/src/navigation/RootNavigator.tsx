@@ -37,6 +37,7 @@ import BadgesScreen from '../screens/BadgesScreen';
 import PRScreen from '../screens/PRScreen';
 import BarcodeScanScreen from '../screens/BarcodeScanScreen';
 import FoodDiaryScreen from '../screens/FoodDiaryScreen';
+import DietBuilderScreen from '../screens/DietBuilderScreen';
 import ChatListScreen from '../screens/ChatListScreen';
 import ChatScreen from '../screens/ChatScreen';
 
@@ -168,6 +169,7 @@ export default function RootNavigator() {
               <Stack.Screen name="PRs" component={PRScreen} options={{ title: 'Personal Records' }} />
               <Stack.Screen name="BarcodeScan" component={BarcodeScanScreen} options={{ title: 'Scan Barcode' }} />
               <Stack.Screen name="FoodDiary" component={FoodDiaryScreen} options={{ title: 'Food Diary' }} />
+              <Stack.Screen name="DietBuilder" component={DietBuilderScreen} options={{ title: 'Build Plan' }} />
               <Stack.Screen name="Messages" component={ChatListScreen} options={{ title: 'Messages' }} />
               <Stack.Screen name="Chat" component={ChatScreen} options={{ title: 'Chat' }} />
             </>

@@ -4,8 +4,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, ScrollViewProps, Keyboard, Platform, TextInput, Dimensions } from 'react-native';
 
-export function KeyboardScroll({ children, contentContainerStyle, ...rest }: ScrollViewProps & { children?: React.ReactNode }) {
+export const KeyboardScroll = React.forwardRef<ScrollView, ScrollViewProps & { children?: React.ReactNode }>(function KeyboardScroll({ children, contentContainerStyle, ...rest }, fref) {
   const ref = useRef<ScrollView>(null);
+  React.useImperativeHandle(fref, () => ref.current as ScrollView, []);
   const offset = useRef(0);
   const [kb, setKb] = useState(0);
 
@@ -49,4 +50,4 @@ export function KeyboardScroll({ children, contentContainerStyle, ...rest }: Scr
       {children}
     </ScrollView>
   );
-}
+});
