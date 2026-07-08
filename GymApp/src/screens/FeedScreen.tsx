@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, FlatList, Image, Alert, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, FlatList, Image, Alert, TouchableOpacity, RefreshControl, Modal, ScrollView } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
 import Video from 'react-native-video';
@@ -25,13 +25,15 @@ function renderContent(content: string, onTag: (t: string) => void) {
   });
 }
 
-// ---- Composer: keeps its own state so typing never re-renders the feed list ----
-const Composer = React.memo(function Composer({ onPosted }: { onPosted: () => void }) {
+// ---- Composer sheet: collects a draft; the parent handles the upload + shows
+// progress at the top of the feed after the sheet closes. ----
+type Draft = { text: string; photo: Asset | null; video: Asset | null; isPublic: boolean };
+
+const ComposerSheet = React.memo(function ComposerSheet({ onSubmit, onClose }: { onSubmit: (d: Draft) => void; onClose: () => void }) {
   const [text, setText] = useState('');
   const [photo, setPhoto] = useState<Asset | null>(null);
   const [video, setVideo] = useState<Asset | null>(null);
   const [isPublic, setIsPublic] = useState(true);
-  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
     const sub = (name: string, cb: (e: any) => void) => {
@@ -50,55 +52,53 @@ const Composer = React.memo(function Composer({ onPosted }: { onPosted: () => vo
     catch (e: any) { Alert.alert('Trim unavailable', e?.message || 'Could not open the trimmer.'); }
   };
 
-  const post = async () => {
+  const submit = () => {
     if (!text.trim() && !photo && !video) return Alert.alert('Empty', 'Write something or add a photo/video.');
-    setPosting(true);
-    try {
-      const base = { content: text.trim() || undefined, is_public: isPublic };
-      if (video?.uri) {
-        await FeedAPI.createVideo(video.uri, video.type || 'video/mp4', text.trim() || undefined, isPublic);
-      } else if (photo?.base64) {
-        await FeedAPI.create({ ...base, type: 'image', mediaBase64: photo.base64, mediaType: photo.type || 'image/jpeg' });
-      } else {
-        await FeedAPI.create({ ...base, type: 'text' });
-      }
-      setText(''); setPhoto(null); setVideo(null);
-      onPosted();
-    } catch (e) {
-      Alert.alert('Could not post', apiError(e));
-    } finally { setPosting(false); }
+    onSubmit({ text: text.trim(), photo, video, isPublic });
+    setText(''); setPhoto(null); setVideo(null);
   };
 
   return (
-    <Card>
-      <Field value={text} onChangeText={setText} placeholder="What's on your mind? Add #hashtags like #legday…" multiline style={{ height: 70, textAlignVertical: 'top', paddingTop: 12 }} />
-      {photo?.uri ? (
-        <View style={{ marginBottom: spacing(1) }}>
-          <Image source={{ uri: photo.uri }} style={{ width: '100%', height: 180, borderRadius: radius.sm }} />
-          <TouchableOpacity onPress={() => setPhoto(null)} style={{ position: 'absolute', top: 6, right: 6, backgroundColor: '#000a', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}><Txt size={font.small}>✕</Txt></TouchableOpacity>
-        </View>
-      ) : null}
-      {video?.uri ? (
-        <View style={{ marginBottom: spacing(1) }}>
-          <Video source={{ uri: video.uri }} style={{ width: '100%', height: 200, borderRadius: radius.sm, backgroundColor: '#000' }} controls paused resizeMode="contain" />
-          <View style={{ flexDirection: 'row', gap: spacing(1), marginTop: 8 }}>
-            <Button title="✂️ Trim" variant="ghost" onPress={trimVideo} style={{ flex: 1, height: 42 }} />
-            <Button title="✕ Remove" variant="ghost" onPress={() => setVideo(null)} style={{ flex: 1, height: 42 }} />
-          </View>
-        </View>
-      ) : null}
-      <TouchableOpacity onPress={() => setIsPublic((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing(1) }}>
-        <View style={{ width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: isPublic ? colors.accent : colors.border, backgroundColor: isPublic ? colors.accent : 'transparent', marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
-          {isPublic ? <Txt size={12} style={{ color: '#fff' }}>✓</Txt> : null}
-        </View>
-        <Txt size={font.small} dim>Also share to the 🌍 Public Feed (all gyms)</Txt>
-      </TouchableOpacity>
-      <View style={{ flexDirection: 'row', gap: spacing(1) }}>
-        <Button title="🖼 Photo" variant="ghost" onPress={() => { setVideo(null); scanOrUpload((a) => setPhoto(a)); }} style={{ flex: 1 }} />
-        <Button title="🎥 Video" variant="ghost" onPress={async () => { const v = await pickVideo(); if (v) { setPhoto(null); setVideo(v); } }} style={{ flex: 1 }} />
-        <Button title="Post" loading={posting} onPress={post} style={{ flex: 1 }} />
+    <View style={{ backgroundColor: colors.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: spacing(2), paddingTop: spacing(1.5), paddingBottom: spacing(2), maxHeight: '90%' }}>
+      <View style={{ alignItems: 'center', marginBottom: spacing(1) }}>
+        <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
       </View>
-    </Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing(1.5) }}>
+        <Txt size={font.h3} weight="800">New post</Txt>
+        <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}><Txt size={font.h3} dim>✕</Txt></TouchableOpacity>
+      </View>
+
+      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <Field value={text} onChangeText={setText} placeholder="Share a win, a personal best, some motivation… add #hashtags" multiline style={{ height: 90, textAlignVertical: 'top', paddingTop: 12 }} autoFocus />
+        {photo?.uri ? (
+          <View style={{ marginBottom: spacing(1) }}>
+            <Image source={{ uri: photo.uri }} style={{ width: '100%', height: 200, borderRadius: radius.sm }} />
+            <TouchableOpacity onPress={() => setPhoto(null)} style={{ position: 'absolute', top: 6, right: 6, backgroundColor: '#000a', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}><Txt size={font.small}>✕</Txt></TouchableOpacity>
+          </View>
+        ) : null}
+        {video?.uri ? (
+          <View style={{ marginBottom: spacing(1) }}>
+            <Video source={{ uri: video.uri }} style={{ width: '100%', height: 220, borderRadius: radius.sm, backgroundColor: '#000' }} controls paused resizeMode="contain" />
+            <View style={{ flexDirection: 'row', gap: spacing(1), marginTop: 8 }}>
+              <Button title="✂️ Trim" variant="ghost" onPress={trimVideo} style={{ flex: 1, height: 42 }} />
+              <Button title="✕ Remove" variant="ghost" onPress={() => setVideo(null)} style={{ flex: 1, height: 42 }} />
+            </View>
+          </View>
+        ) : null}
+        <TouchableOpacity onPress={() => setIsPublic((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing(1) }}>
+          <View style={{ width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: isPublic ? colors.accent : colors.border, backgroundColor: isPublic ? colors.accent : 'transparent', marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
+            {isPublic ? <Txt size={12} style={{ color: '#fff' }}>✓</Txt> : null}
+          </View>
+          <Txt size={font.small} dim>Also share to the 🌍 Public Feed (all gyms)</Txt>
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: spacing(1) }}>
+          <Button title="🖼 Photo" variant="ghost" onPress={() => { setVideo(null); scanOrUpload((a) => setPhoto(a)); }} style={{ flex: 1 }} />
+          <Button title="🎥 Video" variant="ghost" onPress={async () => { const v = await pickVideo(); if (v) { setPhoto(null); setVideo(v); } }} style={{ flex: 1 }} />
+        </View>
+        <Button title="Post" onPress={submit} style={{ marginTop: spacing(1.5) }} />
+        <View style={{ height: spacing(2) }} />
+      </ScrollView>
+    </View>
   );
 });
 
@@ -196,7 +196,7 @@ export default function FeedScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const tagParam: string | undefined = route.params?.tag; // set when viewing a #hashtag feed
-  const [tab, setTab] = useState<'foryou' | 'community' | 'public'>('foryou');
+  const [tab, setTab] = useState<'community' | 'public'>('community');
   const [posts, setPosts] = useState<any[]>([]);
   const [sources, setSources] = useState<Record<number, any>>({});
   const [nextBefore, setNextBefore] = useState<number | null>(null);
@@ -204,6 +204,8 @@ export default function FeedScreen() {
   const [playingId, setPlayingId] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [uploading, setUploading] = useState<{ progress: number; label: string } | null>(null);
 
   const openTag = useCallback((t: string) => navigation.navigate('HashtagFeed', { tag: t }), [navigation]);
 
@@ -222,11 +224,11 @@ export default function FeedScreen() {
 
   // One fetcher for every mode; `cursor` is an id-cursor (before) or an offset
   // (for-you), whichever that mode uses. Returns the raw response.
+  // Your gym feed uses the ranked "for-you" endpoint; Public is the all-gyms feed.
   const fetchFeed = (which: typeof tab, cursor?: number) =>
     tagParam ? FeedAPI.tag(tagParam, cursor)
-      : which === 'foryou' ? FeedAPI.forYou(cursor)
       : which === 'public' ? FeedAPI.publicFeed(cursor)
-      : FeedAPI.list(cursor);
+      : FeedAPI.forYou(cursor);
 
   const load = useCallback(async (which: typeof tab = tab) => {
     setLoading(true);
@@ -254,7 +256,28 @@ export default function FeedScreen() {
   // Reload on focus; pause any playing video when leaving the tab.
   useFocusEffect(useCallback(() => { load(tab); return () => setPlayingId(null); }, [tab, tagParam])); // eslint-disable-line
 
-  const onPosted = useCallback(() => { setTab('community'); load('community'); }, [load]);
+  // Close the sheet immediately, then upload with a progress bar shown at the top
+  // of the feed. Video gets real progress; image/text finishes fast.
+  const submitPost = async (d: any) => {
+    setComposerOpen(false);
+    const label = d.video ? 'Posting your video…' : d.photo ? 'Posting your photo…' : 'Posting…';
+    setUploading({ progress: 0, label });
+    const onProg = (p: number) => setUploading((u) => (u ? { ...u, progress: p } : u));
+    try {
+      if (d.video?.uri) {
+        await FeedAPI.createVideo(d.video.uri, d.video.type || 'video/mp4', d.text || undefined, d.isPublic, onProg);
+      } else if (d.photo?.base64) {
+        await FeedAPI.create({ content: d.text || undefined, is_public: d.isPublic, type: 'image', mediaBase64: d.photo.base64, mediaType: d.photo.type || 'image/jpeg' }, onProg);
+      } else {
+        await FeedAPI.create({ content: d.text || undefined, is_public: d.isPublic, type: 'text' });
+      }
+      setUploading(null);
+      setTab('community'); load('community');
+    } catch (e) {
+      setUploading(null);
+      Alert.alert('Could not post', apiError(e));
+    }
+  };
   const remove = (p: any) => {
     Alert.alert('Delete post?', '', [
       { text: 'Cancel', style: 'cancel' },
@@ -276,13 +299,14 @@ export default function FeedScreen() {
     setPlayingId(vid ? vid.item.id : null);
   });
 
-  const Seg = ({ id, label }: { id: 'foryou' | 'community' | 'public'; label: string }) => (
+  const Seg = ({ id, label }: { id: 'community' | 'public'; label: string }) => (
     <TouchableOpacity onPress={() => setTab(id)} style={{ flex: 1, paddingVertical: 10, borderRadius: radius.pill, alignItems: 'center', backgroundColor: tab === id ? colors.primary : 'transparent' }}>
       <Txt weight="700" size={font.tiny} numberOfLines={1} style={{ color: tab === id ? '#fff' : colors.textDim }}>{label}</Txt>
     </TouchableOpacity>
   );
 
   return (
+    <>
     <FlatList
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ padding: spacing(2) }}
@@ -305,12 +329,47 @@ export default function FeedScreen() {
           </View>
         ) : (
           <View>
-            <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: colors.border, marginBottom: spacing(2) }}>
-              <Seg id="foryou" label="✨ For You" />
-              <Seg id="community" label={org?.name || 'Gym'} />
+            {/* Chat + leaderboard live with the community */}
+            <View style={{ flexDirection: 'row', gap: spacing(1), marginBottom: spacing(1.5) }}>
+              <TouchableOpacity onPress={() => navigation.navigate('Messages')} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: 12 }}>
+                <Txt size={18}>💬</Txt><Txt weight="700" size={font.small}>Messages</Txt>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Challenges')} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: 12 }}>
+                <Txt size={18}>🏆</Txt><Txt weight="700" size={font.small}>Leaderboard</Txt>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', backgroundColor: colors.card, borderRadius: radius.pill, padding: 4, borderWidth: 1, borderColor: colors.border, marginBottom: spacing(1.5) }}>
+              <Seg id="community" label={org?.name || 'My Gym'} />
               <Seg id="public" label="🌍 Public" />
             </View>
-            {tab !== 'public' ? <Composer onPosted={onPosted} /> : null}
+
+            {/* Upload in progress */}
+            {uploading ? (
+              <Card style={{ marginBottom: spacing(1.5) }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Txt weight="700" size={font.small}>{uploading.label}</Txt>
+                  <Txt weight="800" size={font.small} style={{ color: colors.primary }}>{Math.round(uploading.progress * 100)}%</Txt>
+                </View>
+                <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.cardAlt, marginTop: 8, overflow: 'hidden' }}>
+                  <View style={{ width: `${Math.max(4, Math.round(uploading.progress * 100))}%`, height: '100%', backgroundColor: colors.primary }} />
+                </View>
+              </Card>
+            ) : null}
+
+            {/* New post button — opens the composer sheet */}
+            {tab !== 'public' && !uploading ? (
+              <TouchableOpacity activeOpacity={0.85} onPress={() => setComposerOpen(true)}>
+                <Card style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing(1) }}>
+                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: colors.primary + '22', alignItems: 'center', justifyContent: 'center', marginRight: spacing(1.5) }}>
+                    <Txt size={20}>✍️</Txt>
+                  </View>
+                  <Txt dim style={{ flex: 1 }}>Share a win, a personal best, some motivation…</Txt>
+                  <View style={{ backgroundColor: colors.primary, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 8 }}>
+                    <Txt weight="800" size={font.small} style={{ color: '#fff' }}>＋ Post</Txt>
+                  </View>
+                </Card>
+              </TouchableOpacity>
+            ) : null}
           </View>
         )
       }
@@ -337,5 +396,14 @@ export default function FeedScreen() {
         </View>
       }
     />
+
+    {/* Composer bottom sheet */}
+    <Modal visible={composerOpen} transparent animationType="slide" onRequestClose={() => setComposerOpen(false)}>
+      <View style={{ flex: 1, backgroundColor: '#000a', justifyContent: 'flex-end' }}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setComposerOpen(false)} />
+        <ComposerSheet onSubmit={submitPost} onClose={() => setComposerOpen(false)} />
+      </View>
+    </Modal>
+    </>
   );
 }

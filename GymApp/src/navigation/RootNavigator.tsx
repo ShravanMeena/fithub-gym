@@ -7,9 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/AuthContext';
 import { useOrg } from '../context/OrgContext';
-import { useUI } from '../context/UIContext';
 import { navRef } from './ref';
-import { Sidebar } from '../components/Sidebar';
 import { Icon, IconName } from '../components/Icon';
 import { ProfileAPI } from '../api/client';
 import { colors, shadow } from '../theme';
@@ -40,6 +38,7 @@ import FoodDiaryScreen from '../screens/FoodDiaryScreen';
 import DietBuilderScreen from '../screens/DietBuilderScreen';
 import ChatListScreen from '../screens/ChatListScreen';
 import ChatScreen from '../screens/ChatScreen';
+import MeScreen from '../screens/MeScreen';
 
 const navTheme = {
   ...DefaultTheme,
@@ -63,17 +62,7 @@ function ScanTabButton({ onPress }: any) {
   );
 }
 
-// Hamburger that opens the sidebar.
-function MenuButton() {
-  const { openSidebar } = useUI();
-  return (
-    <TouchableOpacity onPress={openSidebar} style={{ paddingHorizontal: 16, paddingVertical: 6 }}>
-      <Icon name="menu" color={colors.text} size={24} />
-    </TouchableOpacity>
-  );
-}
-
-// 5 clear tabs that map to the daily loop.
+// 4 focused tabs + the center Scan button. Everything else lives under "Me".
 function MainTabs() {
   // Respect the Android/iOS bottom inset so tab labels aren't hidden behind
   // the system navigation / gesture bar.
@@ -85,12 +74,11 @@ function MainTabs() {
         headerStyle: { backgroundColor: colors.card },
         headerTitleStyle: { color: colors.text },
         headerTintColor: colors.text,
-        headerLeft: () => <MenuButton />,
         tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border, height: 62 + bottomInset, paddingBottom: 8 + bottomInset, paddingTop: 6 },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textDim,
       }}>
-      <Tab.Screen name="Today" component={TodayScreen} options={{ tabBarIcon: tabIcon('home') }} />
+      <Tab.Screen name="Today" component={TodayScreen} options={{ title: 'Home', tabBarLabel: 'Home', tabBarIcon: tabIcon('home') }} />
       <Tab.Screen name="Diet" component={DietScreen} options={{ tabBarIcon: tabIcon('diet') }} />
       <Tab.Screen
         name="Scan"
@@ -98,7 +86,7 @@ function MainTabs() {
         options={{ title: 'Scan Food', tabBarButton: (props) => <ScanTabButton {...props} /> }}
       />
       <Tab.Screen name="Community" component={FeedScreen} options={{ tabBarIcon: tabIcon('feed') }} />
-      <Tab.Screen name="Progress" component={ProgressScreen} options={{ tabBarIcon: tabIcon('progress') }} />
+      <Tab.Screen name="Me" component={MeScreen} options={{ tabBarIcon: tabIcon('profile') }} />
     </Tab.Navigator>
   );
 }
@@ -155,6 +143,7 @@ export default function RootNavigator() {
           {user ? (
             <>
               <Stack.Screen name="Main" component={AppGate} options={{ headerShown: false }} />
+              <Stack.Screen name="Progress" component={ProgressScreen} options={{ title: 'Progress' }} />
               <Stack.Screen name="Workout" component={WorkoutScreen} options={{ title: 'Log Workout' }} />
               <Stack.Screen name="Coach" component={CoachScreen} options={{ title: 'AI Coach' }} />
               <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Attendance' }} />
@@ -183,7 +172,6 @@ export default function RootNavigator() {
           )}
         </Stack.Navigator>
       </NavigationContainer>
-      <Sidebar />
     </View>
   );
 }

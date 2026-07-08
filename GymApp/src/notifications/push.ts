@@ -44,7 +44,8 @@ function routeFromData(data?: Record<string, any>) {
   } else if ((data.type === 'comment' || data.type === 'like') && data.postId) {
     navTo('PostDetail', { postId: Number(data.postId) });
   } else if (data.type === 'announcement') navTo('Community');
-  else if (data.type === 'notice' || data.type === 'alert' || data.type === 'water') navTo('Today');
+  else if (data.type === 'water' || data.type === 'diet') navTo('Diet');
+  else if (data.type === 'notice' || data.type === 'alert') navTo('Today');
   else if (data.type === 'reminder') navTo('Reminders');
   else if (data.type === 'pr') navTo('Workout');
   else if (data.screen === 'Home') navTo('Today');

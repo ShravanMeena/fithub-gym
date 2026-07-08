@@ -142,27 +142,31 @@ export const FeedAPI = {
   forYou: (offset?: number) => api.get('/feed/for-you', { params: offset ? { offset } : {} }).then((r) => r.data),
   tag: (tag: string, before?: number) => api.get(`/feed/tag/${tag}`, { params: before ? { before } : {} }).then((r) => r.data),
   getPost: (id: number) => api.get(`/feed/post/${id}`).then((r) => r.data),
-  create: (body: Record<string, any>) => api.post('/feed', body, { timeout: 180000 }).then((r) => r.data),
-  // Video is uploaded as a streamed multipart file via fetch (React Native sets
-  // the multipart boundary natively — reliable on iOS + Android, no base64).
-  createVideo: async (uri: string, mediaType: string, content: string | undefined, isPublic: boolean) => {
-    const token = await AsyncStorage.getItem(TOKEN_KEY);
-    const form = new FormData();
-    form.append('video', { uri, type: mediaType || 'video/mp4', name: 'upload.mp4' } as any);
-    if (content) form.append('content', content);
-    form.append('is_public', isPublic ? 'true' : 'false');
-    // NOTE: do NOT set Content-Type — RN adds "multipart/form-data; boundary=…" itself.
-    const resp = await fetch(`${API_BASE}/feed/video`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    });
-    if (!resp.ok) {
-      const t = await resp.text().catch(() => '');
-      throw new Error(t || `Video upload failed (${resp.status})`);
-    }
-    return resp.json();
-  },
+  create: (body: Record<string, any>, onProgress?: (p: number) => void) =>
+    api.post('/feed', body, {
+      timeout: 180000,
+      onUploadProgress: onProgress ? (e: any) => { if (e.total) onProgress(Math.min(1, e.loaded / e.total)); } : undefined,
+    }).then((r) => r.data),
+  // Video upload via XHR so we get real upload progress. Don't set Content-Type —
+  // React Native adds the multipart boundary itself.
+  createVideo: (uri: string, mediaType: string, content: string | undefined, isPublic: boolean, onProgress?: (p: number) => void) =>
+    new Promise<any>(async (resolve, reject) => {
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
+      const form = new FormData();
+      form.append('video', { uri, type: mediaType || 'video/mp4', name: 'upload.mp4' } as any);
+      if (content) form.append('content', content);
+      form.append('is_public', isPublic ? 'true' : 'false');
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_BASE}/feed/video`);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable && onProgress) onProgress(Math.min(1, e.loaded / e.total)); };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) { try { resolve(JSON.parse(xhr.responseText)); } catch { resolve({}); } }
+        else { let msg = xhr.responseText; try { msg = JSON.parse(xhr.responseText).error || msg; } catch {} reject(new Error(msg || `Video upload failed (${xhr.status})`)); }
+      };
+      xhr.onerror = () => reject(new Error('Network error during upload. Try again.'));
+      xhr.send(form);
+    }),
   like: (id: number) => api.post(`/feed/${id}/like`).then((r) => r.data),
   unlike: (id: number) => api.delete(`/feed/${id}/like`).then((r) => r.data),
   react: (id: number, reaction: string) => api.post(`/feed/${id}/react`, { reaction }).then((r) => r.data),

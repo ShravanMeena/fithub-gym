@@ -29,12 +29,13 @@ setInterval(() => closeStaleSessions(), 10 * 60 * 1000).unref?.();
 // If this check-in pushed the user past a new streak milestone, auto-post a
 // celebration to their gym feed (and return the milestone). Won't repeat.
 async function celebrateStreakMilestone(userId) {
+  const u = await one('SELECT name, org_id, last_streak_milestone FROM users WHERE id = $1', [userId]);
+  if (!u) return null;
   const ci = await q(`SELECT DISTINCT checked_in_at::date AS d FROM attendance WHERE user_id = $1 AND checked_in_at >= current_date - interval '220 days'`, [userId]);
   const checkins = new Set(ci.map((r) => r.d));
   const rd = await q(`SELECT day FROM rest_days WHERE user_id = $1 AND day >= current_date - interval '220 days'`, [userId]);
-  const { streak } = computeStreaks(checkins, new Set(rd.map((r) => r.day)));
-  const u = await one('SELECT name, org_id, last_streak_milestone FROM users WHERE id = $1', [userId]);
-  if (!u) return null;
+  const off = parseOffWeekdays((await one('SELECT closed_weekdays FROM organizations WHERE id = $1', [u.org_id]))?.closed_weekdays);
+  const { streak } = computeStreaks(checkins, new Set(rd.map((r) => r.day)), off);
   const m = [...MILESTONES].reverse().find((x) => streak >= x && x > (u.last_streak_milestone || 0));
   if (!m) return null;
   await one('UPDATE users SET last_streak_milestone = $2 WHERE id = $1 RETURNING id', [userId, m]);
@@ -155,33 +156,40 @@ router.post('/cheer/:userId', async (req, res, next) => {
 export const MILESTONES = [7, 14, 30, 50, 100, 200, 365];
 const REST_PER_MONTH = 4;
 
-// Compute current + longest streak, where a marked rest day bridges (protects)
-// the streak instead of breaking it. checkins/rests are Sets of 'YYYY-MM-DD'.
-export function computeStreaks(checkins, rests) {
+// Compute current + longest streak. A day bridges (protects) the streak instead
+// of breaking it when it's a manually-marked rest day OR the gym's weekly closed
+// day (offWeekdays, e.g. Sunday) — so gym-off days can't break a streak.
+// checkins/rests are Sets of 'YYYY-MM-DD'; offWeekdays is a Set of 0-6 (0=Sun).
+export function computeStreaks(checkins, rests, offWeekdays = new Set([0])) {
   const iso = (dt) => dt.toISOString().slice(0, 10);
+  const bridges = (dt, key) => rests.has(key) || offWeekdays.has(dt.getUTCDay());
   // Current streak: walk back from today; today empty (not yet) is allowed.
   let streak = 0;
   const d = new Date();
   for (let i = 0; i < 220; i++) {
     const key = iso(d);
     if (checkins.has(key)) streak++;
-    else if (rests.has(key)) { /* bridge */ }
-    else if (i > 0) break; // a real gap (not today) ends the streak
+    else if (bridges(d, key)) { /* bridge */ }
+    else if (i > 0) break; // a real gap (not today, not off) ends the streak
     d.setUTCDate(d.getUTCDate() - 1);
   }
-  // Longest streak: walk forward over the window, bridging rest days.
+  // Longest streak: walk forward over the window, bridging rest/off days.
   let run = 0, longest = 0;
   const start = new Date();
   start.setUTCDate(start.getUTCDate() - 219);
   for (let i = 0; i < 220; i++) {
     const key = iso(start);
     if (checkins.has(key)) { run++; if (run > longest) longest = run; }
-    else if (rests.has(key)) { /* bridge */ }
+    else if (bridges(start, key)) { /* bridge */ }
     else run = 0;
     start.setUTCDate(start.getUTCDate() + 1);
   }
   return { streak, longest };
 }
+
+// Parse a gym's closed_weekdays string ('0,6') into a Set of numbers.
+export const parseOffWeekdays = (s) =>
+  new Set(String(s ?? '0').split(',').map((x) => parseInt(x, 10)).filter((n) => n >= 0 && n <= 6));
 
 // Streak + calendar + leaderboard rank + milestones + rest-day budget.
 router.get('/stats', async (req, res, next) => {
@@ -201,7 +209,8 @@ router.get('/stats', async (req, res, next) => {
     );
     const rests = new Set(restRows.map((r) => r.day));
 
-    const { streak, longest } = computeStreaks(checkins, rests);
+    const off = parseOffWeekdays((await one('SELECT closed_weekdays FROM organizations WHERE id = $1', [oid]))?.closed_weekdays);
+    const { streak, longest } = computeStreaks(checkins, rests, off);
 
     const rank = await one(
       `WITH mv AS (
@@ -233,6 +242,7 @@ router.get('/stats', async (req, res, next) => {
       restToday: rests.has(today),
       restUsed,
       restRemaining: Math.max(0, REST_PER_MONTH - restUsed),
+      offWeekdays: [...off],
       checkedInToday: checkins.has(today),
       milestones: earned,
       nextMilestone,

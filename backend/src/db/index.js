@@ -51,6 +51,10 @@ CREATE TABLE IF NOT EXISTS organizations (
   phone TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Gym's weekly closed day(s) — comma-separated weekday numbers (0=Sun … 6=Sat).
+-- These auto-bridge check-in streaks (a closed day can't break your streak).
+-- Default '0' (closed Sunday), the norm for most gyms.
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS closed_weekdays TEXT NOT NULL DEFAULT '0';
 
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,

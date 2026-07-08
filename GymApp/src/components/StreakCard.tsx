@@ -17,16 +17,18 @@ const DAYS_SHOWN = 35;
 type Stats = {
   streak: number; longest: number; days: string[]; restDays: string[];
   restToday: boolean; restRemaining: number; checkedInToday: boolean;
+  offWeekdays?: number[];
   milestones: number[]; nextMilestone: number | null;
   monthVisits: number; rank: number | null; rankedMembers: number;
 };
 
 // Horizontal strip of the last DAYS_SHOWN days with real dates. Check-ins filled,
-// rest days frozen, today ringed — auto-scrolled to today.
-function StreakCalendar({ days, restDays }: { days: string[]; restDays: string[] }) {
+// rest/gym-closed days frozen (streak-safe), today ringed — auto-scrolled to today.
+function StreakCalendar({ days, restDays, offWeekdays }: { days: string[]; restDays: string[]; offWeekdays: number[] }) {
   const ref = useRef<ScrollView>(null);
   const daySet = new Set(days);
   const restSet = new Set(restDays);
+  const offSet = new Set(offWeekdays);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const todayIso = isoLocal(today);
 
@@ -36,11 +38,12 @@ function StreakCalendar({ days, restDays }: { days: string[]; restDays: string[]
     const iso = isoLocal(d);
     const checked = daySet.has(iso);
     const rest = restSet.has(iso);
+    const off = !checked && !rest && offSet.has(d.getDay()); // gym closed that weekday
     const isToday = iso === todayIso;
     const firstOfMonth = d.getDate() === 1 || i === DAYS_SHOWN - 1;
 
-    const bg = checked ? colors.primary : rest ? colors.accent + '26' : colors.cardAlt;
-    const numColor = checked ? '#fff' : rest ? colors.accent : colors.text;
+    const bg = checked ? colors.primary : rest ? colors.accent + '26' : off ? colors.cardAlt : colors.cardAlt;
+    const numColor = checked ? '#fff' : rest ? colors.accent : off ? colors.textDim : colors.text;
 
     cells.push(
       <View key={iso} style={{ alignItems: 'center', width: 40 }}>
@@ -53,7 +56,7 @@ function StreakCalendar({ days, restDays }: { days: string[]; restDays: string[]
           borderColor: isToday ? colors.primary : colors.border,
         }}>
           <Txt size={font.small} weight="800" style={{ color: numColor }}>{d.getDate()}</Txt>
-          {rest ? <Txt size={8}>❄️</Txt> : null}
+          {rest ? <Txt size={8}>❄️</Txt> : off ? <Txt size={8} style={{ color: colors.textDim }}>off</Txt> : null}
         </View>
       </View>,
     );
@@ -128,7 +131,7 @@ export function StreakCard({ onLeaderboard }: { onLeaderboard?: () => void }) {
       )}
 
       {hasData ? (
-        <StreakCalendar days={days} restDays={restDays} />
+        <StreakCalendar days={days} restDays={restDays} offWeekdays={s.offWeekdays || []} />
       ) : (
         <Txt dim size={font.small}>Check in at the gym to start your streak 💪</Txt>
       )}

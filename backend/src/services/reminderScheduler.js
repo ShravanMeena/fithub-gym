@@ -109,6 +109,34 @@ async function dietNudge(utcMin) {
   }
 }
 
+// Hydration nudges — active members who are under their daily water goal get a
+// reminder at 2pm & 7pm local. Global on/off via the 'water_reminders' setting.
+const WATER_NUDGE_MINS = [14 * 60, 19 * 60];
+async function waterNudge(utcMin) {
+  if ((await getSetting('water_reminders', 'on')) === 'off') return;
+  const tzRows = await q('SELECT DISTINCT tz_offset FROM device_tokens');
+  for (const { tz_offset: tz } of tzRows) {
+    const localMin = (((utcMin + tz) % 1440) + 1440) % 1440;
+    if (!WATER_NUDGE_MINS.includes(localMin)) continue;
+    const rows = await q(
+      `SELECT DISTINCT dt.token FROM device_tokens dt JOIN users u ON u.id = dt.user_id
+       WHERE dt.tz_offset = $1
+         AND EXISTS (SELECT 1 FROM attendance a WHERE a.user_id = u.id AND a.checked_in_at >= now() - interval '10 days')
+         AND COALESCE((SELECT ml FROM water_intake w WHERE w.user_id = u.id
+              AND w.day = (now() + make_interval(mins => $1))::date), 0) < COALESCE(u.water_goal_ml, 3000)`,
+      [tz]
+    );
+    if (rows.length) {
+      await sendToTokens(rows.map((r) => r.token), {
+        title: '💧 Time to hydrate',
+        body: 'Sip some water and log it — stay on track for your daily goal.',
+        data: { type: 'water', screen: 'Diet' },
+      });
+      console.log(`[reminders] water nudge pushed to ${rows.length} device(s) (tz ${tz})`);
+    }
+  }
+}
+
 // Sunday 10am local: nudge active members to open their weekly recap.
 const RECAP_LOCAL_MIN = 10 * 60;
 async function weeklyRecap(utcMin) {
@@ -144,6 +172,7 @@ async function tick() {
     streakSaver(utcMin).catch((e) => console.log('[reminders] streak-saver error —', e.message));
     weeklyRecap(utcMin).catch((e) => console.log('[reminders] weekly recap error —', e.message));
     dietNudge(utcMin).catch((e) => console.log('[reminders] diet nudge error —', e.message));
+    waterNudge(utcMin).catch((e) => console.log('[reminders] water nudge error —', e.message));
     dailyMessages(utcMin).catch((e) => console.log('[reminders] daily message error —', e.message));
 
     // Due = local minute-of-day equals the reminder's hour*60+minute, enabled,

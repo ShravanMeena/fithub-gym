@@ -28,6 +28,7 @@ export default function FoodScanScreen({ navigation }: any) {
   const [analyzing, setAnalyzing] = useState(false);
   const [logging, setLogging] = useState(false);
   const [desc, setDesc] = useState('');
+  const [note, setNote] = useState(''); // optional context added before analyzing a photo
   const [source, setSource] = useState<'photo' | 'manual'>('photo');
   const scrollRef = useRef<ScrollView>(null);
 
@@ -54,15 +55,17 @@ export default function FoodScanScreen({ navigation }: any) {
     : FOODS;
 
   // ---- AI scan ----
-  const pickAndAnalyze = (from: 'camera' | 'library') => {
+  // Pick a photo but DON'T analyze yet — let the user add context first.
+  const pickPhoto = (from: 'camera' | 'library') => {
     if (!aiActive) { showPaywall('AI food scanning'); return; }
     captureImage(from).then((a) => {
-      if (a?.base64) { setAsset(a); setEstimate(null); setSource('photo'); analyze(a); }
+      if (a?.base64) { setAsset(a); setEstimate(null); setNote(''); setSource('photo'); }
     });
   };
-  const analyze = async (a: Asset) => {
+  const analyzePhoto = async () => {
+    if (!asset?.base64) return;
     setAnalyzing(true);
-    try { setEstimate((await FoodAPI.estimate(a.base64!, a.type || 'image/jpeg')).estimate); }
+    try { setEstimate((await FoodAPI.estimate(asset.base64, asset.type || 'image/jpeg', note.trim() || undefined)).estimate); }
     catch (e) { Alert.alert('Analysis failed', apiError(e)); }
     finally { setAnalyzing(false); }
   };
@@ -74,6 +77,7 @@ export default function FoodScanScreen({ navigation }: any) {
     catch (e) { Alert.alert('Analysis failed', apiError(e)); }
     finally { setAnalyzing(false); }
   };
+  const resetScan = () => { setAsset(null); setEstimate(null); setNote(''); };
   const logMeal = async () => {
     if (!estimate) return;
     setLogging(true);
@@ -82,7 +86,7 @@ export default function FoodScanScreen({ navigation }: any) {
       const photo = source === 'photo' && asset?.base64 ? { imageBase64: asset.base64, mediaType: asset.type || 'image/jpeg' } : {};
       await FoodAPI.log({ name: estimate.name, calories: estimate.calories, protein_g: estimate.protein_g, carbs_g: estimate.carbs_g, fat_g: estimate.fat_g, items: estimate.items, source, ...photo });
       Alert.alert('Logged!', `${estimate.name} added to today.`, [{ text: 'OK', onPress: () => navigation.navigate('Today') }]);
-      setAsset(null); setEstimate(null); setDesc('');
+      setAsset(null); setEstimate(null); setDesc(''); setNote('');
     } catch (e) { Alert.alert('Error', apiError(e)); }
     finally { setLogging(false); }
   };
@@ -137,53 +141,71 @@ export default function FoodScanScreen({ navigation }: any) {
         </>
       ) : (
         <>
-          <Card style={{ borderColor: colors.primary }}>
-            <Txt weight="800" size={font.h3}>📸 Point your camera at your food</Txt>
-            <Txt dim size={font.small} style={{ marginTop: 4, marginBottom: spacing(1.5) }}>
-              AI instantly reads the calories, protein, carbs & fat — no weighing or guessing.
-            </Txt>
-            <View style={{ flexDirection: 'row', gap: spacing(1.5) }}>
-              <Button title="📷 Take Photo" onPress={() => pickAndAnalyze('camera')} style={{ flex: 1 }} />
-              <Button title="🖼 Gallery" variant="ghost" onPress={() => pickAndAnalyze('library')} style={{ flex: 1 }} />
-            </View>
-            {!aiActive && (
-              <Txt size={font.tiny} style={{ marginTop: 10, color: colors.primary, fontWeight: '700' }}>✨ Premium feature — Quick add stays free.</Txt>
-            )}
-          </Card>
+          {/* STEP 1 — capture (only before a photo is taken/analyzed) */}
+          {!asset && !estimate && !analyzing ? (
+            <>
+              <Card style={{ borderColor: colors.primary }}>
+                <Txt weight="800" size={font.h3}>📸 Snap your meal</Txt>
+                <Txt dim size={font.small} style={{ marginTop: 4, marginBottom: spacing(1.5) }}>
+                  Take a photo, add a quick note if needed, then analyze — you get the calories & macros with a short explanation.
+                </Txt>
+                <View style={{ flexDirection: 'row', gap: spacing(1.5) }}>
+                  <Button title="📷 Take Photo" onPress={() => pickPhoto('camera')} style={{ flex: 1 }} />
+                  <Button title="🖼 Gallery" variant="ghost" onPress={() => pickPhoto('library')} style={{ flex: 1 }} />
+                </View>
+                {!aiActive && (
+                  <Txt size={font.tiny} style={{ marginTop: 10, color: colors.primary, fontWeight: '700' }}>✨ Premium feature — Quick add stays free.</Txt>
+                )}
+              </Card>
 
-          {/* Barcode scan — free, no AI (Open Food Facts) */}
-          <Card onPress={() => navigation.navigate('BarcodeScan')} style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing(1.5) }}>
-            <Txt size={26} style={{ marginRight: spacing(1.5) }}>📷</Txt>
-            <View style={{ flex: 1 }}>
-              <Txt weight="800">Scan a barcode</Txt>
-              <Txt dim size={font.small} style={{ marginTop: 2 }}>Packaged food? Get exact macros instantly — free.</Txt>
-            </View>
-            <Txt size={font.h3} dim>›</Txt>
-          </Card>
+              <Card onPress={() => navigation.navigate('BarcodeScan')} style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing(1.5) }}>
+                <Txt size={26} style={{ marginRight: spacing(1.5) }}>📷</Txt>
+                <View style={{ flex: 1 }}>
+                  <Txt weight="800">Scan a barcode</Txt>
+                  <Txt dim size={font.small} style={{ marginTop: 2 }}>Packaged food? Get exact macros instantly — free.</Txt>
+                </View>
+                <Txt size={font.h3} dim>›</Txt>
+              </Card>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing(1.5) }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-            <Txt dim size={font.small} style={{ marginHorizontal: spacing(1.5) }}>or just type it</Txt>
-            <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-          </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing(1.5) }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+                <Txt dim size={font.small} style={{ marginHorizontal: spacing(1.5) }}>or just type it</Txt>
+                <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+              </View>
 
-          <Card>
-            <Txt weight="700" style={{ marginBottom: 8 }}>Describe your meal ✍️</Txt>
-            <Field value={desc} onChangeText={setDesc} placeholder="e.g. 2 eggs and butter roti with milk" multiline style={{ height: 80, textAlignVertical: 'top', paddingTop: 12 }} />
-            <Button title="✨ Estimate from Text" loading={analyzing && source === 'manual'} onPress={analyzeText} />
-          </Card>
+              <Card>
+                <Txt weight="700" style={{ marginBottom: 8 }}>Describe your meal ✍️</Txt>
+                <Field value={desc} onChangeText={setDesc} placeholder="e.g. 2 eggs and butter roti with milk" multiline style={{ height: 80, textAlignVertical: 'top', paddingTop: 12 }} />
+                <Button title="✨ Analyze" loading={analyzing && source === 'manual'} onPress={analyzeText} />
+              </Card>
+            </>
+          ) : null}
 
-          {asset?.uri && <Image source={{ uri: asset.uri }} style={{ width: '100%', height: 240, borderRadius: radius.md, marginTop: spacing(2) }} />}
+          {/* STEP 2 — review photo, add context, then analyze */}
+          {asset && !estimate && !analyzing ? (
+            <Card style={{ borderColor: colors.primary }}>
+              <Image source={{ uri: asset.uri }} style={{ width: '100%', height: 220, borderRadius: radius.md }} />
+              <Txt weight="800" size={font.h3} style={{ marginTop: spacing(1.5) }}>Add details (optional)</Txt>
+              <Txt dim size={font.small} style={{ marginTop: 2, marginBottom: 8 }}>
+                A note makes it far more accurate — portion size, if you already ate some, extra oil/ghee, etc.
+              </Txt>
+              <Field value={note} onChangeText={setNote} placeholder="e.g. only ate half, extra ghee on the roti, large bowl" multiline style={{ height: 74, textAlignVertical: 'top', paddingTop: 12 }} />
+              <Button title="✨ Analyze" onPress={analyzePhoto} style={{ marginTop: spacing(0.5) }} />
+              <Button title="🔄 Retake photo" variant="ghost" onPress={resetScan} style={{ marginTop: spacing(1) }} />
+            </Card>
+          ) : null}
 
           {analyzing && (
             <Card style={{ marginTop: spacing(2), alignItems: 'center' }}>
               <Txt weight="700" style={{ color: colors.primary }}>Analyzing your meal…</Txt>
-              <Txt dim size={font.small} style={{ marginTop: 4 }}>Identifying foods and portions</Txt>
+              <Txt dim size={font.small} style={{ marginTop: 4 }}>Reading the foods, portions & macros</Txt>
             </Card>
           )}
 
-          {estimate && (
+          {/* RESULT */}
+          {estimate && !analyzing && (
             <>
+              {asset?.uri ? <Image source={{ uri: asset.uri }} style={{ width: '100%', height: 200, borderRadius: radius.md, marginTop: spacing(2) }} /> : null}
               <Card style={{ marginTop: spacing(2), borderColor: colors.primary }}>
                 <Txt weight="800" size={font.h3}>{estimate.name}</Txt>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing(1.5) }}>
@@ -194,13 +216,23 @@ export default function FoodScanScreen({ navigation }: any) {
                   {estimate.sugar_g != null ? <Macro label="Sugar" value={`${Math.round(estimate.sugar_g)}g`} color={colors.danger} /> : null}
                 </View>
               </Card>
+
+              {estimate.explanation ? (
+                <Card style={{ borderColor: colors.accent, backgroundColor: colors.accent + '12' }}>
+                  <Txt weight="800" style={{ color: colors.accent, marginBottom: 4 }}>🧠 Why these numbers</Txt>
+                  <Txt size={font.small} style={{ lineHeight: 20 }}>{estimate.explanation}</Txt>
+                </Card>
+              ) : null}
+
               {estimate.warnings?.length ? (
                 <Card style={{ borderColor: colors.carbs, backgroundColor: colors.carbs + '14' }}>
                   <Txt weight="800" style={{ color: colors.carbs, marginBottom: 4 }}>Heads up ⚠️</Txt>
                   {estimate.warnings.map((w: string, i: number) => <Txt key={i} size={font.small} style={{ marginTop: 4 }}>{w}</Txt>)}
                 </Card>
               ) : null}
+
               <Button title="✅ Log this meal" loading={logging} onPress={logMeal} />
+              <Button title="🔄 Scan again" variant="ghost" onPress={resetScan} style={{ marginTop: spacing(1) }} />
             </>
           )}
         </>

@@ -133,20 +133,25 @@ export async function estimateFoodFromImage({ imageBase64, mediaType = 'image/jp
         { name: 'Mixed salad + dressing', calories: 105, protein_g: 2, carbs_g: 7, fat_g: 8 },
       ],
       warnings: [],
+      explanation: 'Estimated from a grilled chicken breast (~150g), one cup of rice and a small salad — solid 46g of protein, good for muscle. Keep the dressing light to trim the fat.',
     };
     est.warnings = deriveWarnings(est);
     return est;
   }
 
   const system =
-    'You are a nutrition vision expert. Identify the foods in the image and estimate ' +
+    'You are a friendly nutrition vision expert. Identify the foods in the image and estimate ' +
     'realistic portion sizes and nutrition. Respond with ONLY a JSON object, no prose. ' +
     'Schema: {"name": string, "calories": number, "protein_g": number, "carbs_g": number, ' +
     '"fat_g": number, "sugar_g": number, "confidence": "low"|"medium"|"high", "items": [{"name": string, ' +
-    '"calories": number, "protein_g": number, "carbs_g": number, "fat_g": number}], "warnings": [string]}. ' +
+    '"calories": number, "protein_g": number, "carbs_g": number, "fat_g": number}], "warnings": [string], ' +
+    '"explanation": string}. ' +
     'All macro values are grams. Totals must equal the sum of items. In "warnings" add short, friendly ' +
     'health notes ONLY if relevant — e.g. high fat, high/added sugar, very oily/fried, high salt, ' +
-    'highly processed/junk. Keep each warning under 8 words. Empty array if the meal is clean.';
+    'highly processed/junk. Keep each warning under 8 words. Empty array if the meal is clean. ' +
+    'In "explanation" write 2-3 short, plain-English sentences a gym-goer understands: how you read the ' +
+    'portions to reach the numbers, whether the protein is good, and one clear tip on what to do (eat more/less of X, ' +
+    'good for muscle/fat-loss, etc.). Encouraging, no jargon. Respect the user note if given.';
 
   const content = [
     {
@@ -191,21 +196,24 @@ export async function estimateFoodFromText({ description, ctx }) {
         { name: 'Butter roti', calories: 180, protein_g: 6, carbs_g: 29, fat_g: 4 },
       ],
       warnings: [],
+      explanation: 'Based on 2 eggs and a butter roti — a light ~18g protein. Add dal or curd to push the protein up for muscle.',
     };
     est.warnings = deriveWarnings(est);
     return est;
   }
 
   const system =
-    'You are a nutrition expert. The user describes a meal in plain text (often Indian home food). ' +
+    'You are a friendly nutrition expert. The user describes a meal in plain text (often Indian home food). ' +
     'Estimate realistic portions and nutrition. Assume typical home serving sizes if not specified. ' +
     'Respond with ONLY a JSON object, no prose. Schema: {"name": string, "calories": number, ' +
     '"protein_g": number, "carbs_g": number, "fat_g": number, "sugar_g": number, ' +
     '"confidence": "low"|"medium"|"high", "items": [{"name": string, "calories": number, ' +
-    '"protein_g": number, "carbs_g": number, "fat_g": number}], "warnings": [string]}. ' +
+    '"protein_g": number, "carbs_g": number, "fat_g": number}], "warnings": [string], "explanation": string}. ' +
     'All macros in grams. Totals must equal the sum of items. In "warnings" add short friendly health ' +
     'notes ONLY if relevant (high fat, high/added sugar, very oily/fried, high salt, junk). ' +
-    'Under 8 words each. Empty array if clean.';
+    'Under 8 words each. Empty array if clean. ' +
+    'In "explanation" write 2-3 short, plain-English sentences: how you estimated the portions/numbers, ' +
+    'whether the protein is good, and one clear tip on what to do. Encouraging, no jargon.';
 
   const text = await invokeClaude({
     system,
