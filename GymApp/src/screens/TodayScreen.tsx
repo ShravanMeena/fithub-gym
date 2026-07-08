@@ -2,6 +2,7 @@
 // calories, then one nudge. Everything else lives under the Me tab.
 import React, { useCallback, useState } from 'react';
 import { ScrollView, View, RefreshControl, TouchableOpacity, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Card, Txt, Button } from '../components/UI';
 import { CalorieSummary, MacroBars } from '../components/Macros';
@@ -20,6 +21,7 @@ const greet = () => {
 };
 
 export default function TodayScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { org, refreshOrg } = useOrg();
   const [targets, setTargets] = useState<any>(null);
@@ -50,7 +52,7 @@ export default function TodayScreen({ navigation }: any) {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.bg }}
-      contentContainerStyle={{ padding: spacing(2) }}
+      contentContainerStyle={{ padding: spacing(2), paddingTop: insets.top + spacing(1) }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
 
       {/* Greeting */}

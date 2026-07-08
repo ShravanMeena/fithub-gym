@@ -13,7 +13,7 @@ export const PROD_API_URL = 'https://fithub.shravanmeena.com/api';
 
 // App version for the server-driven update check. Keep in sync with the native
 // versionName (android/app/build.gradle + iOS) on every release.
-export const APP_VERSION = '1.21';
+export const APP_VERSION = '1.22';
 
 // Local-dev fallback (only used when PROD_API_URL is empty).
 export const LAN_IP = '192.168.1.15';

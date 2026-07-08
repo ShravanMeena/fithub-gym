@@ -78,7 +78,7 @@ function MainTabs() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textDim,
       }}>
-      <Tab.Screen name="Today" component={TodayScreen} options={{ title: 'Home', tabBarLabel: 'Home', tabBarIcon: tabIcon('home') }} />
+      <Tab.Screen name="Today" component={TodayScreen} options={{ headerShown: false, tabBarLabel: 'Home', tabBarIcon: tabIcon('home') }} />
       <Tab.Screen name="Diet" component={DietScreen} options={{ tabBarIcon: tabIcon('diet') }} />
       <Tab.Screen
         name="Scan"
