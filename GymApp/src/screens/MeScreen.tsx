@@ -2,7 +2,7 @@
 // Replaces the old hamburger sidebar: profile, progress, premium, and grouped
 // links to every secondary screen (all kept, just tucked out of the main flow).
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, TouchableOpacity, Linking } from 'react-native';
+import { ScrollView, View, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Card, Txt } from '../components/UI';
 import { Avatar } from '../components/Avatar';
 import { Icon, IconName } from '../components/Icon';
@@ -20,8 +20,6 @@ const GROUPS: { title: string; items: Item[] }[] = [
     { label: 'AI Coach', icon: 'coach', screen: 'Coach' },
   ] },
   { title: 'Training', items: [
-    { label: 'Log a workout', icon: 'workout', screen: 'Workout' },
-    { label: 'Personal records', icon: 'workout', screen: 'PRs' },
     { label: 'Badges', icon: 'attendance', screen: 'Badges' },
     { label: 'Attendance history', icon: 'attendance', screen: 'Attendance' },
   ] },
@@ -49,6 +47,14 @@ export default function MeScreen({ navigation }: any) {
   useEffect(() => { AppAPI.checkUpdate().then((d) => { if (d?.update) setUpd(d); }).catch(() => {}); }, []);
 
   const go = (screen: string) => navigation.navigate(screen);
+
+  // Changing gym means signing out to pick a different gym (accounts are per-gym).
+  const changeGym = () => {
+    Alert.alert('Change gym?', "You'll be signed out so you can pick a different gym.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Change gym', onPress: async () => { await clearOrg().catch(() => {}); await logout().catch(() => {}); } },
+    ]);
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: spacing(2), paddingBottom: spacing(5) }}>
@@ -104,7 +110,7 @@ export default function MeScreen({ navigation }: any) {
       {/* Change gym / log out */}
       <View style={{ marginTop: spacing(2) }}>
         <Card style={{ padding: 0 }}>
-          <TouchableOpacity onPress={() => clearOrg()} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 15, paddingHorizontal: spacing(2) }}>
+          <TouchableOpacity onPress={changeGym} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 15, paddingHorizontal: spacing(2) }}>
             <View style={{ width: 32 }}><Icon name="changegym" color={colors.textDim} size={20} /></View>
             <Txt size={font.body}>Change gym</Txt>
           </TouchableOpacity>

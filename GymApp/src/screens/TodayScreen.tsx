@@ -70,52 +70,54 @@ export default function TodayScreen({ navigation }: any) {
 
       <NoticeBanner />
 
-      {/* Finish-setup nudge — only until targets are set */}
-      {!targets && (
-        <Card style={{ borderColor: colors.primary }}>
-          <Txt weight="800">🥗 Get your personalised plan</Txt>
-          <Txt dim size={font.small} style={{ marginVertical: 8 }}>Tell us your goal & body stats — we'll set your daily calories, protein target and a meal plan built just for you.</Txt>
-          <Button title="Set up my plan" onPress={() => navigation.navigate('Profile')} />
-        </Card>
-      )}
-
       {/* 1) The #1 habit — check in */}
       <AttendanceManager attendance={attendance} reload={load} gymName={org?.name || user?.org?.name} />
 
       {/* Streak */}
       <StreakCard onLeaderboard={() => navigation.navigate('Challenges')} />
 
-      {/* 2) Today's calories */}
-      <Card>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Txt dim size={font.small} weight="800" style={{ letterSpacing: 1 }}>TODAY'S CALORIES</Txt>
-          {kcalLeft != null && <Txt size={font.small} weight="800" style={{ color: colors.primary }}>{kcalLeft} kcal left</Txt>}
-        </View>
-        <View style={{ marginTop: spacing(1) }}><CalorieSummary consumed={totals.calories} target={targets?.calories} /></View>
-        <View style={{ height: 1, backgroundColor: colors.border, marginVertical: spacing(1.5) }} />
-        <MacroBars protein={totals.protein_g} carbs={totals.carbs_g} fat={totals.fat_g} targets={targets} />
-
-        {/* Meal plan — surfaced from Diet */}
-        <TouchableOpacity onPress={() => navigation.navigate('Diet')} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardAlt, borderRadius: radius.md, padding: spacing(1.25), marginTop: spacing(1.5) }}>
-          <Txt size={20} style={{ marginRight: 10 }}>🥗</Txt>
-          <View style={{ flex: 1 }}>
-            {plan ? (
-              <>
-                <Txt weight="700" size={font.small} numberOfLines={1}>{plan.title || 'Your meal plan'}</Txt>
-                <Txt dim size={font.tiny}>{(plan.meals || []).length} meals · what to eat today</Txt>
-              </>
-            ) : (
-              <>
-                <Txt weight="700" size={font.small}>Get your meal plan</Txt>
-                <Txt dim size={font.tiny}>Know exactly what to eat for your goal</Txt>
-              </>
-            )}
+      {/* 2) Today's calories — or a profile-completion prompt if not set up yet */}
+      {targets ? (
+        <Card>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Txt dim size={font.small} weight="800" style={{ letterSpacing: 1 }}>TODAY'S CALORIES</Txt>
+            {kcalLeft != null && <Txt size={font.small} weight="800" style={{ color: colors.primary }}>{kcalLeft} kcal left</Txt>}
           </View>
-          <Txt size={18} dim>›</Txt>
-        </TouchableOpacity>
+          <View style={{ marginTop: spacing(1) }}><CalorieSummary consumed={totals.calories} target={targets?.calories} /></View>
+          <View style={{ height: 1, backgroundColor: colors.border, marginVertical: spacing(1.5) }} />
+          <MacroBars protein={totals.protein_g} carbs={totals.carbs_g} fat={totals.fat_g} targets={targets} />
 
-        <Button title="📷 Log food" onPress={() => navigation.navigate('Scan')} style={{ marginTop: spacing(1.5) }} />
-      </Card>
+          {/* Meal plan — surfaced from Diet */}
+          <TouchableOpacity onPress={() => navigation.navigate('Diet')} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardAlt, borderRadius: radius.md, padding: spacing(1.25), marginTop: spacing(1.5) }}>
+            <Txt size={20} style={{ marginRight: 10 }}>🥗</Txt>
+            <View style={{ flex: 1 }}>
+              {plan ? (
+                <>
+                  <Txt weight="700" size={font.small} numberOfLines={1}>{plan.title || 'Your meal plan'}</Txt>
+                  <Txt dim size={font.tiny}>{(plan.meals || []).length} meals · what to eat today</Txt>
+                </>
+              ) : (
+                <>
+                  <Txt weight="700" size={font.small}>Get your meal plan</Txt>
+                  <Txt dim size={font.tiny}>Know exactly what to eat for your goal</Txt>
+                </>
+              )}
+            </View>
+            <Txt size={18} dim>›</Txt>
+          </TouchableOpacity>
+
+          <Button title="📷 Log food" onPress={() => navigation.navigate('Scan')} style={{ marginTop: spacing(1.5) }} />
+        </Card>
+      ) : (
+        <Card style={{ borderColor: colors.primary, alignItems: 'center', paddingVertical: spacing(3) }}>
+          <Txt size={36}>📋</Txt>
+          <Txt size={font.h2} weight="900" style={{ marginTop: spacing(1), textAlign: 'center' }}>Finish your profile</Txt>
+          <Txt dim size={font.body} style={{ marginTop: spacing(1), textAlign: 'center', maxWidth: 300, lineHeight: 21 }}>
+            Add your goal, weight and height — we'll set your daily <Txt weight="800" style={{ color: colors.text }}>calorie & protein targets</Txt> and build a meal plan just for you.
+          </Txt>
+          <Button title="Complete my profile →" onPress={() => navigation.navigate('Profile')} style={{ marginTop: spacing(2), alignSelf: 'stretch' }} />
+        </Card>
+      )}
 
       {/* 3) One nudge — leaderboard */}
       <Card onPress={() => navigation.navigate('Challenges')} style={{ borderColor: colors.primary, backgroundColor: colors.primary + '10' }}>
