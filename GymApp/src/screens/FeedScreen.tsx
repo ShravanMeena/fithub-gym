@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, FlatList, Image, Alert, TouchableOpacity, RefreshControl, Modal, ScrollView } from 'react-native';
+import { View, FlatList, Image, Alert, TouchableOpacity, RefreshControl, Modal, ScrollView, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Asset } from 'react-native-image-picker';
 import Video from 'react-native-video';
@@ -397,12 +397,16 @@ export default function FeedScreen() {
       }
     />
 
-    {/* Composer bottom sheet */}
-    <Modal visible={composerOpen} transparent animationType="slide" onRequestClose={() => setComposerOpen(false)}>
-      <View style={{ flex: 1, backgroundColor: '#000a', justifyContent: 'flex-end' }}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setComposerOpen(false)} />
-        <ComposerSheet onSubmit={submitPost} onClose={() => setComposerOpen(false)} />
-      </View>
+    {/* Composer bottom sheet — lifts above the keyboard; tap outside closes both */}
+    <Modal visible={composerOpen} transparent animationType="slide" onRequestClose={() => { Keyboard.dismiss(); setComposerOpen(false); }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: '#000a', justifyContent: 'flex-end' }}>
+          <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); setComposerOpen(false); }}>
+            <View style={{ flex: 1 }} />
+          </TouchableWithoutFeedback>
+          <ComposerSheet onSubmit={submitPost} onClose={() => { Keyboard.dismiss(); setComposerOpen(false); }} />
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
     </>
   );

@@ -63,7 +63,9 @@ export const ChatAPI = {
   direct: (userId: number) => api.post(`/chat/direct/${userId}`).then((r) => r.data),
   messages: (id: number, params?: { after?: number; before?: number }) =>
     api.get(`/chat/${id}/messages`, { params: params || {} }).then((r) => r.data),
-  send: (id: number, body: string) => api.post(`/chat/${id}/messages`, { body }).then((r) => r.data),
+  send: (id: number, payload: { body?: string; imageBase64?: string; mediaType?: string; replyToId?: number }) =>
+    api.post(`/chat/${id}/messages`, payload).then((r) => r.data),
+  react: (mid: number, emoji: string) => api.post(`/chat/messages/${mid}/react`, { emoji }).then((r) => r.data),
   delMessage: (mid: number) => api.delete(`/chat/messages/${mid}`).then((r) => r.data),
   convMembers: (id: number) => api.get(`/chat/${id}/members`).then((r) => r.data),
   block: (id: number, userId: number) => api.post(`/chat/${id}/members/${userId}/block`).then((r) => r.data),
@@ -211,6 +213,9 @@ export const FoodAPI = {
 
 // <Image> source for a meal photo attached to a food log (JWT header).
 export const mealPhotoSource = (photoUrl: string) => authedImageSource(photoUrl);
+
+// <Image> source for a chat photo (JWT header).
+export const chatImageSource = (url: string) => authedImageSource(url);
 
 export const ProgressAPI = {
   list: () => api.get('/progress').then((r) => r.data),

@@ -408,6 +408,16 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE INDEX IF NOT EXISTS idx_chat_msg_conv ON chat_messages(conversation_id, id);
 CREATE INDEX IF NOT EXISTS idx_conv_members_user ON conversation_members(user_id);
 
+-- Chat: photo attachments, replies, and message reactions.
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS image_path TEXT;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS reply_to_id INTEGER;
+CREATE TABLE IF NOT EXISTS chat_reactions (
+  message_id INTEGER NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  emoji TEXT NOT NULL,
+  PRIMARY KEY (message_id, user_id)
+);
+
 -- Early-access / waitlist signups from the marketing site.
 CREATE TABLE IF NOT EXISTS early_access (
   id SERIAL PRIMARY KEY,
